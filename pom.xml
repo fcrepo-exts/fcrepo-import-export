@@ -13,16 +13,21 @@
 
   <name>fcrepo-import-export</name>
   <url>http://maven.apache.org</url>
+
+  <properties>
+    <exec.plugin.version>1.5.0</exec.plugin.version>
+    <shade.plugin.version>2.4.3</shade.plugin.version>
+    <junit.version>4.11</junit.version>
+  </properties>
   
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>3.8.1</version>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
 
   <scm>
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
@@ -36,7 +41,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
+        <version>${exec.plugin.version}</version>
         <executions>
           <execution>
             <goals>
@@ -48,6 +53,30 @@
           <mainClass>org.fcrepo.importexport.ImportExport</mainClass>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${shade.plugin.version}</version>
+        <executions>
+          <!-- Run shade goal on package phase -->
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <!-- add Main-Class to manifest file -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.fcrepo.importexport.ImportExport</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 </project>
