@@ -1,0 +1,13 @@
+target/
+.classpath
+.settings/
+.project
+.metadata
+*/.cache
+.cache
+.DS_Store
+*~
+*.iml
+.idea/
+.checkstyle
+.idea/
