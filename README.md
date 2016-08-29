@@ -12,7 +12,13 @@ Additional requirements for building and running from source:
 * Maven 3
 
 
-To run the utility:
+To run the standalone utility:
+
+```sh
+$ java -jar fcrepo-import-export-<version>.jar
+```
+
+To run the utility with Maven:
 
 ```sh
 $ mvn exec:java
