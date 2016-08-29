@@ -24,7 +24,7 @@ import junit.framework.TestSuite;
 /**
  * Unit test for simple App.
  */
-public class importexportTest 
+public class ImportExportTest 
     extends TestCase
 {
     /**
@@ -32,7 +32,7 @@ public class importexportTest
      *
      * @param testName name of the test case
      */
-    public importexportTest( String testName )
+    public ImportExportTest( String testName )
     {
         super( testName );
     }
@@ -42,7 +42,7 @@ public class importexportTest
      */
     public static Test suite()
     {
-        return new TestSuite( importexportTest.class );
+        return new TestSuite( ImportExportTest.class );
     }
 
     /**

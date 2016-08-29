@@ -21,7 +21,7 @@ package org.fcrepo.importexport;
  * Hello world!
  *
  */
-public class importexport 
+public class ImportExport 
 {
     public static void main( String[] args )
     {
