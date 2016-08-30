@@ -34,5 +34,10 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.fcrepo.importexport</groupId>
+      <artifactId>fcrepo-import-export-tests</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

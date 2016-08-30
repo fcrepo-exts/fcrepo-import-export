@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:fedora="http://fedora.info/definitions/v4/repository#"
+	xmlns:xml="http://www.w3.org/XML/1998/namespace"
+	xmlns:ldp="http://www.w3.org/ns/ldp#"
+	xmlns:dc="http://purl.org/dc/elements/1.1/">
+
+<rdf:Description rdf:about="http://localhost:8080/fcrepo/rest/BOOK1">
+	<rdf:type rdf:resource="http://www.w3.org/ns/ldp#RDFSource"/>
+	<rdf:type rdf:resource="http://www.w3.org/ns/ldp#Container"/>
+	<rdf:type rdf:resource="http://fedora.info/definitions/v4/repository#Container"/>
+	<rdf:type rdf:resource="http://fedora.info/definitions/v4/repository#Resource"/>
+	<fedora:lastModifiedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">bypassAdmin</fedora:lastModifiedBy>
+	<fedora:createdBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">bypassAdmin</fedora:createdBy>
+	<fedora:created rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-12-01T21:14:47.528Z</fedora:created>
+	<fedora:lastModified rdf:datatype="http://www.w3.org/2001/XMLSchema#dateTime">2015-12-02T18:20:33.052Z</fedora:lastModified>
+	<fedora:writable rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</fedora:writable>
+	<fedora:hasParent rdf:resource="http://localhost:8080/fcrepo/rest/"/>
+	<ldp:contains rdf:resource="http://localhost:8080/fcrepo/rest/BOOK1/goats"/>
+	<ldp:contains rdf:resource="http://localhost:8080/fcrepo/rest/BOOK1/page1"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://localhost:8080/fcrepo/rest/BOOK1/fcr:export?format=jcr/xml">
+	<dc:format rdf:resource="http://fedora.info/definitions/v4/repository#jcr/xml"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://localhost:8080/fcrepo/rest/BOOK1">
+	<fedora:exportsAs rdf:resource="http://localhost:8080/fcrepo/rest/BOOK1/fcr:export?format=jcr/xml"/>
+</rdf:Description>
+
+</rdf:RDF>
