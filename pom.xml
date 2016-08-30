@@ -8,7 +8,7 @@
   
   <groupId>org.fcrepo.importexport</groupId> 
   <artifactId>fcrepo-import-export</artifactId>
-  <packaging>jar</packaging>
+  <packaging>pom</packaging>
   <version>0.0.1-SNAPSHOT</version>
 
   <name>fcrepo-import-export</name>
@@ -20,23 +20,36 @@
     <commons-cli.version>1.3.1</commons-cli.version>
     <junit.version>4.11</junit.version>
   </properties>
-  
-  <dependencies>
 
-    <dependency>
-      <groupId>commons-cli</groupId>
-      <artifactId>commons-cli</artifactId>
-      <version>${commons-cli.version}</version>
-    </dependency>
+  <modules>
+    <module>fcrepo-import</module>
+    <module>fcrepo-export</module>
+    <module>fcrepo-import-export-tests</module>
+  </modules>
 
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    
-  </dependencies>
+  <dependencyManagement>
+    <dependencies>
+
+      <dependency>
+        <groupId>commons-cli</groupId>
+        <artifactId>commons-cli</artifactId>
+        <version>${commons-cli.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.fcrepo.importexport</groupId>
+        <artifactId>fcrepo-import-export-tests</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>  
 
   <scm>
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
