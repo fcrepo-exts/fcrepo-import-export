@@ -17,39 +17,24 @@
  */
 package org.fcrepo.importexport;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 /**
- * Unit test for simple App.
+ * @author awoods
+ * @since 2016-08-29
  */
-public class ImportExportTest 
-    extends TestCase
-{
+public class Exporter {
+
     /**
-     * Create the test case
+     * Constructor that takes the Import/Export configuration
      *
-     * @param testName name of the test case
+     * @param config for export
      */
-    public ImportExportTest( String testName )
-    {
-        super( testName );
+    public Exporter(final Config config) {
     }
 
     /**
-     * @return the suite of tests being tested
+     * This method does the export
      */
-    public static Test suite()
-    {
-        return new TestSuite( ImportExportTest.class );
-    }
-
-    /**
-     * Rigourous Test :-)
-     */
-    public void testimportexport()
-    {
-        assertTrue( true );
+    public void run() {
+        System.out.println("Exporting!");
     }
 }

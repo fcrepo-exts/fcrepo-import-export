@@ -18,13 +18,23 @@
 package org.fcrepo.importexport;
 
 /**
- * Hello world!
- *
+ * @author awoods
+ * @since 2016-08-29
  */
-public class ImportExport 
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
+public class Importer {
+
+    /**
+     * Constructor that takes the Import/Export configuration
+     *
+     * @param config for import
+     */
+    public Importer(final Config config) {
+    }
+
+    /**
+     * This method does the import
+     */
+    public void run() {
+        System.out.println("Importing!");
     }
 }
