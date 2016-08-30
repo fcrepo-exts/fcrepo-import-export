@@ -12,11 +12,19 @@ Additional requirements for building and running from source:
 * Maven 3
 
 
-To run the standalone utility:
+To run the standalone export utility:
 
 ```sh
-$ java -jar fcrepo-import-export-<version>.jar --mode [import|export]
+$ java -jar fcrepo-export/target/fcrepo-export-<version>.jar --mode export --resource <URI> --binDir <dir> --descDir <dir>
 ```
+
+To control the format of the exported RDF, the extension and RDF language/serialization format can also be specified by adding, e.g.:
+
+```sh
+--rdfExt .jsonld --rdfLang application/ld+json
+```
+
+The list of RDF languages supported can be found in the [RESTful HTTP API documentation](application/ld+json).
 
 To run the utility with Maven:
 
