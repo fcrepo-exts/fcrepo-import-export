@@ -15,43 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importexport;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+package org.fcrepo.export;
 
 /**
- * @author awoods
+ * @author ruebot
  * @since 2016-08-29
  */
-public class ArgParserTest {
+public class ImportExportDriver {
 
-    private ArgParser parser;
+    /**
+     * The main entry point
+     *
+     * @param args from the command line
+     */
+    public static void main(final String[] args) {
+        final ImportExportDriver driver = new ImportExportDriver();
 
-    @Before
-    public void setUp() throws Exception {
-        parser = new ArgParser();
+        try {
+            driver.run(args);
+
+        } catch (final Exception e) {
+            // swallow exception
+        }
     }
 
-    @Test
-    public void parseValidImport() throws Exception {
-        final String[] args = new String[]{"-m", "import"};
+    private void run(final String[] args) {
+        final ArgParser parser = new ArgParser();
         final Config config = parser.parse(args);
-        Assert.assertTrue(config.isImport());
-    }
 
-    @Test
-    public void parseValidExport() throws Exception {
-        final String[] args = new String[]{"-m", "export"};
-        final Config config = parser.parse(args);
-        Assert.assertTrue(config.isExport());
-    }
+        if (config.isImport()) {
+            final Importer importer = new Importer(config);
+            importer.run();
 
-    @Test (expected = RuntimeException.class)
-    public void parseInvalid() throws Exception {
-        final String[] args = new String[]{"junk"};
-        parser.parse(args);
+        } else {
+            final Exporter exporter = new Exporter(config);
+            exporter.run();
+        }
     }
 
 }

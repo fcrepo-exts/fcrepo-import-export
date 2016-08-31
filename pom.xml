@@ -5,8 +5,8 @@
     <artifactId>fcrepo-parent</artifactId>
     <version>4.6.0</version>
   </parent>
-  
-  <groupId>org.fcrepo.importexport</groupId> 
+
+  <groupId>org.fcrepo.importexport</groupId>
   <artifactId>fcrepo-import-export</artifactId>
   <packaging>pom</packaging>
   <version>0.0.1-SNAPSHOT</version>
@@ -49,7 +49,7 @@
       </dependency>
 
     </dependencies>
-  </dependencyManagement>  
+  </dependencyManagement>
 
   <scm>
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
@@ -72,7 +72,7 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>org.fcrepo.importexport.ImportExportDriver</mainClass>
+          <mainClass>org.fcrepo.export.ImportExportDriver</mainClass>
         </configuration>
       </plugin>
 
@@ -91,7 +91,7 @@
               <transformers>
                 <!-- add Main-Class to manifest file -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>org.fcrepo.importexport.ImportExportDriver</mainClass>
+                  <mainClass>org.fcrepo.export.ImportExportDriver</mainClass>
                 </transformer>
               </transformers>
             </configuration>
