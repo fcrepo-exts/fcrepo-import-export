@@ -36,8 +36,7 @@
 
     <dependency>
       <groupId>org.fcrepo.importexport</groupId>
-      <artifactId>fcrepo-import-export-tests</artifactId>
-      <scope>test</scope>
+      <artifactId>fcrepo-import-export-common</artifactId>
     </dependency>
 
   </dependencies>
