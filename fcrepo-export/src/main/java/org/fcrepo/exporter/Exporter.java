@@ -18,15 +18,21 @@
 package org.fcrepo.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -112,6 +118,20 @@ public class Exporter implements TransferProcess {
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
         } catch ( Exception ex ) { ex.printStackTrace(); }
+
+        exportMembers(file);
+    }
+    private void exportMembers(final File file) {
+        try {
+            final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
+            for (NodeIterator it = model.listObjectsOfProperty(CONTAINS); it.hasNext();) {
+                export(new URI(it.nextNode().toString()));
+            }
+        } catch (FileNotFoundException ex) {
+            logger.warn("Unable to parse file: {}", ex.toString());
+        } catch (URISyntaxException ex) {
+            logger.warn("Unable to parse URI: {}", ex.toString());
+        }
     }
     void writeResponse(final FcrepoResponse response, final File file)
             throws IOException {

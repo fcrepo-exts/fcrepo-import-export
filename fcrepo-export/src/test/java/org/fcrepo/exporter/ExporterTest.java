@@ -18,17 +18,23 @@
 package org.fcrepo.exporter;
 
 import static org.fcrepo.kernel.api.RdfLexicon.CONTAINER;
+import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
 import static org.fcrepo.kernel.api.RdfLexicon.NON_RDF_SOURCE;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 
 import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.GetBuilder;
@@ -43,29 +49,29 @@ import org.junit.Test;
 public class ExporterTest {
 
     private FcrepoClient client;
-    private FcrepoResponse getResponse;
     private FcrepoResponse headResponse;
     private List<URI> binaryLinks;
     private List<URI> containerLinks;
     private URI resource;
+    private URI resource2;
     private String[] args;
     private String[] metadataArgs;
 
     @Before
     public void setUp() throws Exception {
         client = mock(FcrepoClient.class);
-        getResponse = mock(FcrepoResponse.class);
         headResponse = mock(FcrepoResponse.class);
         resource = new URI("http://localhost:8080/rest/1");
+        resource2 = new URI("http://localhost:8080/rest/1/2");
         args = new String[]{"-m", "export",
-                            "-d", "/tmp/rdf",
-                            "-b", "/tmp/bin",
+                            "-d", "target/rdf",
+                            "-b", "target/bin",
                             "-x", ".jsonld",
                             "-l", "application/ld+json",
                             "-r", resource.toString()};
 
         metadataArgs = new String[]{"-m", "export",
-                                    "-d", "/tmp/rdf",
+                                    "-d", "target/rdf",
                                     "-x", ".jsonld",
                                     "-l", "application/ld+json",
                                     "-r", resource.toString()};
@@ -73,14 +79,22 @@ public class ExporterTest {
         binaryLinks = (List<URI>)Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = (List<URI>)Arrays.asList(new URI(CONTAINER.getURI()));
 
-        final GetBuilder getBuilder = mock(GetBuilder.class);
-        when(client.get(isA(URI.class))).thenReturn(getBuilder);
-        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
-        when(getBuilder.perform()).thenReturn(getResponse);
+        mockResponse(resource, "{\"@id\":\"" + resource.toString() + "\",\"" + CONTAINS.getURI()
+                + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
+        mockResponse(resource2, "{\"@id\":\"" + resource2.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
+    }
+
+    private void mockResponse(final URI uri, final String body) throws FcrepoOperationFailedException {
+        final GetBuilder getBuilder = mock(GetBuilder.class);
+        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
+        when(client.get(eq(uri))).thenReturn(getBuilder);
+        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
+        when(getBuilder.perform()).thenReturn(getResponse);
+        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
     }
 
     @Test
@@ -88,7 +102,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertEquals(new File("/tmp/bin/rest/1"), exporter.writtenFile);
+        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/1")));
     }
 
     @Test
@@ -96,7 +110,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
     }
 
     @Test
@@ -104,7 +118,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(metadataArgs), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertNull(exporter.writtenFile);
+        Assert.assertFalse(exporter.wroteFile(new File("/target/bin/rest/1")));
     }
 
     @Test
@@ -112,18 +126,31 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(metadataArgs), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
+    }
+
+    @Test
+    public void testRecursive() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1/2.jsonld")));
     }
 }
 
 class ExporterWrapper extends Exporter {
-    public File writtenFile = null;
+    private List<File> writtenFiles = new ArrayList<>();
 
     ExporterWrapper(final Config config, final FcrepoClient client) {
         super(config);
         this.client = client;
     }
-    void writeResponse(final FcrepoResponse response, final File file) {
-        writtenFile = file;
+    void writeResponse(final FcrepoResponse response, final File file) throws IOException {
+        super.writeResponse(response, file);
+        writtenFiles.add(file);
+    }
+    boolean wroteFile(final File file) {
+        return writtenFiles.contains(file);
     }
 }
