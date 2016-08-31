@@ -43,13 +43,14 @@ import org.junit.Test;
  */
 public class ExporterTest {
 
-    private ExporterWrapper exporter;
     private FcrepoClient client;
     private FcrepoResponse getResponse;
     private FcrepoResponse headResponse;
     private List<URI> binaryLinks;
     private List<URI> containerLinks;
     private URI resource;
+    private String[] args;
+    private String[] metadataArgs;
 
     @Before
     public void setUp() throws Exception {
@@ -57,13 +58,18 @@ public class ExporterTest {
         getResponse = mock(FcrepoResponse.class);
         headResponse = mock(FcrepoResponse.class);
         resource = new URI("http://localhost:8080/rest/1");
-        final String[] args = new String[]{"-m", "export",
-                                           "-d", "/tmp/rdf",
-                                           "-b", "/tmp/bin",
-                                           "-x", ".jsonld",
-                                           "-l", "application/ld+json",
-                                           "-r", resource.toString()};
-        exporter = new ExporterWrapper(new ArgParser().parse(args), client);
+        args = new String[]{"-m", "export",
+                            "-d", "/tmp/rdf",
+                            "-b", "/tmp/bin",
+                            "-x", ".jsonld",
+                            "-l", "application/ld+json",
+                            "-r", resource.toString()};
+
+        metadataArgs = new String[]{"-m", "export",
+                                    "-d", "/tmp/rdf",
+                                    "-x", ".jsonld",
+                                    "-l", "application/ld+json",
+                                    "-r", resource.toString()};
 
         binaryLinks = (List<URI>)Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = (List<URI>)Arrays.asList(new URI(CONTAINER.getURI()));
@@ -80,6 +86,7 @@ public class ExporterTest {
 
     @Test
     public void testExportBinary() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(args), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertEquals(new File("/tmp/bin/rest/1"), exporter.writtenFile);
@@ -87,6 +94,23 @@ public class ExporterTest {
 
     @Test
     public void testExportContainer() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(args), client);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
+        exporter.run();
+        Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);
+    }
+
+    @Test
+    public void testMetadataOnlyDoesNotExportBinaries() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(metadataArgs), client);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
+        exporter.run();
+        Assert.assertNull(exporter.writtenFile);
+    }
+
+    @Test
+    public void testMetadataOnlyExportsContainers() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(metadataArgs), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
         Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);

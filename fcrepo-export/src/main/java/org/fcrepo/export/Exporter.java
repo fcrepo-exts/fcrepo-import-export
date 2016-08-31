@@ -88,35 +88,44 @@ public class Exporter {
     }
     private void exportBinary(final URI uri)
             throws FcrepoOperationFailedException, IOException {
+        final File file = fileForBinary(uri);
+        if (file == null) {
+            logger.info("Skipping {}", uri);
+            return;
+        }
+
         try (FcrepoResponse response = client.get(uri).perform()) {
             logger.info("Exporting binary: {}", uri);
-            writeResponse(response, fileForBinary(uri));
+            writeResponse(response, file);
         }
     }
     private void exportContainer(final URI uri)
             throws FcrepoOperationFailedException, IOException {
+        final File file = fileForContainer(uri);
+        if (file == null) {
+            logger.info("Skipping {}", uri);
+            return;
+        }
+
         try (FcrepoResponse response = client.get(uri).accept(config.getRdfLanguage()).perform()) {
             logger.info("Exporting description: {}", uri);
-            writeResponse(response, fileForContainer(uri));
+            writeResponse(response, file);
         } catch ( Exception ex ) { ex.printStackTrace(); }
     }
     void writeResponse(final FcrepoResponse response, final File file)
             throws IOException {
-        Writer w = null;
-        try {
-            if (!file.getParentFile().exists()) {
-                file.getParentFile().mkdirs();
-            }
-            w = new FileWriter(file);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        try (Writer w = new FileWriter(file)) {
             copy(response.getBody(), w, "UTF-8");
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
-        } finally {
-            if (w != null) {
-                w.close();
-            }
         }
     }
     private File fileForBinary(final URI uri) {
+        if (config.getBinaryDirectory() == null) {
+            return null;
+        }
         return new File(config.getBinaryDirectory(), uri.getPath());
     }
     private File fileForContainer(final URI uri) {
