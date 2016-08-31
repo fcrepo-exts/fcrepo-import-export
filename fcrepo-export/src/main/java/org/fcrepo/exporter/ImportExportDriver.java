@@ -15,41 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.export;
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+package org.fcrepo.exporter;
 
 /**
- * Unit test for simple App.
+ * @author ruebot
+ * @since 2016-08-29
  */
-public class ImportExportDriverTest
-    extends TestCase
-{
+public class ImportExportDriver {
+
     /**
-     * Create the test case
+     * The main entry point
      *
-     * @param testName name of the test case
+     * @param args from the command line
      */
-    public ImportExportDriverTest(String testName )
-    {
-        super( testName );
+    public static void main(final String[] args) {
+        final ImportExportDriver driver = new ImportExportDriver();
+
+        try {
+            driver.run(args);
+
+        } catch (final Exception e) {
+            // swallow exception
+        }
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
-    {
-        return new TestSuite( ImportExportDriverTest.class );
+    private void run(final String[] args) {
+        final ArgParser parser = new ArgParser();
+        final Config config = parser.parse(args);
+
+        if (config.isImport()) {
+            final Importer importer = new Importer(config);
+            importer.run();
+
+        } else {
+            final Exporter exporter = new Exporter(config);
+            exporter.run();
+        }
     }
 
-    /**
-     * Rigourous Test :-)
-     */
-    public void testexport()
-    {
-        assertTrue( true );
-    }
 }

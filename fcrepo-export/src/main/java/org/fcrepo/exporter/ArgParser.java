@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.export;
+package org.fcrepo.exporter;
 
 import java.net.URISyntaxException;
 import org.apache.commons.cli.CommandLine;
