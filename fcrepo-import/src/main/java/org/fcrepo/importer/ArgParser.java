@@ -29,7 +29,7 @@ import org.apache.commons.cli.ParseException;
  * @author awoods
  * @since 2016-08-29
  */
-public class ArgParser {
+public class ArgParser implements org.fcrepo.importexport.ArgParser {
 
     final private Options cmdOptions;
 
