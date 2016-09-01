@@ -81,7 +81,8 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         cmdOptions.addOption(descDirOption);
 
         // RDF extension option
-        final Option rdfExtOption = new Option("x", "rdfExt", true, "RDF filename extension (default: " + DEFAULT_RDF_EXT);
+        final Option rdfExtOption = new Option("x", "rdfExt", true, "RDF filename extension (default: " +
+                DEFAULT_RDF_EXT);
         rdfExtOption.setRequired(false);
         rdfExtOption.setArgs(1);
         rdfExtOption.setArgName("rdfExt");
@@ -137,7 +138,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
     private void printHelp(final String message) {
         System.out.println("\n-----------------------\n" + message + "\n-----------------------\n");
 
-        HelpFormatter formatter = new HelpFormatter();
+        final HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("Running Import/Export Utility", cmdOptions);
 
         throw new RuntimeException();

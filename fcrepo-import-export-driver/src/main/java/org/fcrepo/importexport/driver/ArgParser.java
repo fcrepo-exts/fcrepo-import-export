@@ -1,3 +1,20 @@
+/*
+ * Licensed to DuraSpace under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * DuraSpace licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except in
+ * compliance with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.fcrepo.importexport.driver;
 
 import org.apache.commons.cli.CommandLine;
@@ -9,11 +26,18 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.fcrepo.importexport.TransferProcess;
 
+/**
+ * @author barmintor
+ * @since 2016-08-31
+ */
 public class ArgParser implements org.fcrepo.importexport.ArgParser {
 
-	private final Options cmdOptions;
+    private final Options cmdOptions;
 
-	public ArgParser() {
+    /**
+     * Constructor
+     */
+    public ArgParser() {
         // Command Line Options
         cmdOptions = new Options();
 
@@ -31,7 +55,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
     }
 
     @Override
-	public TransferProcess parse(String[] args) {
+    public TransferProcess parse(final String[] args) {
         // Command Line Options
 
         final CommandLineParser cmdParser = new DefaultParser();
@@ -39,7 +63,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
             final CommandLine cmd = cmdParser.parse(cmdOptions, args, true);
             // Inspect Mode option
             final String mode = cmd.getOptionValue('m');
-            
+
             if (!mode.equalsIgnoreCase("import") && !mode.equalsIgnoreCase("export")) {
                 printHelp("Invalid 'mode' option: " + mode);
             }
@@ -51,9 +75,9 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
 
             org.fcrepo.importexport.ArgParser delegate = null;
             if (mode.equalsIgnoreCase("import")) {
-            	delegate = new org.fcrepo.importer.ArgParser();
+                delegate = new org.fcrepo.importer.ArgParser();
             } else if (mode.equalsIgnoreCase("export")) {
-            	delegate = new org.fcrepo.exporter.ArgParser();
+                delegate = new org.fcrepo.exporter.ArgParser();
             } else {
                 printHelp("Invalid 'mode' option: " + mode);
                 return null;
@@ -64,12 +88,12 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
             printHelp("Error parsing args: " + e.getMessage());
             return null;
         }
-	}
+    }
 
     private void printHelp(final String message) {
         System.out.println("\n-----------------------\n" + message + "\n-----------------------\n");
 
-        HelpFormatter formatter = new HelpFormatter();
+        final HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("Running Import/Export Utility", cmdOptions);
 
         throw new RuntimeException(message);

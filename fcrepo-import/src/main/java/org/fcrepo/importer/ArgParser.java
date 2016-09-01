@@ -88,7 +88,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
     private void printHelp(final String message) {
         System.out.println("\n-----------------------\n" + message + "\n-----------------------\n");
 
-        HelpFormatter formatter = new HelpFormatter();
+        final HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("Running Import/Export Utility", cmdOptions);
 
         throw new RuntimeException();
