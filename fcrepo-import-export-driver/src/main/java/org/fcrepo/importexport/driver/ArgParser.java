@@ -4,20 +4,39 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.fcrepo.importexport.Config;
+import org.fcrepo.importexport.TransferProcess;
 
 public class ArgParser implements org.fcrepo.importexport.ArgParser {
 
-	private final Options cmdOptions = new Options();
-	@Override
-	public Config parse(String[] args) {
+	private final Options cmdOptions;
+
+	public ArgParser() {
+        // Command Line Options
+        cmdOptions = new Options();
+
+        // Help option
+        final Option helpOption = new Option("h", "help", false, "Print this message");
+        helpOption.setRequired(false);
+        cmdOptions.addOption(helpOption);
+
+        // Mode option
+        final Option importExportOption = new Option("m", "mode", true, "Mode: [import|export]");
+        importExportOption.setRequired(true);
+        importExportOption.setArgs(1);
+        importExportOption.setArgName("mode");
+        cmdOptions.addOption(importExportOption);
+    }
+
+    @Override
+	public TransferProcess parse(String[] args) {
         // Command Line Options
 
         final CommandLineParser cmdParser = new DefaultParser();
         try {
-            final CommandLine cmd = cmdParser.parse(cmdOptions, args);
+            final CommandLine cmd = cmdParser.parse(cmdOptions, args, true);
             // Inspect Mode option
             final String mode = cmd.getOptionValue('m');
             
@@ -40,9 +59,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
                 return null;
             }
 
-            final Config config = delegate.parse(args);
-            config.setMode(mode);
-            return config;
+            return delegate.parse(args);
         } catch (ParseException e) {
             printHelp("Error parsing args: " + e.getMessage());
             return null;
@@ -55,6 +72,6 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("Running Import/Export Utility", cmdOptions);
 
-        throw new RuntimeException();
+        throw new RuntimeException(message);
     }
 }

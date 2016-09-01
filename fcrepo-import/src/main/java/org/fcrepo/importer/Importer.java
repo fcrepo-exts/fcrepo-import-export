@@ -17,11 +17,13 @@
  */
 package org.fcrepo.importer;
 
+import org.fcrepo.importexport.TransferProcess;
+
 /**
  * @author awoods
  * @since 2016-08-29
  */
-public class Importer {
+public class Importer implements TransferProcess {
 
     /**
      * Constructor that takes the Import/Export configuration

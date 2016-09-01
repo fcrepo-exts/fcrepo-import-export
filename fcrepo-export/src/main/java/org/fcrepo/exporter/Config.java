@@ -26,7 +26,7 @@ import java.net.URISyntaxException;
  * @author escowles
  * @since 2016-08-29
  */
-public class Config implements org.fcrepo.importexport.Config {
+public class Config {
 
     private String mode;
     private URI resource;

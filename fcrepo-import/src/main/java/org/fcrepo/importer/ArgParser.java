@@ -53,13 +53,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         cmdOptions.addOption(importExportOption);
     }
 
-    /**
-     * This method parses the command line options, returning the Import/Export configuration
-     *
-     * @param args from the command line
-     * @return Import/Export configuration
-     */
-    public Config parse(final String[] args) {
+    Config parseConfiguration(final String[] args) {
         final Config config = new Config();
 
         final CommandLineParser cmdParser = new DefaultParser();
@@ -84,6 +78,11 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         }
 
         return config;
+    }
+
+    @Override
+    public Importer parse(final String[] args) {
+        return new Importer(parseConfiguration(args));
     }
 
     private void printHelp(final String message) {
