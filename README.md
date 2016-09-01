@@ -15,7 +15,7 @@ Additional requirements for building and running from source:
 To run the standalone export utility:
 
 ```sh
-$ java -jar fcrepo-export/target/fcrepo-export-<version>.jar --mode export --resource <URI> --binDir <dir> --descDir <dir>
+$ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-<version>.jar --mode [import|export] [options]
 ```
 
 To control the format of the exported RDF, the extension and RDF language/serialization format can also be specified by adding, e.g.:
