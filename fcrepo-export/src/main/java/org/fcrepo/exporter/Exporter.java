@@ -83,7 +83,7 @@ public class Exporter implements TransferProcess {
             if(linkHeaders.contains(binaryURI)) {
                 exportBinary(uri);
             } else if (linkHeaders.contains(containerURI)) {
-                exportContainer(uri);
+                exportDescription(uri);
             } else {
                 logger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
             }
@@ -106,9 +106,9 @@ public class Exporter implements TransferProcess {
             writeResponse(response, file);
         }
     }
-    private void exportContainer(final URI uri)
+    private void exportDescription(final URI uri, final URI... describes)
             throws FcrepoOperationFailedException, IOException {
-        final File file = fileForContainer(uri);
+        final File file = fileForContainer(describes.length > 0 ? describes[0] : uri);
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;
@@ -134,13 +134,18 @@ public class Exporter implements TransferProcess {
         }
     }
     void writeResponse(final FcrepoResponse response, final File file)
-            throws IOException {
+            throws IOException, FcrepoOperationFailedException {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
         try (Writer w = new FileWriter(file)) {
             copy(response.getBody(), w, "UTF-8");
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
+        }
+
+        List<URI> describedby = response.getLinkHeaders("describedby");
+        if (describedby != null && describedby.size() > 0) {
+            exportDescription(describedby.get(0), response.getUrl());
         }
     }
     private File fileForBinary(final URI uri) {

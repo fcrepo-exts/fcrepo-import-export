@@ -52,9 +52,13 @@ public class ExporterTest {
     private FcrepoResponse headResponse;
     private List<URI> binaryLinks;
     private List<URI> containerLinks;
+    private List<URI> describedbyLinks;
     private URI resource;
     private URI resource2;
+    private URI resource3;
+    private URI resource4;
     private String[] args;
+    private String[] binaryArgs;
     private String[] metadataArgs;
 
     @Before
@@ -63,12 +67,21 @@ public class ExporterTest {
         headResponse = mock(FcrepoResponse.class);
         resource = new URI("http://localhost:8080/rest/1");
         resource2 = new URI("http://localhost:8080/rest/1/2");
+        resource3 = new URI("http://localhost:8080/rest/file1");
+        resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
         args = new String[]{"-m", "export",
                             "-d", "target/rdf",
                             "-b", "target/bin",
                             "-x", ".jsonld",
                             "-l", "application/ld+json",
                             "-r", resource.toString()};
+
+        binaryArgs = new String[]{"-m", "export",
+                                  "-d", "target/rdf",
+                                  "-b", "target/bin",
+                                  "-x", ".jsonld",
+                                  "-l", "application/ld+json",
+                                  "-r", resource3.toString()};
 
         metadataArgs = new String[]{"-m", "export",
                                     "-d", "target/rdf",
@@ -78,31 +91,38 @@ public class ExporterTest {
 
         binaryLinks = (List<URI>)Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = (List<URI>)Arrays.asList(new URI(CONTAINER.getURI()));
+        describedbyLinks = (List<URI>)Arrays.asList(new URI(resource4.toString()));
 
-        mockResponse(resource, "{\"@id\":\"" + resource.toString() + "\",\"" + CONTAINS.getURI()
-                + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
-        mockResponse(resource2, "{\"@id\":\"" + resource2.toString() + "\"}");
+        mockResponse(resource, new ArrayList<URI>(), "{\"@id\":\"" + resource.toString() + "\",\""
+                + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
+        mockResponse(resource2, new ArrayList<URI>(), "{\"@id\":\"" + resource2.toString() + "\"}");
+        mockResponse(resource3, describedbyLinks, "binary");
+        mockResponse(resource4, new ArrayList<URI>(), "{\"@id\":\"" + resource4.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
     }
 
-    private void mockResponse(final URI uri, final String body) throws FcrepoOperationFailedException {
+    private void mockResponse(final URI uri, final List<URI> describedbyLinks, final String body)
+            throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
         when(client.get(eq(uri))).thenReturn(getBuilder);
         when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
         when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
+        when(getResponse.getUrl()).thenReturn(uri);
+        when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
     }
 
     @Test
-    public void testExportBinary() throws Exception {
-        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
-        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
+    public void testExportBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(binaryArgs), client);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/1")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1.jsonld")));
     }
 
     @Test
@@ -146,7 +166,8 @@ class ExporterWrapper extends Exporter {
         super(config);
         this.client = client;
     }
-    void writeResponse(final FcrepoResponse response, final File file) throws IOException {
+    void writeResponse(final FcrepoResponse response, final File file)
+            throws IOException, FcrepoOperationFailedException {
         super.writeResponse(response, file);
         writtenFiles.add(file);
     }
