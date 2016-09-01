@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.export;
+package org.fcrepo.exporter;
 
 import java.io.File;
 import java.net.URI;
@@ -26,7 +26,7 @@ import java.net.URISyntaxException;
  * @author escowles
  * @since 2016-08-29
  */
-public class Config {
+public class Config implements org.fcrepo.importexport.Config {
 
     private String mode;
     private URI resource;

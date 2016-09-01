@@ -17,38 +17,50 @@
  */
 package org.fcrepo.importexport;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 /**
  * @author awoods
+ * @author escowles
  * @since 2016-08-29
  */
-public class Config {
-
-    private String mode;
+public interface Config {
 
     /**
      * This method returns true if the configuration is set for 'import'
      *
      * @return true if import config
      */
-    public boolean isImport() {
-        return mode.equalsIgnoreCase("import");
-    }
+    public boolean isImport();
 
     /**
      * This method returns true if the configuration is set for 'export'
      *
      * @return true if export config
      */
-    public boolean isExport() {
-        return !isImport();
-    }
+    public boolean isExport();
 
     /**
      * This method sets the import/export mode
      *
      * @param mode of this configuration
      */
-    public void setMode(final String mode) {
-        this.mode = mode;
-    }
+    public void setMode(final String mode);
+
+    /**
+     * Sets the URI of the resource to import/export
+     */
+    public void setResource(final String resource) throws URISyntaxException;
+
+    /**
+     * Sets the URI of the resource to import/export
+     */
+    public void setResource(final URI resource);
+
+    /**
+     * Gets the URI of the resource to import/export
+     */
+    public URI getResource();
+
 }

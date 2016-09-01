@@ -24,7 +24,8 @@
   <modules>
     <module>fcrepo-import</module>
     <module>fcrepo-export</module>
-    <module>fcrepo-import-export-tests</module>
+    <module>fcrepo-import-export-common</module>
+    <module>fcrepo-import-export-driver</module>
   </modules>
 
   <dependencyManagement>
@@ -44,7 +45,17 @@
 
       <dependency>
         <groupId>org.fcrepo.importexport</groupId>
-        <artifactId>fcrepo-import-export-tests</artifactId>
+        <artifactId>fcrepo-import-export-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.fcrepo.importexport</groupId>
+        <artifactId>fcrepo-import</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.fcrepo.importexport</groupId>
+        <artifactId>fcrepo-export</artifactId>
         <version>${project.version}</version>
       </dependency>
 

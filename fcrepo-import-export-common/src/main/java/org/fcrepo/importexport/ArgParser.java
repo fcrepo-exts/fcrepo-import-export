@@ -15,41 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.export;
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+package org.fcrepo.importexport;
 
 /**
- * Unit test for simple App.
+ * Command-line arguments parser.
+ *
+ * @author awoods
+ * @author escowles
+ * @since 2016-08-29
  */
-public class ImportExportDriverTest
-    extends TestCase
-{
+public interface ArgParser {
+
+    public String DEFAULT_RDF_EXT = ".ttl";
+    public String DEFAULT_RDF_LANG = "text/turtle";
+
     /**
-     * Create the test case
+     * This method parses the command line options, returning the Import/Export configuration
      *
-     * @param testName name of the test case
+     * @param args from the command line
+     * @return Import/Export configuration
      */
-    public ImportExportDriverTest(String testName )
-    {
-        super( testName );
-    }
+    public Config parse(final String[] args);
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
-    {
-        return new TestSuite( ImportExportDriverTest.class );
-    }
-
-    /**
-     * Rigourous Test :-)
-     */
-    public void testexport()
-    {
-        assertTrue( true );
-    }
 }

@@ -17,6 +17,10 @@
  */
 package org.fcrepo.importexport;
 
+import org.fcrepo.exporter.Exporter;
+import org.fcrepo.importer.Importer;
+import org.fcrepo.importexport.driver.ArgParser;
+
 /**
  * @author ruebot
  * @since 2016-08-29
@@ -44,11 +48,11 @@ public class ImportExportDriver {
         final Config config = parser.parse(args);
 
         if (config.isImport()) {
-            final Importer importer = new Importer(config);
+            final Importer importer = new Importer((org.fcrepo.importer.Config)config);
             importer.run();
 
         } else {
-            final Exporter exporter = new Exporter(config);
+            final Exporter exporter = new Exporter((org.fcrepo.exporter.Config)config);
             exporter.run();
         }
     }

@@ -17,24 +17,39 @@
  */
 package org.fcrepo.importexport;
 
-/**
- * @author awoods
- * @since 2016-08-29
- */
-public class Exporter {
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
+/**
+ * Unit test for simple App.
+ */
+public class ImportExportDriverTest
+    extends TestCase
+{
     /**
-     * Constructor that takes the Import/Export configuration
+     * Create the test case
      *
-     * @param config for export
+     * @param testName name of the test case
      */
-    public Exporter(final Config config) {
+    public ImportExportDriverTest(String testName )
+    {
+        super( testName );
     }
 
     /**
-     * This method does the export
+     * @return the suite of tests being tested
      */
-    public void run() {
-        System.out.println("Exporting!");
+    public static Test suite()
+    {
+        return new TestSuite( ImportExportDriverTest.class );
+    }
+
+    /**
+     * Rigourous Test :-)
+     */
+    public void testexport()
+    {
+        assertTrue( true );
     }
 }
