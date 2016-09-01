@@ -30,11 +30,11 @@ public interface ArgParser {
     public String DEFAULT_RDF_LANG = "text/turtle";
 
     /**
-     * This method parses the command line options, returning the Import/Export configuration
+     * This method parses the command line options, returning the Import/Export processor
      *
      * @param args from the command line
-     * @return Import/Export configuration
+     * @return Import/Export processor
      */
-    public Config parse(final String[] args);
+    public TransferProcess parse(final String[] args);
 
 }

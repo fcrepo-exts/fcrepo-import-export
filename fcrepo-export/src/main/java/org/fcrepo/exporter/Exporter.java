@@ -30,6 +30,7 @@ import java.util.List;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.TransferProcess;
 import org.fcrepo.kernel.api.RdfLexicon;
 import org.slf4j.Logger;
 
@@ -40,7 +41,7 @@ import org.slf4j.Logger;
  * @author escowles
  * @since 2016-08-29
  */
-public class Exporter {
+public class Exporter implements TransferProcess {
     private static final Logger logger = getLogger(Exporter.class);
     private Config config;
     protected FcrepoClient client;

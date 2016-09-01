@@ -17,8 +17,6 @@
  */
 package org.fcrepo.importexport;
 
-import org.fcrepo.exporter.Exporter;
-import org.fcrepo.importer.Importer;
 import org.fcrepo.importexport.driver.ArgParser;
 
 /**
@@ -45,16 +43,9 @@ public class ImportExportDriver {
 
     private void run(final String[] args) {
         final ArgParser parser = new ArgParser();
-        final Config config = parser.parse(args);
+        final TransferProcess processor = parser.parse(args);
 
-        if (config.isImport()) {
-            final Importer importer = new Importer((org.fcrepo.importer.Config)config);
-            importer.run();
-
-        } else {
-            final Exporter exporter = new Exporter((org.fcrepo.exporter.Config)config);
-            exporter.run();
-        }
+        processor.run();
     }
 
 }

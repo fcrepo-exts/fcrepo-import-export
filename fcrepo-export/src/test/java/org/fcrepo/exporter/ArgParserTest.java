@@ -44,7 +44,7 @@ public class ArgParserTest {
                                            "-x", ".jsonld",
                                            "-l", "application/ld+json",
                                            "-r", "http://localhost:8080/rest/1"};
-        final Config config = parser.parse(args);
+        final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
         Assert.assertEquals(new File("/tmp/bin"), config.getBinaryDirectory());
@@ -58,7 +58,7 @@ public class ArgParserTest {
         final String[] args = new String[]{"-m", "export",
                                            "-d", "/tmp/rdf",
                                            "-r", "http://localhost:8080/rest/1"};
-        final Config config = parser.parse(args);
+        final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
         Assert.assertNull(config.getBinaryDirectory());

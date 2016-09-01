@@ -22,7 +22,6 @@ import static org.fcrepo.kernel.api.RdfLexicon.NON_RDF_SOURCE;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.net.URI;
@@ -86,7 +85,7 @@ public class ExporterTest {
 
     @Test
     public void testExportBinary() throws Exception {
-        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(args), client);
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertEquals(new File("/tmp/bin/rest/1"), exporter.writtenFile);
@@ -94,7 +93,7 @@ public class ExporterTest {
 
     @Test
     public void testExportContainer() throws Exception {
-        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(args), client);
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(args), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
         Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);
@@ -102,7 +101,7 @@ public class ExporterTest {
 
     @Test
     public void testMetadataOnlyDoesNotExportBinaries() throws Exception {
-        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(metadataArgs), client);
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(metadataArgs), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertNull(exporter.writtenFile);
@@ -110,7 +109,7 @@ public class ExporterTest {
 
     @Test
     public void testMetadataOnlyExportsContainers() throws Exception {
-        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parse(metadataArgs), client);
+        final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(metadataArgs), client);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
         Assert.assertEquals(new File("/tmp/rdf/rest/1.jsonld"), exporter.writtenFile);

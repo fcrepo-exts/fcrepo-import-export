@@ -15,41 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importer;
+package org.fcrepo.importexport;
 
-/**
- * @author awoods
- * @since 2016-08-29
- */
-public class Config {
-
-    private String mode;
-
+public interface TransferProcess {
     /**
-     * This method returns true if the configuration is set for 'import'
-     *
-     * @return true if import config
+     * This method does the import or export
      */
-    public boolean isImport() {
-        return mode.equalsIgnoreCase("import");
-    }
-
-    /**
-     * This method returns true if the configuration is set for 'export'
-     *
-     * @return true if export config
-     */
-    public boolean isExport() {
-        return !isImport();
-    }
-
-    /**
-     * This method sets the import/export mode
-     *
-     * @param mode of this configuration
-     */
-    public void setMode(final String mode) {
-        this.mode = mode;
-    }
+    public void run();
 
 }

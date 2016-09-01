@@ -95,13 +95,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         cmdOptions.addOption(rdfLangOption);
     }
 
-    /**
-     * This method parses the command line options, returning the Import/Export configuration
-     *
-     * @param args from the command line
-     * @return Import/Export configuration
-     */
-    public Config parse(final String[] args) {
+    Config parseConfiguration(final String[] args) {
         final Config config = new Config();
 
         final CommandLineParser cmdParser = new DefaultParser();
@@ -131,8 +125,13 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         } catch (URISyntaxException e) {
             printHelp("Error parsing resource URI: " + e.getMessage());
         }
-
         return config;
+    }
+
+    @Override
+    public Exporter parse(final String[] args) {
+
+        return new Exporter(parseConfiguration(args));
     }
 
     private void printHelp(final String message) {

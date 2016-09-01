@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importer;
+package org.fcrepo.importexport;
 
+import org.fcrepo.exporter.Exporter;
+import org.fcrepo.importer.Importer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,21 +33,26 @@ public class ArgParserTest {
 
     @Before
     public void setUp() throws Exception {
-        parser = new ArgParser();
+        parser = new org.fcrepo.importexport.driver.ArgParser();
     }
 
     @Test
     public void parseValidImport() throws Exception {
         final String[] args = new String[]{"-m", "import"};
-        final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isImport());
+        final TransferProcess processor = parser.parse(args);
+        Assert.assertTrue(processor instanceof Importer);
     }
 
     @Test
     public void parseValidExport() throws Exception {
-        final String[] args = new String[]{"-m", "export"};
-        final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
+        final String[] args = new String[]{"-m", "export",
+                "-d", "/tmp/rdf",
+                "-b", "/tmp/bin",
+                "-x", ".jsonld",
+                "-l", "application/ld+json",
+                "-r", "http://localhost:8080/rest/1"};
+        final TransferProcess processor = parser.parse(args);
+        Assert.assertTrue(processor instanceof Exporter);
     }
 
     @Test (expected = RuntimeException.class)
