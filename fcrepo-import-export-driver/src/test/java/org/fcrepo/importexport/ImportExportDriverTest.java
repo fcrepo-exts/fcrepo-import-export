@@ -23,33 +23,31 @@ import junit.framework.TestSuite;
 
 /**
  * Unit test for simple App.
+ *
+ * @author barmintor
+ * @since 2016-08-31
  */
-public class ImportExportDriverTest
-    extends TestCase
-{
+public class ImportExportDriverTest extends TestCase {
     /**
      * Create the test case
      *
      * @param testName name of the test case
      */
-    public ImportExportDriverTest(String testName )
-    {
+    public ImportExportDriverTest(final String testName ) {
         super( testName );
     }
 
     /**
      * @return the suite of tests being tested
      */
-    public static Test suite()
-    {
+    public static Test suite() {
         return new TestSuite( ImportExportDriverTest.class );
     }
 
     /**
      * Rigourous Test :-)
      */
-    public void testexport()
-    {
+    public void testexport() {
         assertTrue( true );
     }
 }

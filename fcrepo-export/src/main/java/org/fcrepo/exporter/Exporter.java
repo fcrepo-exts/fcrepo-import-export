@@ -80,7 +80,7 @@ public class Exporter implements TransferProcess {
     private void export(final URI uri) {
         try (FcrepoResponse response = client.head(uri).perform()) {
             final List<URI> linkHeaders = response.getLinkHeaders("type");
-            if(linkHeaders.contains(binaryURI)) {
+            if (linkHeaders.contains(binaryURI)) {
                 exportBinary(uri);
             } else if (linkHeaders.contains(containerURI)) {
                 exportContainer(uri);
@@ -117,14 +117,16 @@ public class Exporter implements TransferProcess {
         try (FcrepoResponse response = client.get(uri).accept(config.getRdfLanguage()).perform()) {
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
-        } catch ( Exception ex ) { ex.printStackTrace(); }
+        } catch ( Exception ex ) {
+            ex.printStackTrace();
+        }
 
         exportMembers(file);
     }
     private void exportMembers(final File file) {
         try {
             final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
-            for (NodeIterator it = model.listObjectsOfProperty(CONTAINS); it.hasNext();) {
+            for (final NodeIterator it = model.listObjectsOfProperty(CONTAINS); it.hasNext();) {
                 export(new URI(it.nextNode().toString()));
             }
         } catch (FileNotFoundException ex) {

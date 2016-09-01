@@ -25,6 +25,10 @@ import org.fcrepo.importexport.driver.ArgParser;
  */
 public class ImportExportDriver {
 
+    private ImportExportDriver() {
+        // Prevent public instantiation
+    }
+
     /**
      * The main entry point
      *

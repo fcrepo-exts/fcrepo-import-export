@@ -17,6 +17,10 @@
  */
 package org.fcrepo.importexport;
 
+/**
+ * @author barmintor
+ * @since 2016-08-31
+ */
 public interface TransferProcess {
     /**
      * This method does the import or export
