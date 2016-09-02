@@ -143,8 +143,8 @@ public class Exporter implements TransferProcess {
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
         }
 
-        List<URI> describedby = response.getLinkHeaders("describedby");
-        for (Iterator<URI> it = describedby.iterator(); describedby != null && it.hasNext(); ) {
+        final List<URI> describedby = response.getLinkHeaders("describedby");
+        for (final Iterator<URI> it = describedby.iterator(); describedby != null && it.hasNext(); ) {
             exportDescription(it.next());
         }
     }
