@@ -17,7 +17,6 @@
  */
 package org.fcrepo.importexport;
 
-import org.fcrepo.importexport.driver.ArgParser;
 import org.slf4j.Logger;
 
 import static org.slf4j.LoggerFactory.getLogger;

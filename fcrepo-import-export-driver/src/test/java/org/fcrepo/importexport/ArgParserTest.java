@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importexport;
 
-import org.fcrepo.exporter.Exporter;
-import org.fcrepo.importer.Importer;
+import java.io.File;
+import java.net.URI;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,26 +33,50 @@ public class ArgParserTest {
 
     @Before
     public void setUp() throws Exception {
-        parser = new org.fcrepo.importexport.driver.ArgParser();
-    }
-
-    @Test
-    public void parseValidImport() throws Exception {
-        final String[] args = new String[]{"-m", "import"};
-        final TransferProcess processor = parser.parse(args);
-        Assert.assertTrue(processor instanceof Importer);
+        parser = new ArgParser();
     }
 
     @Test
     public void parseValidExport() throws Exception {
         final String[] args = new String[]{"-m", "export",
-                "-d", "/tmp/rdf",
-                "-b", "/tmp/bin",
-                "-x", ".jsonld",
-                "-l", "application/ld+json",
-                "-r", "http://localhost:8080/rest/1"};
-        final TransferProcess processor = parser.parse(args);
-        Assert.assertTrue(processor instanceof Exporter);
+                                           "-d", "/tmp/rdf",
+                                           "-b", "/tmp/bin",
+                                           "-x", ".jsonld",
+                                           "-l", "application/ld+json",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
+        Assert.assertEquals(new File("/tmp/bin"), config.getBinaryDirectory());
+        Assert.assertEquals(".jsonld", config.getRdfExtension());
+        Assert.assertEquals("application/ld+json", config.getRdfLanguage());
+        Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+    }
+
+    @Test
+    public void parseMinimalValidExport() throws Exception {
+        final String[] args = new String[]{"-m", "export",
+                                           "-d", "/tmp/rdf",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
+        Assert.assertNull(config.getBinaryDirectory());
+        Assert.assertEquals(".ttl", config.getRdfExtension());
+        Assert.assertEquals("text/turtle", config.getRdfLanguage());
+        Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+    }
+
+    @Test (expected = RuntimeException.class)
+    public void parseDescriptionDirectoryRequired() throws Exception {
+        final String[] args = new String[]{"-m", "export", "-r", "http://localhost:8080/rest/1"};
+        parser.parse(args);
+    }
+
+    @Test (expected = RuntimeException.class)
+    public void parseResourceRequired() throws Exception {
+        final String[] args = new String[]{"-m", "export", "-d", "/tmp/rdf"};
+        parser.parse(args);
     }
 
     @Test (expected = RuntimeException.class)
@@ -60,5 +84,4 @@ public class ArgParserTest {
         final String[] args = new String[]{"junk"};
         parser.parse(args);
     }
-
 }
