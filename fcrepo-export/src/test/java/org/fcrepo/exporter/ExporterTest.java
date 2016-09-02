@@ -57,6 +57,7 @@ public class ExporterTest {
     private URI resource2;
     private URI resource3;
     private URI resource4;
+    private URI resource5;
     private String[] args;
     private String[] binaryArgs;
     private String[] metadataArgs;
@@ -69,6 +70,7 @@ public class ExporterTest {
         resource2 = new URI("http://localhost:8080/rest/1/2");
         resource3 = new URI("http://localhost:8080/rest/file1");
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
+        resource5 = new URI("http://localhost:8080/rest/alt_description");
         args = new String[]{"-m", "export",
                             "-d", "target/rdf",
                             "-b", "target/bin",
@@ -91,13 +93,14 @@ public class ExporterTest {
 
         binaryLinks = (List<URI>)Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = (List<URI>)Arrays.asList(new URI(CONTAINER.getURI()));
-        describedbyLinks = (List<URI>)Arrays.asList(new URI(resource4.toString()));
+        describedbyLinks = (List<URI>)Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
 
         mockResponse(resource, new ArrayList<URI>(), "{\"@id\":\"" + resource.toString() + "\",\""
                 + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
         mockResponse(resource2, new ArrayList<URI>(), "{\"@id\":\"" + resource2.toString() + "\"}");
         mockResponse(resource3, describedbyLinks, "binary");
         mockResponse(resource4, new ArrayList<URI>(), "{\"@id\":\"" + resource4.toString() + "\"}");
+        mockResponse(resource5, new ArrayList<URI>(), "{\"@id\":\"" + resource5.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
@@ -122,7 +125,8 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1")));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr_metadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/alt_description.jsonld")));
     }
 
     @Test

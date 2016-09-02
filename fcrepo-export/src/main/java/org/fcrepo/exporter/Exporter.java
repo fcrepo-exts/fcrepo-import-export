@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Iterator;
 import java.util.List;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -106,9 +107,8 @@ public class Exporter implements TransferProcess {
             writeResponse(response, file);
         }
     }
-    private void exportDescription(final URI uri, final URI... describes)
-            throws FcrepoOperationFailedException, IOException {
-        final File file = fileForContainer(describes.length > 0 ? describes[0] : uri);
+    private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
+        final File file = fileForContainer(uri);
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;
@@ -144,17 +144,18 @@ public class Exporter implements TransferProcess {
         }
 
         List<URI> describedby = response.getLinkHeaders("describedby");
-        if (describedby != null && describedby.size() > 0) {
-            exportDescription(describedby.get(0), response.getUrl());
+        for (Iterator<URI> it = describedby.iterator(); describedby != null && it.hasNext(); ) {
+            exportDescription(it.next());
         }
     }
     private File fileForBinary(final URI uri) {
         if (config.getBinaryDirectory() == null) {
             return null;
         }
-        return new File(config.getBinaryDirectory(), uri.getPath());
+        return new File(config.getBinaryDirectory(), uri.getPath().replaceAll(":", "_"));
     }
     private File fileForContainer(final URI uri) {
-        return new File(config.getDescriptionDirectory(), uri.getPath() + config.getRdfExtension());
+        return new File(config.getDescriptionDirectory(), uri.getPath().replaceAll(":", "_")
+            + config.getRdfExtension());
     }
 }
