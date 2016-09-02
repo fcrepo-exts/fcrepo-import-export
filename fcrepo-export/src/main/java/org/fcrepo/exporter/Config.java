@@ -108,18 +108,14 @@ public class Config {
      * Sets the URI of the resource to import/export
      */
     public void setResource(final String resource) throws URISyntaxException {
-        if (resource != null && (resource.lastIndexOf('/') == resource.length() - 1)) {
-          this.resource = new URI(resource.substring(0, resource.length() - 1));
-        } else {
-          this.resource = new URI(resource);
-        }
+        setResource(new URI(resource));
     }
 
     /**
      * Sets the URI of the resource to import/export
      */
     public void setResource(final URI resource) throws URISyntaxException {
-        if (resource.toString().lastIndexOf('/') == resource.toString().length() - 1) {
+        if (resource.toString().endsWith("/")) {
             this.resource = new URI(
                 resource.toString().substring(0, resource.toString().length() - 1));
         } else {
