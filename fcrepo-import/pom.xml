@@ -9,18 +9,6 @@
   <artifactId>fcrepo-import</artifactId>
   <packaging>jar</packaging>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.fcrepo.importexport</groupId>
-        <artifactId>fcrepo-import-export</artifactId>
-        <version>${project.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
 
     <dependency>
@@ -31,7 +19,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
