@@ -10,34 +10,6 @@
   <artifactId>fcrepo-import-export-driver</artifactId>
   <name>fcrepo-import-export-driver</name>
   <url>http://maven.apache.org</url>
-  
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <fcrepo.version>4.7.0-SNAPSHOT</fcrepo.version>
-    <commons.io.version>2.4</commons.io.version>
-    <commons.lang3.version>3.3.2</commons.lang3.version>
-    <grizzly.version>2.3.18</grizzly.version>
-    <httpclient.version>4.3.6</httpclient.version>
-    <jersey.version>2.15</jersey.version>
-    <joda-time.version>2.9.2</joda-time.version>
-    <logback.version>1.1.2</logback.version>
-    <mockito.version>1.10.8</mockito.version>
-    <mockserver.version>3.10.2</mockserver.version>
-    <slf4j.version>1.7.10</slf4j.version>
-    <spring.version>4.1.4.RELEASE</spring.version>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.fcrepo.importexport</groupId>
-        <artifactId>fcrepo-import-export</artifactId>
-        <version>${project.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <dependencies>
 
@@ -71,137 +43,111 @@
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-kernel-modeshape</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
 
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-http-api</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-configs</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-http-commons</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-http-commons</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
       <type>test-jar</type>
     </dependency>
 
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-auth-common</artifactId>
-      <version>${fcrepo.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>${logback.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>${mockito.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>${commons.io.version}</version>
+      <version>${commons-io.version}</version>
       <!--Remove test scope so that commons-io is not filtered from executable jar-->
       <!--...although in this module, commons-io is only used in test-->
-      <!--<scope>test</scope>-->
     </dependency>
 
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
-      <version>${spring.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
-      <version>${spring.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.glassfish.grizzly</groupId>
       <artifactId>grizzly-http-servlet</artifactId>
-      <version>${grizzly.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.glassfish.jersey.core</groupId>
       <artifactId>jersey-server</artifactId>
-      <version>${jersey.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.glassfish.jersey.core</groupId>
       <artifactId>jersey-common</artifactId>
-      <version>${jersey.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.glassfish.jersey.ext</groupId>
       <artifactId>jersey-spring3</artifactId>
-      <version>${jersey.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.glassfish.jersey.test-framework.providers</groupId>
       <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
-      <version>${jersey.version}</version>
-      <scope>test</scope>
     </dependency>
 
   </dependencies>
 
   <build>
     <plugins>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>${exec.plugin.version}</version>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <configuration>
+          <portNames>
+            <portName>fcrepo.dynamic.test.port</portName>
+            <portName>jetty.dynamic.stop.port</portName>
+          </portNames>
+        </configuration>
         <executions>
           <execution>
+            <id>reserve-port</id>
+            <phase>package</phase>
             <goals>
-              <goal>java</goal>
+              <goal>reserve-network-port</goal>
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <mainClass>org.fcrepo.export.ImportExportDriver</mainClass>
-        </configuration>
       </plugin>
 
       <plugin>
