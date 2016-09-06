@@ -64,6 +64,8 @@ public class Config {
 
     /**
      * Sets the base directory for binaries.
+     *
+     * @param directory to export to
      */
     public void setBinaryDirectory(final String directory) {
         this.binaryDirectory = directory == null ? null : new File(directory);
@@ -71,6 +73,8 @@ public class Config {
 
     /**
      * Sets the base directory for binaries.
+     *
+     * @param directory to export binaries to
      */
     public void setBinaryDirectory(final File directory) {
         this.binaryDirectory = directory;
@@ -78,6 +82,8 @@ public class Config {
 
     /**
      * Gets the base directory for binaries.
+     *
+     * @return binaryDirectory
      */
     public File getBinaryDirectory() {
         return binaryDirectory;
@@ -85,6 +91,8 @@ public class Config {
 
     /**
      * Sets the base directory for descriptions.
+     *
+     * @param directory to export descriptions to
      */
     public void setDescriptionDirectory(final String directory) {
         this.descriptionDirectory = new File(directory);
@@ -92,6 +100,8 @@ public class Config {
 
     /**
      * Sets the base directory for descriptions.
+     *
+     * @param directory to export descriptions to
      */
     public void setDescriptionDirectory(final File directory) {
         this.descriptionDirectory = directory;
@@ -99,6 +109,8 @@ public class Config {
 
     /**
      * Gets the base directory for descriptions.
+     *
+     * @return descriptionDirectory
      */
     public File getDescriptionDirectory() {
         return descriptionDirectory;
@@ -106,6 +118,9 @@ public class Config {
 
     /**
      * Sets the URI of the resource to import/export
+     *
+     * @param resource URI to import/export
+     * @throws URISyntaxException if resource is not URI
      */
     public void setResource(final String resource) throws URISyntaxException {
         setResource(new URI(resource));
@@ -113,6 +128,9 @@ public class Config {
 
     /**
      * Sets the URI of the resource to import/export
+     *
+     * @param resource URI to import/export
+     * @throws URISyntaxException if resource is not URI
      */
     public void setResource(final URI resource) throws URISyntaxException {
         if (resource.toString().endsWith("/")) {
@@ -125,6 +143,8 @@ public class Config {
 
     /**
      * Gets the URI of the resource to import/export
+     *
+     * @return resource
      */
     public URI getResource() {
         return resource;
@@ -132,6 +152,8 @@ public class Config {
 
     /**
      * Sets the RDF filename extension
+     *
+     * @param extension of the RDF filename
      */
     public void setRdfExtension(final String extension) {
         this.rdfExtension = extension;
@@ -139,6 +161,8 @@ public class Config {
 
     /**
      * Gets the RDF filename extension
+     *
+     * @return rdfExtension
      */
     public String getRdfExtension() {
         return rdfExtension;
@@ -146,6 +170,8 @@ public class Config {
 
     /**
      * Sets the RDF language
+     *
+     * @param language of the exported RDF
      */
     public void setRdfLanguage(final String language) {
         this.rdfLanguage = language;
@@ -153,6 +179,8 @@ public class Config {
 
     /**
      * Gets the RDF language
+     *
+     * @return rdfLanguage
      */
     public String getRdfLanguage() {
         return rdfLanguage;
