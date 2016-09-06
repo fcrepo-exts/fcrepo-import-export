@@ -17,6 +17,7 @@
  */
 package org.fcrepo.exporter;
 
+import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;
@@ -91,16 +92,16 @@ public class ExporterTest {
                                     "-l", "application/ld+json",
                                     "-r", resource.toString()};
 
-        binaryLinks = (List<URI>)Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
-        containerLinks = (List<URI>)Arrays.asList(new URI(CONTAINER.getURI()));
-        describedbyLinks = (List<URI>)Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
+        binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
+        containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
+        describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
 
-        mockResponse(resource, new ArrayList<URI>(), "{\"@id\":\"" + resource.toString() + "\",\""
+        mockResponse(resource, new ArrayList<>(), "{\"@id\":\"" + resource.toString() + "\",\""
                 + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
-        mockResponse(resource2, new ArrayList<URI>(), "{\"@id\":\"" + resource2.toString() + "\"}");
+        mockResponse(resource2, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
         mockResponse(resource3, describedbyLinks, "binary");
-        mockResponse(resource4, new ArrayList<URI>(), "{\"@id\":\"" + resource4.toString() + "\"}");
-        mockResponse(resource5, new ArrayList<URI>(), "{\"@id\":\"" + resource5.toString() + "\"}");
+        mockResponse(resource4, new ArrayList<>(), "{\"@id\":\"" + resource4.toString() + "\"}");
+        mockResponse(resource5, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
@@ -124,7 +125,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(new ArgParser().parseConfiguration(binaryArgs), client);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr_metadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/alt_description.jsonld")));
     }

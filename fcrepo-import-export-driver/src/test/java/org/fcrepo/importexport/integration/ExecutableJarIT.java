@@ -18,17 +18,21 @@
 package org.fcrepo.importexport.integration;
 
 import static javax.ws.rs.core.Response.Status.CREATED;
+import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -56,6 +60,8 @@ public class ExecutableJarIT extends AbstractResourceIT {
     private static final String EXECUTABLE = System.getProperty("fcrepo.executable.jar");
     private static final String TARGET_DIR = System.getProperty("project.build.directory");
 
+    private static final int TIMEOUT_SECONDS = 1000;
+
     public ExecutableJarIT() throws Exception {
         super();
         client = FcrepoClient.client().build();
@@ -71,13 +77,10 @@ public class ExecutableJarIT extends AbstractResourceIT {
     @Test
     public void testJarSanity() throws IOException, InterruptedException {
         // Run the executable jar with no arguments
-        final ProcessBuilder builder = new ProcessBuilder("java", "-jar", EXECUTABLE);
-        builder.directory(new File(TARGET_DIR));
-        final Process process = builder.start();
-        logger.debug("Output of jar run: {}", IOUtils.toString(process.getInputStream()));
+        final Process process = startJarProcess();
 
         // Verify it ran
-        assertTrue("Process did not exit before timeout!", process.waitFor(1000, TimeUnit.SECONDS));
+        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
     }
 
@@ -89,20 +92,67 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertEquals(url, response.getLocation());
 
         // Run an export process
-        final ProcessBuilder builder = new ProcessBuilder("java", "-jar", EXECUTABLE,
-                "-m", "export",
+        final Process process = startJarProcess("-m", "export",
                 "-d", TARGET_DIR,
                 "-r", url.toString());
 
-        builder.directory(new File(TARGET_DIR));
-        final Process process = builder.start();
-        logger.debug("Output of jar run: {}", IOUtils.toString(process.getInputStream()));
+        // Verify
+        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals("Did not exit with success status!", 0, process.exitValue());
+
+        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportBinaryAndRDFToSamePath() throws Exception {
+        final String content = "Hello World 😀";
+
+        // create a binary resource
+        final FcrepoResponse response = createUTF8PlaintextBinary(content);
+        assertEquals(CREATED.getStatusCode(), response.getStatusCode());
+        assertEquals(url, response.getLocation());
+
+
+        // Run an export process
+        final Process process = startJarProcess("-m", "export",
+                "-d", TARGET_DIR,
+                "-b", TARGET_DIR,
+                "-r", url.toString());
 
         // Verify
         assertTrue("Process did not exit before timeout!", process.waitFor(1000, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+        response.getLinkHeaders("describedby")
+                .forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
+                        new File(TARGET_DIR, uri.getPath().replace(":", "_") + ArgParser.DEFAULT_RDF_EXT).exists()));
+        final File exportedBinary
+                = new File(TARGET_DIR, url.getPath().replace(":",  "_") + BINARY_EXTENSION);
+        assertTrue(exportedBinary.exists());
+        assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
+    }
+
+    private Process startJarProcess(final String ... args) throws IOException {
+        final String[] fullArgs = new String[3 + args.length];
+        fullArgs[0] = "java";
+        fullArgs[1] = "-jar";
+        fullArgs[2] = EXECUTABLE;
+        System.arraycopy(args, 0, fullArgs, 3, args.length);
+        final ProcessBuilder builder = new ProcessBuilder(fullArgs);
+
+        builder.directory(new File(TARGET_DIR));
+        final Process process = builder.start();
+        logger.debug("Output of jar run: {}", IOUtils.toString(process.getInputStream()));
+        return process;
+    }
+
+    private FcrepoResponse createUTF8PlaintextBinary(final String content) throws FcrepoOperationFailedException {
+        logger.debug("Request ------: {}", url);
+        try {
+            return client.put(url).body(new ByteArrayInputStream(content.getBytes("UTF-8")), "text/plain").perform();
+        } catch (final UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private FcrepoResponse create() throws FcrepoOperationFailedException {

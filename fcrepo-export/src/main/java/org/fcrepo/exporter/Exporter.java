@@ -19,6 +19,7 @@ package org.fcrepo.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;
@@ -34,6 +35,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.fcrepo.client.FcrepoClient;
@@ -108,6 +110,7 @@ public class Exporter implements TransferProcess {
             writeResponse(response, file);
         }
     }
+
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
         final File file = fileForContainer(uri);
         if (file == null) {
@@ -155,7 +158,7 @@ public class Exporter implements TransferProcess {
         if (config.getBinaryDirectory() == null) {
             return null;
         }
-        return new File(config.getBinaryDirectory(), uri.getPath().replaceAll(":", "_"));
+        return new File(config.getBinaryDirectory(), uri.getPath().replaceAll(":", "_") + BINARY_EXTENSION);
     }
     private File fileForContainer(final URI uri) {
         return new File(config.getDescriptionDirectory(), uri.getPath().replaceAll(":", "_")
