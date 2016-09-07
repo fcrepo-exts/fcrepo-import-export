@@ -18,12 +18,17 @@
 package org.fcrepo.importexport;
 
 import org.fcrepo.importexport.driver.ArgParser;
+import org.slf4j.Logger;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * @author ruebot
  * @since 2016-08-29
  */
 public class ImportExportDriver {
+
+    private static final Logger logger = getLogger(ImportExportDriver.class);
 
     private ImportExportDriver() {
         // Prevent public instantiation
@@ -41,7 +46,8 @@ public class ImportExportDriver {
             driver.run(args);
 
         } catch (final Exception e) {
-            // swallow exception
+            logger.error("Error performing import/export: {}", e.getMessage());
+            logger.debug("Stacktrace: ", e);
         }
     }
 

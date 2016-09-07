@@ -75,7 +75,7 @@ public class Exporter implements TransferProcess {
      * This method does the export
      */
     public void run() {
-        System.out.println("Exporting!");
+        logger.info("Running exporter...");
         export(config.getResource());
     }
     private void export(final URI uri) {
