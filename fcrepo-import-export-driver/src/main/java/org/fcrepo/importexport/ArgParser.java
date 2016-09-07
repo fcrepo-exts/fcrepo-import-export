@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importer;
+package org.fcrepo.importexport;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -24,14 +24,23 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.exporter.Exporter;
+import org.fcrepo.importer.Importer;
 
 /**
+ * Command-line arguments parser.
+ *
  * @author awoods
+ * @author escowles
  * @since 2016-08-29
  */
-public class ArgParser implements org.fcrepo.importexport.ArgParser {
+public class ArgParser {
 
     final private Options cmdOptions;
+
+    public static final String DEFAULT_RDF_EXT = ".ttl";
+    public static final String DEFAULT_RDF_LANG = "text/turtle";
 
     /**
      * Constructor that creates the command line options
@@ -51,6 +60,42 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         importExportOption.setArgs(1);
         importExportOption.setArgName("mode");
         cmdOptions.addOption(importExportOption);
+
+        // Resource option
+        final Option resourceOption = new Option("r", "resource", true, "Resource (URI) to import/export");
+        resourceOption.setRequired(true);
+        resourceOption.setArgs(1);
+        resourceOption.setArgName("resource");
+        cmdOptions.addOption(resourceOption);
+
+        // Binary Directory option
+        final Option binDirOption = new Option("b", "binDir", true, "Directory where binaries (files) are stored");
+        binDirOption.setRequired(false);
+        binDirOption.setArgs(1);
+        binDirOption.setArgName("binDir");
+        cmdOptions.addOption(binDirOption);
+
+        // Description Directory option
+        final Option descDirOption = new Option("d", "descDir", true, "Directory where RDF descriptions are stored");
+        descDirOption.setRequired(true);
+        descDirOption.setArgs(1);
+        descDirOption.setArgName("descDir");
+        cmdOptions.addOption(descDirOption);
+
+        // RDF extension option
+        final Option rdfExtOption = new Option("x", "rdfExt", true, "RDF filename extension (default: " +
+                DEFAULT_RDF_EXT);
+        rdfExtOption.setRequired(false);
+        rdfExtOption.setArgs(1);
+        rdfExtOption.setArgName("rdfExt");
+        cmdOptions.addOption(rdfExtOption);
+
+        // RDF language option
+        final Option rdfLangOption = new Option("l", "rdfLang", true, "RDF language (default: " + DEFAULT_RDF_LANG);
+        rdfLangOption.setRequired(false);
+        rdfLangOption.setArgs(1);
+        rdfLangOption.setArgName("rdfLang");
+        cmdOptions.addOption(rdfLangOption);
     }
 
     Config parseConfiguration(final String[] args) {
@@ -72,17 +117,36 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
             }
 
             config.setMode(mode);
+            config.setResource(cmd.getOptionValue('r'));
+            config.setBinaryDirectory(cmd.getOptionValue('b'));
+            config.setDescriptionDirectory(cmd.getOptionValue('d'));
+            config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
+            config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
 
         } catch (ParseException e) {
             printHelp("Error parsing args: " + e.getMessage());
         }
-
         return config;
     }
 
-    @Override
-    public Importer parse(final String[] args) {
-        return new Importer(parseConfiguration(args));
+    /**
+     * Parse command-line arguments.
+     * @param args Command-line arguments
+     * @return A configured Importer or Exporter instance.
+    **/
+    public TransferProcess parse(final String[] args) {
+
+        final Config config = parseConfiguration(args);
+        if (config.isImport()) {
+            return new Importer(config, clientBuilder());
+        } else if (config.isExport()) {
+            return new Exporter(config, clientBuilder());
+        }
+        throw new IllegalArgumentException("Invalid mode parameter");
+    }
+
+    private FcrepoClient.FcrepoClientBuilder clientBuilder() {
+        return FcrepoClient.client();
     }
 
     private void printHelp(final String message) {

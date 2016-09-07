@@ -40,6 +40,7 @@ import org.apache.jena.rdf.model.NodeIterator;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.Config;
 import org.fcrepo.importexport.TransferProcess;
 import org.slf4j.Logger;
 
@@ -53,7 +54,7 @@ import org.slf4j.Logger;
 public class Exporter implements TransferProcess {
     private static final Logger logger = getLogger(Exporter.class);
     private Config config;
-    protected FcrepoClient client;
+    protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private URI binaryURI;
     private URI containerURI;
 
@@ -61,12 +62,17 @@ public class Exporter implements TransferProcess {
      * Constructor that takes the Import/Export configuration
      *
      * @param config for export
+     * @param clientBuilder for retrieving resources from Fedora
      */
-    public Exporter(final Config config) {
+    public Exporter(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
-        this.client = FcrepoClient.client().build();
+        this.clientBuilder = clientBuilder;
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
+    }
+
+    private FcrepoClient client() {
+        return clientBuilder.build();
     }
 
     /**
@@ -77,7 +83,7 @@ public class Exporter implements TransferProcess {
         export(config.getResource());
     }
     private void export(final URI uri) {
-        try (FcrepoResponse response = client.head(uri).perform()) {
+        try (FcrepoResponse response = client().head(uri).perform()) {
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
                 exportBinary(uri);
@@ -100,7 +106,7 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        try (FcrepoResponse response = client.get(uri).perform()) {
+        try (FcrepoResponse response = client().get(uri).perform()) {
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
         }
@@ -113,7 +119,7 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        try (FcrepoResponse response = client.get(uri).accept(config.getRdfLanguage()).perform()) {
+        try (FcrepoResponse response = client().get(uri).accept(config.getRdfLanguage()).perform()) {
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
         } catch ( Exception ex ) {

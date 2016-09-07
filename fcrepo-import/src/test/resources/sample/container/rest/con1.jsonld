@@ -1,0 +1,40 @@
+[ {
+  "@id" : "http://localhost:8080/rest/con1",
+  "@type" : [ "http://fedora.info/definitions/v4/repository#Container", "http://fedora.info/definitions/v4/repository#Resource", "http://www.w3.org/ns/ldp#RDFSource", "http://www.w3.org/ns/ldp#Container" ],
+  "http://fedora.info/definitions/v4/repository#created" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+    "@value" : "2016-09-07T13:03:37.073Z"
+  } ],
+  "http://fedora.info/definitions/v4/repository#createdBy" : [ {
+    "@value" : "bypassAdmin"
+  } ],
+  "http://fedora.info/definitions/v4/repository#exportsAs" : [ {
+    "@id" : "http://localhost:8080/rest/con1/fcr:export?format=jcr/xml"
+  } ],
+  "http://fedora.info/definitions/v4/repository#hasParent" : [ {
+    "@id" : "http://localhost:8080/rest/"
+  } ],
+  "http://fedora.info/definitions/v4/repository#lastModified" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+    "@value" : "2016-09-07T13:03:37.073Z"
+  } ],
+  "http://fedora.info/definitions/v4/repository#lastModifiedBy" : [ {
+    "@value" : "bypassAdmin"
+  } ],
+  "http://fedora.info/definitions/v4/repository#numberOfChildren" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#long",
+    "@value" : "0"
+  } ],
+  "http://fedora.info/definitions/v4/repository#writable" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#boolean",
+    "@value" : "true"
+  } ],
+  "http://purl.org/dc/terms/title" : [ {
+    "@value" : "test container"
+  } ]
+}, {
+  "@id" : "http://localhost:8080/rest/con1/fcr:export?format=jcr/xml",
+  "http://purl.org/dc/elements/1.1/format" : [ {
+    "@id" : "http://fedora.info/definitions/v4/repository#jcr/xml"
+  } ]
+} ]

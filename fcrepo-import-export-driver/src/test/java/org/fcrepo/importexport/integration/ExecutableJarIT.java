@@ -39,7 +39,7 @@ import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.exporter.ArgParser;
+import org.fcrepo.importexport.ArgParser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

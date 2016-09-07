@@ -26,15 +26,31 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 
 /**
  * @author awoods
+ * @author escowles
+ * @author mikeAtUVa
  * @since 2016-09-06
  */
 public abstract class FcrepoConstants {
+
+    public static final String BINARY_EXTENSION = ".binary";
+
+    public static final String EBUCORE_NAMESPACE = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";
+    public static final Property HAS_MIME_TYPE = createProperty(EBUCORE_NAMESPACE + "hasMimeType");
+
+    public static final String IANA_NAMESPACE = "http://www.iana.org/assignments/relation/";
+    public static final Property DESCRIBEDBY = createProperty(IANA_NAMESPACE + "describedby");
 
     public static final String LDP_NAMESPACE = "http://www.w3.org/ns/ldp#";
     public static final Resource CONTAINER = createResource(LDP_NAMESPACE + "Container");
     public static final Property NON_RDF_SOURCE = createProperty(LDP_NAMESPACE + "NonRDFSource");
     public static final Property CONTAINS = createProperty(LDP_NAMESPACE + "contains");
 
-    public static final String BINARY_EXTENSION = ".binary";
+    public static final String PREMIS_NAMESPACE = "http://www.loc.gov/premis/rdf/v1#";
+    public static final Property HAS_SIZE = createProperty(PREMIS_NAMESPACE + "hasSize");
+    public static final Property HAS_MESSAGE_DIGEST = createProperty(PREMIS_NAMESPACE + "hasMessageDigest");
 
+    public static final String RDF_NAMESPACE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+    public static final Property RDF_TYPE = createProperty(RDF_NAMESPACE + "type");
+
+    public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
 }
