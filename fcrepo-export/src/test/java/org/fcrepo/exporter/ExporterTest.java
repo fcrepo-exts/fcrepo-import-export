@@ -40,6 +40,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.importexport.Config;
+import org.fcrepo.importexport.ExportException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,9 +62,11 @@ public class ExporterTest {
     private URI resource3;
     private URI resource4;
     private URI resource5;
+    private URI resource6;
     private Config args;
     private Config binaryArgs;
     private Config metadataArgs;
+    private Config describedByArgs;
 
     @Before
     public void setUp() throws Exception {
@@ -77,6 +80,7 @@ public class ExporterTest {
         resource3 = new URI("http://localhost:8080/rest/file1");
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
         resource5 = new URI("http://localhost:8080/rest/alt_description");
+        resource6 = new URI("http://localhost:8080/rest/x");
         args = new Config();
         args.setMode("export");
         args.setDescriptionDirectory(new File("target/rdf"));
@@ -100,6 +104,14 @@ public class ExporterTest {
         metadataArgs.setRdfLanguage("application/ld+json");
         metadataArgs.setResource(resource);
 
+        describedByArgs = new Config();
+        describedByArgs.setMode("export");
+        describedByArgs.setDescriptionDirectory(new File("target/rdf"));
+        describedByArgs.setBinaryDirectory(new File("target/bin"));
+        describedByArgs.setRdfExtension(".jsonld");
+        describedByArgs.setRdfLanguage("application/ld+json");
+        describedByArgs.setResource(resource6);
+
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
@@ -110,6 +122,7 @@ public class ExporterTest {
         mockResponse(resource3, describedbyLinks, "binary");
         mockResponse(resource4, new ArrayList<>(), "{\"@id\":\"" + resource4.toString() + "\"}");
         mockResponse(resource5, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
+        mockResponse(resource6, null, "{\"@id\":\"" + resource6.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
@@ -129,7 +142,7 @@ public class ExporterTest {
     }
 
     @Test
-    public void testExportBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+    public void testExportBinaryAndDescription() throws Exception {
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         exporter.run();
@@ -170,20 +183,39 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1/2.jsonld")));
     }
-}
 
-class ExporterWrapper extends Exporter {
-    private List<File> writtenFiles = new ArrayList<>();
+    @Test (expected = ExportException.class)
+    public void testNullLinkHeaderType() {
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(null);
+        exporter.run();
+    }
 
-    ExporterWrapper(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
-        super(config, clientBuilder);
+    @Test (expected = ExportException.class)
+    public void testNullLinkHeaderDescribedby() {
+        final ExporterWrapper exporter = new ExporterWrapper(describedByArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
+        exporter.run();
     }
-    void writeResponse(final FcrepoResponse response, final File file)
-            throws IOException, FcrepoOperationFailedException {
-        super.writeResponse(response, file);
-        writtenFiles.add(file);
-    }
-    boolean wroteFile(final File file) {
-        return writtenFiles.contains(file);
+
+    /**
+     * Nested helper class.
+     */
+    private class ExporterWrapper extends Exporter {
+        private List<File> writtenFiles = new ArrayList<>();
+
+        ExporterWrapper(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
+            super(config, clientBuilder);
+        }
+
+        void writeResponse(final FcrepoResponse response, final File file)
+                throws IOException, FcrepoOperationFailedException {
+            super.writeResponse(response, file);
+            writtenFiles.add(file);
+        }
+
+        boolean wroteFile(final File file) {
+            return writtenFiles.contains(file);
+        }
     }
 }

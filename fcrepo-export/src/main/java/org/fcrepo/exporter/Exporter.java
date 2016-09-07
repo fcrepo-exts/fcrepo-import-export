@@ -41,6 +41,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.Config;
+import org.fcrepo.importexport.ExportException;
 import org.fcrepo.importexport.TransferProcess;
 import org.slf4j.Logger;
 
@@ -85,6 +86,10 @@ public class Exporter implements TransferProcess {
     private void export(final URI uri) {
         try (FcrepoResponse response = client().head(uri).perform()) {
             final List<URI> linkHeaders = response.getLinkHeaders("type");
+            if (linkHeaders == null) {
+                throw new ExportException("Link header defining resource 'type' must not be null!");
+            }
+
             if (linkHeaders.contains(binaryURI)) {
                 exportBinary(uri);
             } else if (linkHeaders.contains(containerURI)) {
@@ -149,6 +154,10 @@ public class Exporter implements TransferProcess {
         }
 
         final List<URI> describedby = response.getLinkHeaders("describedby");
+        if (describedby == null) {
+            throw new ExportException("Link header defining 'describedby' resource must not be null!");
+        }
+
         for (final Iterator<URI> it = describedby.iterator(); describedby != null && it.hasNext(); ) {
             exportDescription(it.next());
         }
