@@ -17,9 +17,9 @@
  */
 package org.fcrepo.exporter;
 
-import static org.fcrepo.kernel.api.RdfLexicon.CONTAINER;
-import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
-import static org.fcrepo.kernel.api.RdfLexicon.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;

@@ -19,7 +19,9 @@ package org.fcrepo.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
-import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
+import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -38,7 +40,6 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.TransferProcess;
-import org.fcrepo.kernel.api.RdfLexicon;
 import org.slf4j.Logger;
 
 /**
@@ -64,8 +65,8 @@ public class Exporter implements TransferProcess {
         this.config = config;
         this.client = FcrepoClient.client().build();
         try {
-            binaryURI = new URI(RdfLexicon.NON_RDF_SOURCE.getURI());
-            containerURI = new URI(RdfLexicon.CONTAINER.getURI());
+            binaryURI = new URI(NON_RDF_SOURCE.getURI());
+            containerURI = new URI(CONTAINER.getURI());
         } catch (URISyntaxException ex) {
             // no-op
         }
