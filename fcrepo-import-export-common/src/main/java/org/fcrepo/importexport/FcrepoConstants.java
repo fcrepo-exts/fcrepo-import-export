@@ -35,4 +35,6 @@ public abstract class FcrepoConstants {
     public static final Property NON_RDF_SOURCE = createProperty(LDP_NAMESPACE + "NonRDFSource");
     public static final Property CONTAINS = createProperty(LDP_NAMESPACE + "contains");
 
+    public static final String BINARY_EXTENSION = ".binary";
+
 }

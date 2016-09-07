@@ -19,7 +19,7 @@ package org.fcrepo.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
-import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;

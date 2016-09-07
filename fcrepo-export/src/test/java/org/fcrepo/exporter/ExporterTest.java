@@ -17,7 +17,7 @@
  */
 package org.fcrepo.exporter;
 
-import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;

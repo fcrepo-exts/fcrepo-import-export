@@ -18,8 +18,9 @@
 package org.fcrepo.importexport.integration;
 
 import static javax.ws.rs.core.Response.Status.CREATED;
-import static org.fcrepo.importexport.Constants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.FcrepoConstants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -29,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -123,8 +125,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertTrue("Process did not exit before timeout!", process.waitFor(1000, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        response.getLinkHeaders("describedby")
-                .forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
+        final List<URI> describedByHeaders = response.getLinkHeaders("describedby");
+        assertFalse("Fedora should have given us at least one describedby header!", describedByHeaders.isEmpty());
+        describedByHeaders.forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
                         new File(TARGET_DIR, uri.getPath().replace(":", "_") + ArgParser.DEFAULT_RDF_EXT).exists()));
         final File exportedBinary
                 = new File(TARGET_DIR, url.getPath().replace(":",  "_") + BINARY_EXTENSION);
