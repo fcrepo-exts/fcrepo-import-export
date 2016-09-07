@@ -17,7 +17,6 @@
  */
 package org.fcrepo.exporter;
 
-import java.net.URISyntaxException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -123,8 +122,6 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
 
         } catch (ParseException e) {
             printHelp("Error parsing args: " + e.getMessage());
-        } catch (URISyntaxException e) {
-            printHelp("Error parsing resource URI: " + e.getMessage());
         }
         return config;
     }

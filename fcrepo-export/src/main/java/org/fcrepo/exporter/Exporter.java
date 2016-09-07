@@ -32,7 +32,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -66,12 +65,8 @@ public class Exporter implements TransferProcess {
     public Exporter(final Config config) {
         this.config = config;
         this.client = FcrepoClient.client().build();
-        try {
-            binaryURI = new URI(NON_RDF_SOURCE.getURI());
-            containerURI = new URI(CONTAINER.getURI());
-        } catch (URISyntaxException ex) {
-            // no-op
-        }
+        this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
+        this.containerURI = URI.create(CONTAINER.getURI());
     }
 
     /**
@@ -131,12 +126,10 @@ public class Exporter implements TransferProcess {
         try {
             final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
             for (final NodeIterator it = model.listObjectsOfProperty(CONTAINS); it.hasNext();) {
-                export(new URI(it.nextNode().toString()));
+                export(URI.create(it.nextNode().toString()));
             }
         } catch (FileNotFoundException ex) {
             logger.warn("Unable to parse file: {}", ex.toString());
-        } catch (URISyntaxException ex) {
-            logger.warn("Unable to parse URI: {}", ex.toString());
         }
     }
     void writeResponse(final FcrepoResponse response, final File file)

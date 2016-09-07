@@ -19,7 +19,6 @@ package org.fcrepo.exporter;
 
 import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 /**
  * @author awoods
@@ -120,22 +119,19 @@ public class Config {
      * Sets the URI of the resource to import/export
      *
      * @param resource URI to import/export
-     * @throws URISyntaxException if resource is not URI
      */
-    public void setResource(final String resource) throws URISyntaxException {
-        setResource(new URI(resource));
+    public void setResource(final String resource) {
+        setResource(URI.create(resource));
     }
 
     /**
      * Sets the URI of the resource to import/export
      *
      * @param resource URI to import/export
-     * @throws URISyntaxException if resource is not URI
      */
-    public void setResource(final URI resource) throws URISyntaxException {
+    public void setResource(final URI resource) {
         if (resource.toString().endsWith("/")) {
-            this.resource = new URI(
-                resource.toString().substring(0, resource.toString().length() - 1));
+            this.resource = URI.create(resource.toString().substring(0, resource.toString().length() - 1));
         } else {
             this.resource = resource;
         }
