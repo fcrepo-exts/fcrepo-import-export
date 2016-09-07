@@ -91,7 +91,7 @@ public class ArgParser implements org.fcrepo.importexport.ArgParser {
         final HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("Running Import/Export Utility", cmdOptions);
 
-        throw new RuntimeException();
+        throw new RuntimeException(message);
     }
 
 }

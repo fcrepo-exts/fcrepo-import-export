@@ -15,6 +15,9 @@
   <logger name="org.fcrepo.importexport" additivity="false" level="${fcrepo.log.importexport:-null}">
     <appender-ref ref="STDOUT"/>
   </logger>
+  <logger name="org.fcrepo" additivity="false" level="${fcrepo.log:-INFO}">
+    <appender-ref ref="STDOUT"/>
+  </logger>
   <root level="WARN">
     <appender-ref ref="STDOUT"/>
   </root>
