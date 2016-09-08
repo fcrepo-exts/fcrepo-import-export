@@ -269,7 +269,7 @@ public class ArgParser {
         try (final BufferedWriter configWriter = new BufferedWriter(new FileWriter(configFile));) {
             for (Option option : cmd.getOptions()) {
                 if (!option.getOpt().equals("u")) {
-                    configWriter.write(option.getOpt());
+                    configWriter.write("-" + option.getOpt());
                     configWriter.newLine();
                     if (option.getValue() != null) {
                         configWriter.write(option.getValue());
