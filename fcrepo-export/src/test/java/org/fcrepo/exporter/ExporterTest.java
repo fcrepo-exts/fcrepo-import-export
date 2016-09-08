@@ -21,8 +21,8 @@ import static org.fcrepo.importexport.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.NON_RDF_SOURCE;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isA;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,14 +31,15 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.GetBuilder;
+import org.fcrepo.client.HeadBuilder;
+import org.fcrepo.importexport.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.Config;
 import org.junit.Assert;
 import org.junit.Before;
@@ -77,6 +78,7 @@ public class ExporterTest {
         resource3 = new URI("http://localhost:8080/rest/file1");
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
         resource5 = new URI("http://localhost:8080/rest/alt_description");
+
         args = new Config();
         args.setMode("export");
         args.setDescriptionDirectory(new File("target/rdf"));
@@ -114,6 +116,7 @@ public class ExporterTest {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
+        when(headResponse.getStatusCode()).thenReturn(200);
     }
 
     private void mockResponse(final URI uri, final List<URI> describedbyLinks, final String body)
@@ -126,6 +129,7 @@ public class ExporterTest {
         when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
         when(getResponse.getUrl()).thenReturn(uri);
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+        when(getResponse.getStatusCode()).thenReturn(200);
     }
 
     @Test
@@ -144,6 +148,13 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
+    }
+
+    @Test (expected = AuthenticationRequiredRuntimeException.class)
+    public void testUnauthenticatedExportWhenAuthorizationIsRequired() {
+        when(headResponse.getStatusCode()).thenReturn(401);
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        exporter.run();
     }
 
     @Test

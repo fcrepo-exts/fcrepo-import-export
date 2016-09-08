@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importer;
 
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isA;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,12 +26,14 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
 import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PutBuilder;
+import org.fcrepo.importexport.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.Config;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +51,8 @@ public class ImporterTest {
     private URI binaryURI;
     private URI binaryDescriptionURI;
     private URI containerURI;
+
+    private FcrepoResponse conResponse;
 
     @Before
     public void setUp() throws Exception {
@@ -70,7 +74,7 @@ public class ImporterTest {
         containerArgs.setRdfLanguage("application/ld+json");
         containerArgs.setResource(new URI("http://localhost:8080/rest"));
 
-        final List<URI> binLinks = (List<URI>)Arrays.asList(binaryDescriptionURI);
+        final List<URI> binLinks = Arrays.asList(binaryDescriptionURI);
 
         // mocks
         clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
@@ -88,7 +92,7 @@ public class ImporterTest {
 
         // mock container/description interactions
         final PutBuilder conBuilder = mock(PutBuilder.class);
-        final FcrepoResponse conResponse = mock(FcrepoResponse.class);
+        conResponse = mock(FcrepoResponse.class);
         when(client.put(eq(containerURI))).thenReturn(conBuilder);
         when(client.put(eq(binaryDescriptionURI))).thenReturn(conBuilder);
         when(conBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(conBuilder);
@@ -112,4 +116,12 @@ public class ImporterTest {
         importer.run();
         verify(client).put(containerURI);
     }
+
+    @Test (expected = AuthenticationRequiredRuntimeException.class)
+    public void testUnauthenticatedImportWhenAuthorizationIsRequired() throws FcrepoOperationFailedException {
+        when(conResponse.getStatusCode()).thenReturn(401);
+        final Importer importer = new Importer(containerArgs, clientBuilder);
+        importer.run();
+    }
+
 }

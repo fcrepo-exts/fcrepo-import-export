@@ -33,6 +33,8 @@ public class Config {
     private File descriptionDirectory;
     private String rdfExtension;
     private String rdfLanguage;
+    private String username;
+    private String password;
 
     /**
      * This method returns true if the configuration is set for 'import'
@@ -180,5 +182,41 @@ public class Config {
      */
     public String getRdfLanguage() {
         return rdfLanguage;
+    }
+
+    /**
+     * Sets the username for basic auth.
+     *
+     * @param username the username
+     */
+    public void setUsername(final String username) {
+        this.username = username;
+    }
+
+    /**
+     * Gets the username for basic auth.
+     *
+     * @return the username
+     */
+    public String getUsername() {
+        return this.username;
+    }
+
+    /**
+     * Sets the password for basic auth.
+     *
+     * @param password the password
+     */
+    public void setPassword(final String password) {
+        this.password = password;
+    }
+
+    /**
+     * Gets the password for basic auth.
+     *
+     * @return the password
+     */
+    public String getPassword() {
+        return this.password;
     }
 }
