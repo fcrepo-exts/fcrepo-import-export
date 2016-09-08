@@ -50,7 +50,7 @@ $ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-<vers
 ```
 
 The easiest way to see an example of the configuration file is to run the utility with command-line arguments and inspect the configuration file created.
-That configuration file will looks something like the following:
+That configuration file will look something like the following:
 > -m
 > export
 > -d
