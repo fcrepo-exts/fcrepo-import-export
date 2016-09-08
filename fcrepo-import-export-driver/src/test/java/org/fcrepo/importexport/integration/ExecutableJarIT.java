@@ -40,6 +40,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.ArgParser;
+import org.fcrepo.importexport.TransferProcess;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -128,9 +129,10 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final List<URI> describedByHeaders = response.getLinkHeaders("describedby");
         assertFalse("Fedora should have given us at least one describedby header!", describedByHeaders.isEmpty());
         describedByHeaders.forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
-                        new File(TARGET_DIR, uri.getPath().replace(":", "_") + ArgParser.DEFAULT_RDF_EXT).exists()));
+                        new File(TARGET_DIR, TransferProcess.encodePath(uri.getPath())
+                                + ArgParser.DEFAULT_RDF_EXT).exists()));
         final File exportedBinary
-                = new File(TARGET_DIR, url.getPath().replace(":",  "_") + BINARY_EXTENSION);
+                = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
         assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
     }

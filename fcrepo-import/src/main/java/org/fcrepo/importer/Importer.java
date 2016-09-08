@@ -194,6 +194,6 @@ public class Importer implements TransferProcess {
     }
 
     private File fileForURI(final URI uri) {
-        return new File(config.getBinaryDirectory() + uri.getPath().replaceAll(":", "_"));
+        return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()));
     }
 }
