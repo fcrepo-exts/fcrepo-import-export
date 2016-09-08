@@ -18,10 +18,15 @@
 package org.fcrepo.importexport;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URI;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static java.lang.System.getProperty;
+import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
 
 /**
  * @author awoods
@@ -65,6 +70,34 @@ public class ArgParserTest {
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+    }
+
+    @Test
+    public void parseConfigFile() throws IOException {
+        // Create test config file
+        final File configFile = File.createTempFile("config-test", ".txt");
+        final FileWriter writer = new FileWriter(configFile);
+        writer.append("-d\n");
+        writer.append("/tmp/desc\n");
+        writer.append("-m\n");
+        writer.append("export\n");
+        writer.append("-r\n");
+        writer.append("http://localhost:8080/rest/test\n");
+        writer.append("-b\n");
+        writer.append("/tmp/bin\n");
+        writer.flush();
+
+        final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertEquals(new File("/tmp/desc"), config.getDescriptionDirectory());
+        Assert.assertEquals(new File("/tmp/bin"), config.getBinaryDirectory());
+        Assert.assertEquals(".ttl", config.getRdfExtension());
+        Assert.assertEquals("text/turtle", config.getRdfLanguage());
+        Assert.assertEquals(URI.create("http://localhost:8080/rest/test"), config.getResource());
+
+        Assert.assertTrue("Config file should be created!",
+                new File(getProperty("java.io.tmpdir"), CONFIG_FILE_NAME).exists());
     }
 
     @Test (expected = RuntimeException.class)
