@@ -17,6 +17,10 @@
  */
 package org.fcrepo.importexport;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
 /**
  * @author barmintor
  * @since 2016-08-31
@@ -26,5 +30,36 @@ public interface TransferProcess {
      * This method does the import or export
      */
     public void run();
+
+    /**
+     * Encodes a path (as if from a URI) to avoid
+     * characters that may be disallowed in a filename.
+     * This operation can be reversed by invoking
+     * {@link #decodePath }.
+     * @param path the path portion of a URI
+     * @return a version of the path that avoid characters
+     * such as ":".
+     */
+    public static String encodePath(final String path) {
+        try {
+            return URLEncoder.encode(path, "UTF-8").replace("%2F", "/");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Decodes a path. This operation can be reversed by
+     * invoking {@link #encodePath }.
+     * @param encoded the path portion of a URI
+     * @return the original path
+     */
+    public static String decodePath(final String encoded) {
+        try {
+            return URLDecoder.decode(encoded, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }

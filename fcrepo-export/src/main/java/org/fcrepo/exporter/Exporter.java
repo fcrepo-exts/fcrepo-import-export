@@ -157,10 +157,10 @@ public class Exporter implements TransferProcess {
         if (config.getBinaryDirectory() == null) {
             return null;
         }
-        return new File(config.getBinaryDirectory(), uri.getPath().replaceAll(":", "_") + BINARY_EXTENSION);
+        return new File(config.getBinaryDirectory(), TransferProcess.encodePath(uri.getPath()) + BINARY_EXTENSION);
     }
     private File fileForContainer(final URI uri) {
-        return new File(config.getDescriptionDirectory(), uri.getPath().replaceAll(":", "_")
+        return new File(config.getDescriptionDirectory(), TransferProcess.encodePath(uri.getPath())
             + config.getRdfExtension());
     }
 }

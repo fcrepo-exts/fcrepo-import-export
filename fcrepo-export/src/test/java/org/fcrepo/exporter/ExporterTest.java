@@ -134,7 +134,7 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr_metadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/alt_description.jsonld")));
     }
 
