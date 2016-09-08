@@ -8,11 +8,19 @@ Work in progress
 Requirements:
 * Java 8
 
-Additional requirements for building and running from source:
+Additional requirements for building:
 * Maven 3
 
+Modes of execution
+------------------
+The standalone import/export utility can be run in either of two ways:
+1) By passing in individual command-line arguments to the executable jar file
+2) By passing in a single configuration file that contains the standard command-line arguments
 
-To run the standalone import/export utility:
+The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
+
+Running the import/export utility with command-line arguments
+-------------------------------------------------------------
 
 ```sh
 $ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-<version>.jar --mode [import|export] [options]
@@ -33,3 +41,19 @@ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-0.0.1-S
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
+
+Running the import/export utility with a configuration file
+-----------------------------------------------------------
+
+```sh
+$ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-<version>.jar -c /path/to/config/file
+```
+
+The easiest way to see an example of the configuration file is to run the utility with command-line arguments and inspect the configuration file created.
+That configuration file will look something like the following:
+> -m
+> export
+> -d
+> /tmp/rdf
+> -r
+> http://localhost:8080/rest/1

@@ -27,6 +27,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -104,6 +105,37 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
         assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testConfigFileExport() throws Exception {
+        // Create a repository resource
+        final FcrepoResponse response = create();
+        assertEquals(CREATED.getStatusCode(), response.getStatusCode());
+        assertEquals(url, response.getLocation());
+
+        // Create test config file
+        final File configFile = File.createTempFile("config-test", ".txt");
+        final FileWriter writer = new FileWriter(configFile);
+        writer.append("-d\n");
+        writer.append(TARGET_DIR);
+        writer.append("\n");
+        writer.append("-m\n");
+        writer.append("export\n");
+        writer.append("-r\n");
+        writer.append(url.toString());
+        writer.append("\n");
+        writer.flush();
+
+        // Run an export process
+        final Process process = startJarProcess("-c", configFile.getAbsolutePath());
+
+        // Verify
+        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals("Did not exit with success status!", 0, process.exitValue());
+
+        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(System.getProperty("java.io.tmpdir"), ArgParser.CONFIG_FILE_NAME).exists());
     }
 
     @Test
