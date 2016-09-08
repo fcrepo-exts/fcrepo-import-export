@@ -80,6 +80,14 @@ public class ArgParser {
                 .desc("Resource (URI) to import/export")
                 .required(true).build());
 
+        // Source Resource option
+        final Option sourceOption = new Option("s", "source", true,
+                "Source (URI) data was exported from, when importing to a different Fedora URI");
+        sourceOption.setRequired(false);
+        sourceOption.setArgs(1);
+        sourceOption.setArgName("source");
+        configOptions.addOption(sourceOption);
+
         // Binary Directory option
         configOptions.addOption(Option.builder("b")
                 .longOpt("binDir")

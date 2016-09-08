@@ -56,23 +56,25 @@ public class ImporterTest {
 
     @Before
     public void setUp() throws Exception {
-        binaryURI  = new URI("http://localhost:8080/rest/bin1");
-        binaryDescriptionURI = new URI("http://localhost:8080/rest/bin1/fcr:metadata");
-        containerURI = new URI("http://localhost:8080/rest/con1");
+        binaryURI  = new URI("http://example.org:9999/rest/bin1");
+        binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
+        containerURI = new URI("http://example.org:9999/rest/con1");
         binaryArgs = new Config();
         binaryArgs.setMode("import");
         binaryArgs.setDescriptionDirectory(new File("src/test/resources/sample/binary/rdf"));
         binaryArgs.setBinaryDirectory(new File("src/test/resources/sample/binarytarget/bin"));
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
-        binaryArgs.setResource(new URI("http://localhost:8080/rest"));
+        binaryArgs.setResource(new URI("http://example.org:9999/rest"));
+        binaryArgs.setSource(new URI("http://localhost:8080/rest"));
 
         containerArgs = new Config();
         containerArgs.setMode("import");
         containerArgs.setDescriptionDirectory(new File("src/test/resources/sample/container"));
         containerArgs.setRdfExtension(".jsonld");
         containerArgs.setRdfLanguage("application/ld+json");
-        containerArgs.setResource(new URI("http://localhost:8080/rest"));
+        containerArgs.setResource(new URI("http://example.org:9999/rest"));
+        containerArgs.setSource(new URI("http://localhost:8080/rest"));
 
         final List<URI> binLinks = Arrays.asList(binaryDescriptionURI);
 
