@@ -53,7 +53,7 @@ public class ArgParser {
 
     public static final String DEFAULT_RDF_EXT = ".ttl";
     public static final String DEFAULT_RDF_LANG = "text/turtle";
-    public static final String CONFIG_FILE_NAME = "config.txt";
+    public static final String CONFIG_FILE_NAME = "importexport.config";
 
     private final Options configOptions;
     private final Options configFileOptions;
