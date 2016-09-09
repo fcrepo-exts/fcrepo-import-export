@@ -6,6 +6,8 @@ Fedora 4 Import/Export Utility
 Work in progress
 ----------------
 
+Open issues can be found [here](https://jira.duraspace.org/issues/?jql=project%20%3D%20FCREPO%20AND%20status%20in%20%28Open%2C%20%22In%20Progress%22%2C%20Reopened%2C%20%22In%20Review%22%2C%20Received%29%20AND%20component%20%3D%20f4-import-export).
+
 Requirements:
 * Java 8
 
