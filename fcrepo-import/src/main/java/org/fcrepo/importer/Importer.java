@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importer;
 
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.DESCRIBEDBY;
@@ -40,6 +40,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Statement;
@@ -104,8 +105,7 @@ public class Importer implements TransferProcess {
         FcrepoResponse response = null;
         URI uri = null;
         try {
-            final Model model = createDefaultModel().read(new FileInputStream(f), null,
-                    config.getRdfLanguage());
+            final Model model = parseFile(f);
             final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
             if (binaryResources.hasNext()) {
                 uri = new URI(binaryResources.nextResource().getURI());
@@ -133,6 +133,16 @@ public class Importer implements TransferProcess {
             throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
     }
+
+    private Model parseFile(final File f) throws IOException {
+        final URI source = (config.getSource() == null) ? config.getResource() : config.getSource();
+        final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(source, config.getResource());
+        try (FileInputStream in = new FileInputStream(f)) {
+            RDFDataMgr.parse(mapper, in, contentTypeToLang(config.getRdfLanguage()));
+        }
+        return mapper.getModel();
+    }
+
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();

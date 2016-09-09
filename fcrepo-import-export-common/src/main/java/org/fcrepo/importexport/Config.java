@@ -29,6 +29,7 @@ public class Config {
 
     private String mode;
     private URI resource;
+    private URI source;
     private File binaryDirectory;
     private File descriptionDirectory;
     private String rdfExtension;
@@ -146,6 +147,37 @@ public class Config {
      */
     public URI getResource() {
         return resource;
+    }
+
+    /**
+     * Sets the URI of the source resource, for mapping URIs being imported
+     *
+     * @param source URI to import/export
+     */
+    public void setSource(final String source) {
+        setSource(URI.create(source));
+    }
+
+    /**
+     * Sets the URI of the source resoruce, for mapping URIs being imported
+     *
+     * @param source URI to import/export
+     */
+    public void setSource(final URI source) {
+        if (source.toString().endsWith("/")) {
+            this.source = URI.create(source.toString().substring(0, source.toString().length() - 1));
+        } else {
+            this.source = source;
+        }
+    }
+
+    /**
+     * Gets the URI of the source resoruce, for mapping URIs being imported
+     *
+     * @return source source
+     */
+    public URI getSource() {
+        return source;
     }
 
     /**
