@@ -40,7 +40,10 @@ import org.apache.jena.rdf.model.NodeIterator;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.Config;
+import org.fcrepo.importexport.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.TransferProcess;
 import org.slf4j.Logger;
 
@@ -72,6 +75,9 @@ public class Exporter implements TransferProcess {
     }
 
     private FcrepoClient client() {
+        if (config.getUsername() != null) {
+            clientBuilder.credentials(config.getUsername(), config.getPassword());
+        }
         return clientBuilder.build();
     }
 
@@ -84,6 +90,7 @@ public class Exporter implements TransferProcess {
     }
     private void export(final URI uri) {
         try (FcrepoResponse response = client().head(uri).perform()) {
+            checkValidResponse(response, uri);
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
                 exportBinary(uri);
@@ -107,6 +114,7 @@ public class Exporter implements TransferProcess {
         }
 
         try (FcrepoResponse response = client().get(uri).perform()) {
+            checkValidResponse(response, uri);
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
         }
@@ -120,6 +128,7 @@ public class Exporter implements TransferProcess {
         }
 
         try (FcrepoResponse response = client().get(uri).accept(config.getRdfLanguage()).perform()) {
+            checkValidResponse(response, uri);
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
         } catch ( Exception ex ) {
@@ -162,5 +171,27 @@ public class Exporter implements TransferProcess {
     private File fileForContainer(final URI uri) {
         return new File(config.getDescriptionDirectory(), TransferProcess.encodePath(uri.getPath())
             + config.getRdfExtension());
+    }
+
+    /**
+     * Checks the response code and throws a RuntimeException with a helpful
+     * message (when possible) for non 2xx codes.
+     * @param response the response from a REST call to Fedora
+     * @param uri the URI against which the request was made
+     */
+    private void checkValidResponse(final FcrepoResponse response, final URI uri) {
+        switch (response.getStatusCode()) {
+            case 401:
+                throw new AuthenticationRequiredRuntimeException();
+            case 403:
+                throw new AuthorizationDeniedRuntimeException(config.getUsername(), uri);
+            case 404:
+                throw new ResourceNotFoundRuntimeException(uri);
+            default:
+                if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+                    throw new RuntimeException("Export operation failed: unexpected status "
+                            + response.getStatusCode() + " for " + uri);
+                }
+        }
     }
 }

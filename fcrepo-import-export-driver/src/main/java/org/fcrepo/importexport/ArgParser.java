@@ -18,7 +18,6 @@
 package org.fcrepo.importexport;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
@@ -67,68 +66,100 @@ public class ArgParser {
         configFileOptions = new Options();
 
         // Mode option
-        final Option importExportOption = new Option("m", "mode", true, "Mode: [import|export]");
-        importExportOption.setRequired(true);
-        importExportOption.setArgs(1);
-        importExportOption.setArgName("mode");
-        configOptions.addOption(importExportOption);
+        configOptions.addOption(Option.builder("m")
+                .longOpt("mode")
+                .hasArg(true).numberOfArgs(1).argName("mode")
+                .desc("Mode: [import|export]")
+                .required(true)
+                .build());
 
         // Resource option
-        final Option resourceOption = new Option("r", "resource", true, "Resource (URI) to import/export");
-        resourceOption.setRequired(true);
-        resourceOption.setArgs(1);
-        resourceOption.setArgName("resource");
-        configOptions.addOption(resourceOption);
+        configOptions.addOption(Option.builder("r")
+                .longOpt("resource")
+                .hasArg(true).numberOfArgs(1).argName("resource")
+                .desc("Resource (URI) to import/export")
+                .required(true).build());
 
         // Binary Directory option
-        final Option binDirOption = new Option("b", "binDir", true, "Directory where binaries (files) are stored");
-        binDirOption.setRequired(false);
-        binDirOption.setArgs(1);
-        binDirOption.setArgName("binDir");
-        configOptions.addOption(binDirOption);
+        configOptions.addOption(Option.builder("b")
+                .longOpt("binDir")
+                .hasArg(true).numberOfArgs(1).argName("binDir")
+                .desc("Directory where binaries (files) are stored")
+                .required(false).build());
+
 
         // Description Directory option
-        final Option descDirOption = new Option("d", "descDir", true, "Directory where RDF descriptions are stored");
-        descDirOption.setRequired(true);
-        descDirOption.setArgs(1);
-        descDirOption.setArgName("descDir");
-        configOptions.addOption(descDirOption);
+        configOptions.addOption(Option.builder("d")
+                .longOpt("descDir")
+                .hasArg(true).numberOfArgs(1).argName("descDir")
+                .desc("Directory where the RDF descriptions are stored")
+                .required(true).build());
 
         // RDF extension option
-        final Option rdfExtOption = new Option("x", "rdfExt", true, "RDF filename extension (default: " +
-                DEFAULT_RDF_EXT);
-        rdfExtOption.setRequired(false);
-        rdfExtOption.setArgs(1);
-        rdfExtOption.setArgName("rdfExt");
-        configOptions.addOption(rdfExtOption);
+        configOptions.addOption(Option.builder("x")
+                .longOpt("rdfExt")
+                .hasArg(true).numberOfArgs(1).argName("rdfExt")
+                .desc("RDF filename extension (default: " + DEFAULT_RDF_EXT + ")")
+                .required(false).build());
 
         // RDF language option
-        final Option rdfLangOption = new Option("l", "rdfLang", true, "RDF language (default: " + DEFAULT_RDF_LANG);
-        rdfLangOption.setRequired(false);
-        rdfLangOption.setArgs(1);
-        rdfLangOption.setArgName("rdfLang");
-        configOptions.addOption(rdfLangOption);
+        configOptions.addOption(Option.builder("l")
+                .longOpt("rdfLang")
+                .hasArg(true).numberOfArgs(1).argName("rdfLang")
+                .desc("RDF language (default: " + DEFAULT_RDF_LANG + ")")
+                .required(false).build());
+
+        // username option
+        final Option userOption = Option.builder("u")
+                .longOpt("user")
+                .hasArg(true).numberOfArgs(1).argName("user")
+                .desc("username:password for fedora basic authentication").build();
+        configOptions.addOption(userOption);
+        configFileOptions.addOption(userOption);
 
         // Config file option
-        final Option configFileOption = new Option("c", "config", true, "Path to config file");
-        configFileOption.setRequired(true);
-        configFileOption.setArgs(1);
-        configFileOption.setArgName("config");
-        configFileOptions.addOption(configFileOption);
+        configFileOptions.addOption(Option.builder("c")
+                .longOpt("config")
+                .hasArg(true).numberOfArgs(1).argName("config")
+                .desc("Path to config file")
+                .required(true).build());
     }
 
     protected Config parseConfiguration(final String[] args) {
-        // Inspect Config File option
-        Config config = parseConfigFileOptions(args);
+        // first see if they've specified a config file
+        CommandLine c = null;
+        Config config = null;
+        try {
+            c = parseConfigFileCommandLineArgs(args);
+            config = parseConfigFileOptions(c);
+            addSharedOptions(c, config);
+        } catch (ParseException ignore) {
+            logger.debug("Command line argments weren't valid for specifying a config file.");
+        }
         if (config == null) {
-            // Inspect standard command-line options
-            config = parseConfigurationArgs(args);
+            try {
+                c = parseConfigArgs(args);
+                config = this.parseConfigurationArgs(c);
+                addSharedOptions(c, config);
+            } catch (ParseException e) {
+                printHelp("Error parsing args: " + e.getMessage());
+            }
         }
 
-        // Write configuration to disk
-        saveConfig(args);
+        // Write command line options to disk
+        saveConfig(c);
+
+
 
         return config;
+    }
+
+    private CommandLine parseConfigFileCommandLineArgs(final String[] args) throws ParseException {
+        return new DefaultParser().parse(configFileOptions, args);
+    }
+
+    private CommandLine parseConfigArgs(final String[] args) throws ParseException {
+        return new DefaultParser().parse(configOptions, args);
     }
 
     /**
@@ -137,15 +168,14 @@ public class ArgParser {
      * @param args from command line
      * @return Config or null if no config file option was provided
      */
-    private Config parseConfigFileOptions(final String[] args) {
-        final CommandLineParser cmdParser = new DefaultParser();
+    private Config parseConfigFileOptions(final CommandLine cmd) {
+        final String[] fileArgs = retrieveConfig(new File(cmd.getOptionValue('c')));
         try {
-            final CommandLine cmd = cmdParser.parse(configFileOptions, args);
-            final String[] fileArgs = retrieveConfig(new File(cmd.getOptionValue('c')));
-            return parseConfigurationArgs(fileArgs);
-
-        } catch (final ParseException e) {
-            logger.debug("Unable to parse config file: {}", e.getMessage());
+            final Config config = parseConfigurationArgs(parseConfigArgs(fileArgs));
+            addSharedOptions(cmd, config);
+            return config;
+        } catch (ParseException e) {
+            printHelp("Unable to parse config file: " + e.getMessage());
             return null;
         }
     }
@@ -163,11 +193,12 @@ public class ArgParser {
 
         final ArrayList<String> args = new ArrayList<>();
         try {
-            final BufferedReader configReader = new BufferedReader(new FileReader(configFile));
-            String line = configReader.readLine();
-            while (line != null) {
-                args.add(line);
-                line = configReader.readLine();
+            try (final BufferedReader configReader = new BufferedReader(new FileReader(configFile))) {
+                String line = configReader.readLine();
+                while (line != null) {
+                    args.add(line);
+                    line = configReader.readLine();
+                }
             }
             return args.toArray(new String[args.size()]);
 
@@ -179,41 +210,53 @@ public class ArgParser {
     /**
      * This method parses the command-line args
      *
-     * @param args to be parsed
+     * @param cmd command line options
      * @return Config
      */
-    private Config parseConfigurationArgs(final String[] args) {
+    private Config parseConfigurationArgs(final CommandLine cmd) {
         final Config config = new Config();
 
-        final CommandLineParser cmdParser = new DefaultParser();
-        try {
-            final CommandLine cmd = cmdParser.parse(configOptions, args);
-
-            // Inspect Mode option
-            final String mode = cmd.getOptionValue('m');
-            if (!mode.equalsIgnoreCase("import") && !mode.equalsIgnoreCase("export")) {
-                printHelp("Invalid 'mode' option: " + mode);
-            }
-
-            config.setMode(mode);
-            config.setResource(cmd.getOptionValue('r'));
-            config.setBinaryDirectory(cmd.getOptionValue('b'));
-            config.setDescriptionDirectory(cmd.getOptionValue('d'));
-            config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
-            config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
-
-        } catch (final ParseException e) {
-            printHelp("Error parsing args: " + e.getMessage());
+        // Inspect Mode option
+        final String mode = cmd.getOptionValue('m');
+        if (!mode.equalsIgnoreCase("import") && !mode.equalsIgnoreCase("export")) {
+            printHelp("Invalid 'mode' option: " + mode);
         }
+
+        config.setMode(mode);
+        config.setResource(cmd.getOptionValue('r'));
+        config.setBinaryDirectory(cmd.getOptionValue('b'));
+        config.setDescriptionDirectory(cmd.getOptionValue('d'));
+        config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
+        config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
+
         return config;
     }
 
     /**
-     * This method writes the configuration file to disk
+     * This method add/updates the values of any options that may be
+     * valid in either scenario (config file or fully command line)
      *
+     * @param cmd a parsed command line
+     * @return Config the config which may be updated
+     */
+    private void addSharedOptions(final CommandLine cmd, final Config config) {
+        final String user = cmd.getOptionValue("user");
+        if (user != null) {
+            if (user.indexOf(':') == -1) {
+                printHelp("user option must be in the format username:password");
+            } else {
+                config.setUsername(user.substring(0, user.indexOf(':')));
+                config.setPassword(user.substring(user.indexOf(':') + 1));
+            }
+        }
+    }
+
+    /**
+     * This method writes the configuration file to disk.  The current
+     * implementation omits the user/password information.
      * @param args to be persisted
      */
-    private void saveConfig(final String[] args) {
+    private void saveConfig(final CommandLine cmd) {
         final File configFile = new File(System.getProperty("java.io.tmpdir"), CONFIG_FILE_NAME);
 
         // Leave existing config file alone
@@ -224,10 +267,16 @@ public class ArgParser {
 
         // Write config to file
         try (final BufferedWriter configWriter = new BufferedWriter(new FileWriter(configFile));) {
-            for (final String arg : args) {
-                configWriter.write(arg);
-                configWriter.newLine();
-                configWriter.flush();
+            for (Option option : cmd.getOptions()) {
+                // write out all but the username/password
+                if (!option.getOpt().equals("u")) {
+                    configWriter.write("-" + option.getOpt());
+                    configWriter.newLine();
+                    if (option.getValue() != null) {
+                        configWriter.write(option.getValue());
+                        configWriter.newLine();
+                    }
+                }
             }
 
             logger.info("Saved configuration to: {}", configFile.getPath());

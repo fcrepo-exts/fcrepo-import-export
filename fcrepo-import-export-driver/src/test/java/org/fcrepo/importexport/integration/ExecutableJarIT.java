@@ -68,7 +68,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
     public ExecutableJarIT() throws Exception {
         super();
-        client = FcrepoClient.client().build();
+        client = FcrepoClient.client().credentials("fedoraAdmin", "password").authScope("localhost").build();
     }
 
     @Before
@@ -98,7 +98,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         // Run an export process
         final Process process = startJarProcess("-m", "export",
                 "-d", TARGET_DIR,
-                "-r", url.toString());
+                "-r", url.toString(),
+                "-u", "fedoraAdmin:password");
+
 
         // Verify
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
@@ -128,13 +130,14 @@ public class ExecutableJarIT extends AbstractResourceIT {
         writer.flush();
 
         // Run an export process
-        final Process process = startJarProcess("-c", configFile.getAbsolutePath());
+        final Process process = startJarProcess("-c", configFile.getAbsolutePath(), "-u", "fedoraAdmin:password");
 
         // Verify
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + ArgParser.DEFAULT_RDF_EXT))
+                .exists());
         assertTrue(new File(System.getProperty("java.io.tmpdir"), ArgParser.CONFIG_FILE_NAME).exists());
     }
 
@@ -152,7 +155,8 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final Process process = startJarProcess("-m", "export",
                 "-d", TARGET_DIR,
                 "-b", TARGET_DIR,
-                "-r", url.toString());
+                "-r", url.toString(),
+                "-u", "fedoraAdmin:password");
 
         // Verify
         assertTrue("Process did not exit before timeout!", process.waitFor(1000, TimeUnit.SECONDS));

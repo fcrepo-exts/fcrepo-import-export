@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +37,10 @@ import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
 public class ArgParserTest {
 
     private ArgParser parser;
+
+    private static final String[] MINIMAL_VALID_EXPORT_ARGS = new String[]{"-m", "export",
+            "-d", "/tmp/rdf",
+            "-r", "http://localhost:8080/rest/1"};
 
     @Before
     public void setUp() throws Exception {
@@ -60,10 +66,7 @@ public class ArgParserTest {
 
     @Test
     public void parseMinimalValidExport() throws Exception {
-        final String[] args = new String[]{"-m", "export",
-                                           "-d", "/tmp/rdf",
-                                           "-r", "http://localhost:8080/rest/1"};
-        final Config config = parser.parseConfiguration(args);
+        final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
         Assert.assertNull(config.getBinaryDirectory());
@@ -116,5 +119,26 @@ public class ArgParserTest {
     public void parseInvalid() throws Exception {
         final String[] args = new String[]{"junk"};
         parser.parse(args);
+    }
+
+    @Test
+    public void parseValidUsername() {
+        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-u",  "user:pass");
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertEquals("user", config.getUsername());
+        Assert.assertEquals("pass", config.getPassword());
+    }
+
+    @Test
+    public void parseValidUsernameLong() {
+        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--user", "user:pass");
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertEquals("user", config.getUsername());
+        Assert.assertEquals("pass", config.getPassword());
+    }
+
+    @Test (expected = RuntimeException.class)
+    public void parseInvalidUser() {
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--u", "wrong"));
     }
 }
