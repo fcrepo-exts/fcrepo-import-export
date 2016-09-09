@@ -51,18 +51,21 @@ public class ImporterTest {
     private URI binaryURI;
     private URI binaryDescriptionURI;
     private URI containerURI;
+    private File binaryFilesDir;
 
     private FcrepoResponse conResponse;
+    private PutBuilder binBuilder;
 
     @Before
     public void setUp() throws Exception {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
+        binaryFilesDir = new File("src/test/resources/sample/binary/bin");
         binaryArgs = new Config();
         binaryArgs.setMode("import");
         binaryArgs.setDescriptionDirectory(new File("src/test/resources/sample/binary/rdf"));
-        binaryArgs.setBinaryDirectory(new File("src/test/resources/sample/binarytarget/bin"));
+        binaryArgs.setBinaryDirectory(binaryFilesDir);
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
@@ -84,7 +87,7 @@ public class ImporterTest {
         when(clientBuilder.build()).thenReturn(client);
 
         // mock binary interactions
-        final PutBuilder binBuilder = mock(PutBuilder.class);
+        binBuilder = mock(PutBuilder.class);
         final FcrepoResponse binResponse = mock(FcrepoResponse.class);
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(File.class), isA(String.class))).thenReturn(binBuilder);
@@ -109,6 +112,8 @@ public class ImporterTest {
         final Importer importer = new Importer(binaryArgs, clientBuilder);
         importer.run();
         verify(client).put(binaryURI);
+        verify(binBuilder).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
+                                eq("application/x-www-form-urlencoded"));
         verify(client).put(binaryDescriptionURI);
     }
 

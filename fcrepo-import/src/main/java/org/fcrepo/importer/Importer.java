@@ -20,6 +20,7 @@ package org.fcrepo.importer;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.fcrepo.importexport.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.FcrepoConstants.HAS_MIME_TYPE;
@@ -206,6 +207,6 @@ public class Importer implements TransferProcess {
     }
 
     private File fileForURI(final URI uri) {
-        return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()));
+        return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
     }
 }
