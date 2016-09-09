@@ -252,8 +252,8 @@ public class ArgParser {
     }
 
     /**
-     * This method writes the configuration file to disk
-     *
+     * This method writes the configuration file to disk.  The current
+     * implementation omits the user/password information.
      * @param args to be persisted
      */
     private void saveConfig(final CommandLine cmd) {
@@ -268,6 +268,7 @@ public class ArgParser {
         // Write config to file
         try (final BufferedWriter configWriter = new BufferedWriter(new FileWriter(configFile));) {
             for (Option option : cmd.getOptions()) {
+                // write out all but the username/password
                 if (!option.getOpt().equals("u")) {
                     configWriter.write("-" + option.getOpt());
                     configWriter.newLine();
