@@ -89,7 +89,7 @@ public class Exporter implements TransferProcess {
         export(config.getResource());
     }
     private void export(final URI uri) {
-        try (FcrepoResponse response = client().head(uri).perform()) {
+        try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
@@ -113,7 +113,7 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        try (FcrepoResponse response = client().get(uri).perform()) {
+        try (FcrepoResponse response = client().get(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
@@ -188,7 +188,7 @@ public class Exporter implements TransferProcess {
             case 404:
                 throw new ResourceNotFoundRuntimeException(uri);
             default:
-                if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+                if (response.getStatusCode() < 200 || response.getStatusCode() > 307) {
                     throw new RuntimeException("Export operation failed: unexpected status "
                             + response.getStatusCode() + " for " + uri);
                 }

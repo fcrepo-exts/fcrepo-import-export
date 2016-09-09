@@ -115,6 +115,7 @@ public class ExporterTest {
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
         when(headResponse.getStatusCode()).thenReturn(200);
     }
@@ -125,6 +126,7 @@ public class ExporterTest {
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
         when(client.get(eq(uri))).thenReturn(getBuilder);
         when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
+        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
         when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
         when(getResponse.getUrl()).thenReturn(uri);
@@ -136,11 +138,26 @@ public class ExporterTest {
     public void testExportBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/alt_description.jsonld")));
     }
+
+    @Test
+    public void textExternalContent() throws Exception {
+        final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+        when(headResponse.getStatusCode()).thenReturn(307);
+        when(headResponse.getContentType())
+            .thenReturn("message/external-body;access-type=URL;url=\"http://www.example.com/file\"");
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr%3Ametadata.jsonld")));
+    }
+
 
     @Test
     public void testExportContainer() throws Exception {
