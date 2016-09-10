@@ -48,7 +48,13 @@ To control the format of the exported RDF, the extension and RDF language/serial
 --rdfExt .jsonld --rdfLang application/ld+json
 ```
 
-The list of RDF languages supported can be found in the [RESTful HTTP API documentation](https://wiki.duraspace.org/display/FEDORA4x/RESTful+HTTP+API).
+The list of RDF languages supported:
+- application/ld+json
+- application/n-triples
+- application/rdf+xml
+- text/n3 (or text/rdf+n3)
+- text/plain
+- text/turtle (or application/x-turtle)
 
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries in `/tmp/bin` and RDF in `/tmp/rdf`:
 
