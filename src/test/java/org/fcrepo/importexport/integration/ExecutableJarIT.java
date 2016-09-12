@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importexport.driver.integration;
+package org.fcrepo.importexport.integration;
 
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
@@ -40,21 +40,17 @@ import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.driver.ArgParser;
+import org.fcrepo.importexport.ArgParser;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * @author awoods
  * @since 2016-09-01
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration("/spring-test/test-container.xml")
+
 public class ExecutableJarIT extends AbstractResourceIT {
 
     private static final Logger logger = getLogger(ExecutableJarIT.class);

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importexport.driver;
+package org.fcrepo.importexport;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.lang.System.getProperty;
-import static org.fcrepo.importexport.driver.ArgParser.CONFIG_FILE_NAME;
+import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
 
 /**
  * @author awoods

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.fcrepo.importexport.driver.integration;
+package org.fcrepo.importexport.integration;
 
 import java.util.concurrent.TimeUnit;
 
@@ -32,7 +32,7 @@ abstract class AbstractResourceIT {
 
     private static final String HOSTNAME = "localhost";
 
-    static final String serverAddress = "http://" + HOSTNAME + ":" + SERVER_PORT + "/rest/";
+    static final String serverAddress = "http://" + HOSTNAME + ":" + SERVER_PORT + "/fcrepo/rest/";
 
     static FcrepoClient client;
 
