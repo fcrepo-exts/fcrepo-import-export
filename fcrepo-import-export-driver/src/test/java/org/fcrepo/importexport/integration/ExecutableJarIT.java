@@ -60,6 +60,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     private static final Logger logger = getLogger(ExecutableJarIT.class);
 
     private URI url;
+    private URI importUrl;
 
     private static final String EXECUTABLE = System.getProperty("fcrepo.executable.jar");
     private static final String TARGET_DIR = System.getProperty("project.build.directory");
@@ -74,6 +75,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     @Before
     public void before() {
         url = URI.create(serverAddress + UUID.randomUUID());
+        importUrl = URI.create(serverAddress + UUID.randomUUID());
         assertNotNull(EXECUTABLE);
         assertNotNull(TARGET_DIR);
     }
@@ -171,6 +173,25 @@ public class ExecutableJarIT extends AbstractResourceIT {
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
         assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
+    }
+
+    @Test
+    public void testImport() throws Exception {
+        final Process process = startJarProcess("-m", "import",
+                "-d", "test-classes/lubm",
+                "-r", url.toString(),
+                "-s", "http://localhost:8080/rest",
+                "-u", "fedoraAdmin:password");
+
+        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals("Did not exit with success status!", 0, process.exitValue());
+        assertTrue(resourceExists(new URI(url.toString() + "/Department0.University0.edu")));
+        assertTrue(resourceExists(new URI(url.toString() + "/Department0.University0.edu/GraduateStudent1")));
+    }
+
+    private boolean resourceExists(final URI uri) throws FcrepoOperationFailedException {
+        final FcrepoResponse response = client.head(uri).disableRedirects().perform();
+        return response.getStatusCode() == 200;
     }
 
     private Process startJarProcess(final String ... args) throws IOException {
