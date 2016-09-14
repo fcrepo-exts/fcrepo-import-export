@@ -17,7 +17,7 @@
  */
 package org.fcrepo.importexport.integration;
 
-import static javax.ws.rs.core.Response.Status.CREATED;
+import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -89,7 +89,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     public void testJarExport() throws Exception {
         // Create a repository resource
         final FcrepoResponse response = create();
-        assertEquals(CREATED.getStatusCode(), response.getStatusCode());
+        assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
         // Run an export process
@@ -110,7 +110,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     public void testConfigFileExport() throws Exception {
         // Create a repository resource
         final FcrepoResponse response = create();
-        assertEquals(CREATED.getStatusCode(), response.getStatusCode());
+        assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
         // Create test config file
@@ -144,7 +144,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
         // create a binary resource
         final FcrepoResponse response = createUTF8PlaintextBinary(content);
-        assertEquals(CREATED.getStatusCode(), response.getStatusCode());
+        assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
 

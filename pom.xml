@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.fcrepo</groupId>
@@ -9,7 +10,7 @@
   <artifactId>fcrepo-import-export</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
-  
+
 
   <name>fcrepo-import-export</name>
   <url>https://github.com/fcrepo4-labs/fcrepo-import-export</url>
@@ -87,27 +88,6 @@
       <artifactId>mockito-core</artifactId>
     </dependency>
 
-    <!-- integration testing -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.glassfish.grizzly</groupId>
-      <artifactId>grizzly-http-servlet</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.glassfish.jersey.core</groupId>
-      <artifactId>jersey-server</artifactId>
-    </dependency>
-
   </dependencies>
 
   <dependencyManagement>
@@ -174,101 +154,6 @@
         <version>${jena.version}</version>
       </dependency>
 
-      <!--Integration tests-->
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-kernel-modeshape</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-        <classifier>tests</classifier>
-      </dependency>
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-http-api</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-configs</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-http-commons</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-http-commons</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-        <type>test-jar</type>
-      </dependency>
-
-      <dependency>
-        <groupId>org.fcrepo</groupId>
-        <artifactId>fcrepo-auth-common</artifactId>
-        <version>${fcrepo.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-test</artifactId>
-        <version>${spring.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-context</artifactId>
-        <version>${spring.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.grizzly</groupId>
-        <artifactId>grizzly-http-servlet</artifactId>
-        <version>${grizzly.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.jersey.core</groupId>
-        <artifactId>jersey-server</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.jersey.core</groupId>
-        <artifactId>jersey-common</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.jersey.ext</groupId>
-        <artifactId>jersey-spring3</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish.jersey.test-framework.providers</groupId>
-        <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-
     </dependencies>
   </dependencyManagement>
 
@@ -278,7 +163,7 @@
     <url>https://github.com/fcrepo4-labs/${project_name}</url>
     <tag>HEAD</tag>
   </scm>
-  
+
   <build>
 
     <pluginManagement>
@@ -308,35 +193,35 @@
           <artifactId>maven-shade-plugin</artifactId>
           <version>${shade.plugin.version}</version>
         </plugin>
-        
+
         <plugin>
           <groupId>org.codehaus.cargo</groupId>
           <artifactId>cargo-maven2-plugin</artifactId>
           <configuration>
             <container>
-              <containerId>jetty9x</containerId>
+              <containerId>tomcat7x</containerId>
+              <output>${project.build.directory}/tomcat.log</output>
               <artifactInstaller>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-distribution</artifactId>
-                <version>9.3.1.v20150714</version>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat</artifactId>
+                <version>7.0.70</version>
               </artifactInstaller>
               <systemProperties>
-              <fcrepo.log.http.commons>TRACE</fcrepo.log.http.commons>
-              <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
-               <fcrepo.log.auth>TRACE</fcrepo.log.auth>
-               <fcrepo.modeshape.configuration>classpath:/config/minimal-default/repository.json</fcrepo.modeshape.configuration>
-               <!--<fcrepo.modeshape.configuration>classpath:/config/servlet-auth/repository.json</fcrepo.modeshape.configuration> -->
-               <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
-               <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
-               <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>
-               <fcrepo.spring.transactions.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.transactions.configuration>
+                <fcrepo.log.http.commons>TRACE</fcrepo.log.http.commons>
+                <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
+                <fcrepo.log.auth>TRACE</fcrepo.log.auth>
+                <fcrepo.modeshape.configuration>classpath:/config/servlet-auth/repository.json</fcrepo.modeshape.configuration>
+                <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
+                <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
+                <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>
+                <fcrepo.spring.transactions.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.transactions.configuration>
               </systemProperties>
             </container>
             <configuration>
               <files>
                 <copy>
-                  <file>${project.basedir}/src/test/resources/jetty.xml</file>
-                  <tofile>etc/jetty.xml</tofile>
+                  <file>${project.basedir}/src/test/resources/tomcat-users.xml</file>
+                  <tofile>conf/tomcat-users.xml</tofile>
                   <configfile>true</configfile>
                   <overwrite>true</overwrite>
                 </copy>
@@ -344,13 +229,12 @@
             </configuration>
           </configuration>
         </plugin>
-
       </plugins>
     </pluginManagement>
 
 
     <plugins>
-    
+
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
@@ -377,8 +261,8 @@
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
-          <!--Set reuseForks=false due to the need for different instances of the-->
-          <!--Singleton ServletContainerAuthenticationProvider-->
+          <!--Set reuseForks=false due to the need for different instances of the -->
+          <!--Singleton ServletContainerAuthenticationProvider -->
           <reuseForks>false</reuseForks>
           <argLine>${jacoco.agent.it.arg}</argLine>
           <systemPropertyVariables>
@@ -414,13 +298,13 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.fcrepo.importexport.ImportExportDriver</mainClass>
                 </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
               </transformers>
             </configuration>
           </execution>
         </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -439,9 +323,8 @@
         <artifactId>maven-resources-plugin</artifactId>
       </plugin>
 
-      <!-- verify that source files contain the correct license headers
-        $ mvn license:check to check files
-        $ mvn license:format to update files -->
+      <!-- verify that source files contain the correct license headers $ 
+        mvn license:check to check files $ mvn license:format to update files -->
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
@@ -461,107 +344,65 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
       </plugin>
+
+      <plugin>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>maven-download-plugin</artifactId>
+        <version>0.2-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://github.com/fcrepo4-exts/fcrepo-webapp-plus/releases/download/fcrepo-webapp-plus-4.6.0/fcrepo-webapp-plus-webac-4.6.0.war</url>
+              <outputFileName>fcrepo-webapp.war</outputFileName>
+              <targetDirectory>${project.build.directory}</targetDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       
+      <plugin>
+        <groupId>org.codehaus.cargo</groupId>
+        <artifactId>cargo-maven2-plugin</artifactId>
+        <version>1.4.12</version>
+        <configuration>
+          <configuration>
+            <properties>
+              <cargo.servlet.port>${fcrepo.dynamic.test.port}</cargo.servlet.port>
+            </properties>
+          </configuration>
+          <deployables>
+            <deployable>
+              <groupId>org.fcrepo</groupId>
+              <artifactId>fcrepo-webapp</artifactId>
+              <type>war</type>
+              <location>${project.build.directory}/fcrepo-webapp.war</location>
+              <properties>
+                <context>/fcrepo</context>
+              </properties>
+            </deployable>
+          </deployables>
+        </configuration>
+        <executions>
+          <execution>
+            <id>start-cargo</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>start</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>stop-cargo</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>stop</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
-  
-  <profiles>
-    <profile>
-      <id>noauth</id>
-	   <activation>
-	     <activeByDefault>true</activeByDefault>
-	   </activation>
-	   <build>
-	     <plugins>
-	      <plugin>
-          <groupId>org.codehaus.cargo</groupId>
-          <artifactId>cargo-maven2-plugin</artifactId>
-          <version>1.4.12</version>
-          <configuration>
-            <configuration>
-              <properties>
-                <cargo.servlet.port>${fcrepo.dynamic.test.port}</cargo.servlet.port>
-              </properties>
-            </configuration>
-            <deployables>
-              <deployable>
-                <groupId>org.fcrepo</groupId>
-                <artifactId>fcrepo-webapp</artifactId>
-                <type>war</type>
-                <location>https://github.com/fcrepo4/fcrepo4/releases/download/fcrepo-4.6.0/fcrepo-webapp-4.6.0.war</location>
-                <properties>
-                  <context>/fcrepo</context>
-                </properties>
-              </deployable>
-            </deployables>
-          </configuration>
-          <executions>
-          <execution>
-            <id>start-cargo</id>
-            <phase>pre-integration-test</phase>
-            <goals>
-              <goal>start</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>stop-cargo</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>stop</goal>
-            </goals>
-          </execution>
-        </executions>
-        </plugin>
-	   </plugins>
-	   </build>
-	 </profile>
-	 
-	 <profile>
-      <id>auth</id>
-	   <build>
-	     <plugins>
-	      <plugin>
-          <groupId>org.codehaus.cargo</groupId>
-          <artifactId>cargo-maven2-plugin</artifactId>
-          <version>1.4.12</version>
-          <configuration>
-            <configuration>
-              <properties>
-                <cargo.servlet.port>${fcrepo.dynamic.test.port}</cargo.servlet.port>
-              </properties>
-            </configuration>
-            <deployables>
-              <deployable>
-                <groupId>org.fcrepo</groupId>
-                <artifactId>fcrepo-webapp</artifactId>
-                <type>war</type>
-                <location>https://github.com/fcrepo4-exts/fcrepo-webapp-plus/releases/download/fcrepo-webapp-plus-4.6.0/fcrepo-webapp-plus-webac-4.6.0.war</location>
-                <properties>
-                  <context>/fcrepo</context>
-                </properties>
-              </deployable>
-            </deployables>
-          </configuration>
-          <executions>
-          <execution>
-            <id>start-cargo</id>
-            <phase>pre-integration-test</phase>
-            <goals>
-              <goal>start</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>stop-cargo</id>
-            <phase>post-integration-test</phase>
-            <goals>
-              <goal>stop</goal>
-            </goals>
-          </execution>
-        </executions>
-        </plugin>
-	   </plugins>
-	   </build>
-	 </profile>
-  </profiles>
 
 </project>
