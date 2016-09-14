@@ -8,7 +8,7 @@
 
   <!--  
      Since we can't override the master spring configuration in the fcrepo-webapp.war artifact,
-     but we can override the included configurations for evening, jms and transactions, we
+     but we can override the included configurations for eventing, jms and transactions, we
      can supply this empty bean definition to disable those optional features.
   --> 
 
