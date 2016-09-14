@@ -17,145 +17,80 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
+    <!-- We do NOT want to rely on a snapshot dependency, but changes were 
+      necessary in the fcrepo-java-client that haven't made it into a stable release. -->
     <fcrepo-java-client.version>0.2.1-SNAPSHOT</fcrepo-java-client.version>
     <commons-cli.version>1.3.1</commons-cli.version>
     <commons-io.version>2.4</commons-io.version>
-    <commons.lang3.version>3.3.2</commons.lang3.version>
-    <exec.plugin.version>1.5.0</exec.plugin.version>
-    <grizzly.version>2.3.18</grizzly.version>
     <httpclient.version>4.3.6</httpclient.version>
     <jackson.version>2.8.1</jackson.version>
     <jena.version>3.1.0</jena.version>
-    <jersey.version>2.15</jersey.version>
-    <joda-time.version>2.9.2</joda-time.version>
     <jsonldjava.version>0.8.3</jsonldjava.version>
     <junit.version>4.11</junit.version>
     <logback.version>1.1.2</logback.version>
     <mockito.version>1.10.8</mockito.version>
-    <mockserver.version>3.10.2</mockserver.version>
     <shade.plugin.version>2.4.3</shade.plugin.version>
     <slf4j.version>1.7.10</slf4j.version>
-    <slf4j.version>1.7.7</slf4j.version>
-    <spring.version>4.1.4.RELEASE</spring.version>
   </properties>
 
   <dependencies>
 
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
+      <groupId>org.fcrepo.client</groupId>
+      <artifactId>fcrepo-java-client</artifactId>
+      <version>${fcrepo-java-client.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>
       <artifactId>commons-cli</artifactId>
+      <version>${commons-cli.version}</version>
     </dependency>
     <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.fcrepo.client</groupId>
-      <artifactId>fcrepo-java-client</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jena</groupId>
-      <artifactId>jena-arq</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.jsonld-java</groupId>
       <artifactId>jsonld-java</artifactId>
+      <version>${jsonldjava.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons-io.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>jena-arq</artifactId>
+      <version>${jena.version}</version>
+    </dependency>
 
     <!-- testing -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
-
-  <dependencyManagement>
-    <dependencies>
-
-      <dependency>
-        <groupId>org.fcrepo.client</groupId>
-        <artifactId>fcrepo-java-client</artifactId>
-        <version>${fcrepo-java-client.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>commons-cli</groupId>
-        <artifactId>commons-cli</artifactId>
-        <version>${commons-cli.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>${logback.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${mockito.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.github.jsonld-java</groupId>
-        <artifactId>jsonld-java</artifactId>
-        <version>${jsonldjava.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-        <version>${commons-io.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.jena</groupId>
-        <artifactId>jena-arq</artifactId>
-        <version>${jena.version}</version>
-      </dependency>
-
-    </dependencies>
-  </dependencyManagement>
 
   <scm>
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
@@ -165,73 +100,6 @@
   </scm>
 
   <build>
-
-    <pluginManagement>
-      <plugins>
-
-        <plugin>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${failsafe.plugin.version}</version>
-          <executions>
-            <execution>
-              <id>integration-test</id>
-              <goals>
-                <goal>integration-test</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>verify</id>
-              <goals>
-                <goal>verify</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>${shade.plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.codehaus.cargo</groupId>
-          <artifactId>cargo-maven2-plugin</artifactId>
-          <configuration>
-            <container>
-              <containerId>tomcat7x</containerId>
-              <output>${project.build.directory}/tomcat.log</output>
-              <artifactInstaller>
-                <groupId>org.apache.tomcat</groupId>
-                <artifactId>tomcat</artifactId>
-                <version>7.0.70</version>
-              </artifactInstaller>
-              <systemProperties>
-                <fcrepo.log.http.commons>TRACE</fcrepo.log.http.commons>
-                <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
-                <fcrepo.log.auth>TRACE</fcrepo.log.auth>
-                <fcrepo.modeshape.configuration>classpath:/config/servlet-auth/repository.json</fcrepo.modeshape.configuration>
-                <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
-                <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
-                <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>
-                <fcrepo.spring.transactions.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.transactions.configuration>
-              </systemProperties>
-            </container>
-            <configuration>
-              <files>
-                <copy>
-                  <file>${project.basedir}/src/test/resources/tomcat-users.xml</file>
-                  <tofile>conf/tomcat-users.xml</tofile>
-                  <configfile>true</configfile>
-                  <overwrite>true</overwrite>
-                </copy>
-              </files>
-            </configuration>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-
 
     <plugins>
 
@@ -260,6 +128,7 @@
 
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${failsafe.plugin.version}</version>
         <configuration>
           <!--Set reuseForks=false due to the need for different instances of the -->
           <!--Singleton ServletContainerAuthenticationProvider -->
@@ -273,11 +142,17 @@
         </configuration>
         <executions>
           <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
+              <id>integration-test</id>
+              <goals>
+                <goal>integration-test</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>verify</id>
+              <goals>
+                <goal>verify</goal>
+              </goals>
+            </execution>
         </executions>
       </plugin>
 
@@ -295,10 +170,12 @@
             <configuration>
               <transformers>
                 <!-- add Main-Class to manifest file -->
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.fcrepo.importexport.ImportExportDriver</mainClass>
                 </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
               </transformers>
             </configuration>
           </execution>
@@ -362,16 +239,43 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.codehaus.cargo</groupId>
         <artifactId>cargo-maven2-plugin</artifactId>
         <version>1.4.12</version>
         <configuration>
+          <container>
+            <containerId>tomcat7x</containerId>
+            <output>${project.build.directory}/tomcat.log</output>
+            <artifactInstaller>
+              <groupId>org.apache.tomcat</groupId>
+              <artifactId>tomcat</artifactId>
+              <version>7.0.70</version>
+            </artifactInstaller>
+            <systemProperties>
+              <fcrepo.log.http.commons>TRACE</fcrepo.log.http.commons>
+              <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
+              <fcrepo.log.auth>TRACE</fcrepo.log.auth>
+              <fcrepo.modeshape.configuration>classpath:/config/servlet-auth/repository.json</fcrepo.modeshape.configuration>
+              <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
+              <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
+              <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>
+              <fcrepo.spring.transactions.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.transactions.configuration>
+            </systemProperties>
+          </container>
           <configuration>
             <properties>
               <cargo.servlet.port>${fcrepo.dynamic.test.port}</cargo.servlet.port>
             </properties>
+            <files>
+              <copy>
+                <file>${project.basedir}/src/test/resources/tomcat-users.xml</file>
+                <tofile>conf/tomcat-users.xml</tofile>
+                <configfile>true</configfile>
+                <overwrite>true</overwrite>
+              </copy>
+            </files>
           </configuration>
           <deployables>
             <deployable>
