@@ -206,7 +206,6 @@ public class Importer implements TransferProcess {
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
-        System.out.println("PUTTING " + uri);
         return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
     }
 
@@ -238,7 +237,6 @@ public class Importer implements TransferProcess {
 
     private String uriPathForFile(final File f, final File baseDir) throws URISyntaxException {
         String relative = baseDir.toPath().relativize(f.toPath()).toString();
-        System.out.println(f.getPath() + " relative to " + baseDir.getPath() + " equals " + relative);
         relative = TransferProcess.decodePath(relative);
 
         // for exported RDF, just remove the ".extension" and you have the encoded path
