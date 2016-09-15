@@ -67,6 +67,12 @@ public class Importer implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
 
     /**
+     * The file, within the export directory for the directory mirrors the container
+     * to be imported (and whose content will be imported).
+     */
+    protected File importContainerDirectory;
+
+    /**
      * Constructor that takes the Import/Export configuration
      *
      * @param config for import
@@ -75,6 +81,10 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
+
+        if (config.getSource() == null) {
+            throw new RuntimeException("Source is required for import!");
+        }
     }
 
     private FcrepoClient client() {
@@ -89,49 +99,84 @@ public class Importer implements TransferProcess {
      */
     public void run() {
         logger.info("Running importer...");
-        importDirectory(config.getDescriptionDirectory());
+        final File importContainerMetadataFile = TransferProcess.fileForContainer(config.getResource(),
+                config.getDescriptionDirectory(), config.getRdfExtension());
+        importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
+                config.getDescriptionDirectory());
+        if (!importContainerMetadataFile.exists()) {
+            logger.debug("No container exists in the metadata directory {} for the requested resource {},"
+                    + " importing all contained resources instead.", importContainerMetadataFile.getPath(),
+                    config.getResource());
+        } else {
+            importFile(importContainerMetadataFile);
+        }
+        importDirectory(importContainerDirectory);
     }
 
     private void importDirectory(final File dir) {
-        for (final File f : dir.listFiles()) {
-            if (f.isDirectory()) {
-                importDirectory(f);
-            } else if (f.isFile()) {
-                importFile(f);
-            }
+        for (final File f : dir.listFiles((f) -> {
+            return  f.isFile();
+            })) {
+            importFile(f);
+        }
+        for (final File f : dir.listFiles((f) -> {
+            return  f.isDirectory();
+            })) {
+            importDirectory(f);
         }
     }
 
     private void importFile(final File f) {
-        FcrepoResponse response = null;
-        URI uri = null;
-        try {
-            final Model model = parseFile(f);
-            final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
-            if (binaryResources.hasNext()) {
-                uri = new URI(binaryResources.nextResource().getURI());
-                logger.info("Importing binary {}", f.getAbsolutePath());
-                response = importBinary(uri, sanitize(model));
-            } else {
-                uri = uriForFile(f, config.getDescriptionDirectory());
-                logger.info("Importing container {}", f.getAbsolutePath());
-                response = importContainer(uri, sanitize(model));
-            }
+        // The path, relative to the metadata root in the export directory.
+        // This used in place of the full path to make the output more readable.
+        final String sourceRelativePath = config.getDescriptionDirectory().toPath().relativize(f.toPath()).toString();
 
-            if (response.getStatusCode() == 401) {
-                throw new AuthenticationRequiredRuntimeException();
-            } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
-                logger.warn("Error while importing {} ({}): {}",
-                   f.getAbsolutePath(), response.getStatusCode(), IOUtils.toString(response.getBody()));
-            } else {
-                logger.info("Imported {}: {}", f.getAbsolutePath(), uri);
+        if (f.getPath().endsWith(BINARY_EXTENSION)) {
+            // ... this is only expected to happens when binaries and metadata are written to the same directory...
+            logger.debug("Skipping binary {}: it will be imported when its metadata is imported.", sourceRelativePath);
+            return;
+        } else if (!f.getPath().endsWith(config.getRdfExtension())) {
+            // this could be hidden files created by the OS
+            logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
+            return;
+        } else {
+            FcrepoResponse response = null;
+            URI destinationUri = null;
+            try {
+                final Model model = parseFile(f);
+                if (model.contains(null, RDF_TYPE, createResource(REPOSITORY_NAMESPACE + "RepositoryRoot"))) {
+                    logger.debug("Skipping import of repository root.");
+                    return;
+                }
+                final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
+                if (binaryResources.hasNext()) {
+                    destinationUri = new URI(binaryResources.nextResource().getURI());
+                    logger.info("Importing binary {}", sourceRelativePath);
+                    response = importBinary(destinationUri, sanitize(model));
+                } else {
+                    destinationUri = new URI(config.getResource().toString()
+                            + (config.getResource().toString().endsWith("/") ? "" : "/")
+                            + uriPathForFile(f, importContainerDirectory));
+                    logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
+                    response = importContainer(destinationUri, sanitize(model));
+                }
+
+                if (response.getStatusCode() == 401) {
+                    throw new AuthenticationRequiredRuntimeException();
+                } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                    throw new RuntimeException("Error while importing " + f.getAbsolutePath()
+                            + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+                } else {
+                    logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
+                }
+            } catch (FcrepoOperationFailedException ex) {
+                throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(
+                        "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+            } catch (URISyntaxException ex) {
+                throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
-        } catch (FcrepoOperationFailedException ex) {
-            throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
-        } catch (IOException ex) {
-            throw new RuntimeException("Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
     }
 
@@ -161,6 +206,7 @@ public class Importer implements TransferProcess {
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
+        System.out.println("PUTTING " + uri);
         return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
     }
 
@@ -190,20 +236,17 @@ public class Importer implements TransferProcess {
         return new ByteArrayInputStream(buf.toByteArray());
     }
 
-    private URI uriForFile(final File f, final File baseDir) throws URISyntaxException {
+    private String uriPathForFile(final File f, final File baseDir) throws URISyntaxException {
         String relative = baseDir.toPath().relativize(f.toPath()).toString();
-        if (relative.startsWith("rest") && config.getResource().toString().endsWith("/rest")) {
-            relative = relative.substring("rest".length());
-        }
+        System.out.println(f.getPath() + " relative to " + baseDir.getPath() + " equals " + relative);
+        relative = TransferProcess.decodePath(relative);
+
+        // for exported RDF, just remove the ".extension" and you have the encoded path
         if (relative.endsWith(config.getRdfExtension())) {
             relative = relative.substring(0, relative.length() - config.getRdfExtension().length());
         }
 
-        // TODO parse RDF to figure out the real URI?
-        if (relative.endsWith("/fcr_metadata")) {
-            relative = relative.substring(0, relative.length() - "fcr_metadata".length()) + "/fcr:metadata";
-        }
-        return new URI(config.getResource() + relative);
+        return relative;
     }
 
     private File fileForURI(final URI uri) {

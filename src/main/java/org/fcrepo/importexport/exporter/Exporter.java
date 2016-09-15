@@ -19,7 +19,6 @@ package org.fcrepo.importexport.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
-import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
@@ -107,7 +106,7 @@ public class Exporter implements TransferProcess {
     }
     private void exportBinary(final URI uri)
             throws FcrepoOperationFailedException, IOException {
-        final File file = fileForBinary(uri);
+        final File file = TransferProcess.fileForBinary(uri, config.getBinaryDirectory());
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;
@@ -121,7 +120,8 @@ public class Exporter implements TransferProcess {
     }
 
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
-        final File file = fileForContainer(uri);
+        final File file = TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(),
+                config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;
@@ -162,16 +162,7 @@ public class Exporter implements TransferProcess {
             exportDescription(it.next());
         }
     }
-    private File fileForBinary(final URI uri) {
-        if (config.getBinaryDirectory() == null) {
-            return null;
-        }
-        return new File(config.getBinaryDirectory(), TransferProcess.encodePath(uri.getPath()) + BINARY_EXTENSION);
-    }
-    private File fileForContainer(final URI uri) {
-        return new File(config.getDescriptionDirectory(), TransferProcess.encodePath(uri.getPath())
-            + config.getRdfExtension());
-    }
+
 
     /**
      * Checks the response code and throws a RuntimeException with a helpful

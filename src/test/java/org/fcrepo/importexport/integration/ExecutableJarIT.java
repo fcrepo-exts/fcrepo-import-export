@@ -18,6 +18,14 @@
 package org.fcrepo.importexport.integration;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_GONE;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.apache.jena.graph.Node.ANY;
+import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createURI;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,6 +37,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.List;
@@ -37,6 +46,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.sparql.core.DatasetImpl;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -170,6 +182,60 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
     }
 
+    @Test
+    public void testImport() throws FcrepoOperationFailedException, IOException, InterruptedException {
+        final String exportPath = TARGET_DIR + "/" + UUID.randomUUID() + "/testPeartreeAmbiguity";
+        final String parentTitle = "parent";
+        final String childTitle = "child";
+        final String binaryText = "binary";
+
+        final URI parent = URI.create(serverAddress + UUID.randomUUID());
+        final URI child = URI.create(parent.toString() + "/child");
+        final URI binary = URI.create(child + "/binary");
+        assertEquals(SC_CREATED, create(parent).getStatusCode());
+        assertEquals(SC_CREATED, create(child).getStatusCode());
+        assertEquals(SC_NO_CONTENT, client.patch(parent).body(insertTitle(parentTitle)).perform().getStatusCode());
+        assertEquals(SC_NO_CONTENT, client.patch(child).body(insertTitle(childTitle)).perform().getStatusCode());
+        assertEquals(SC_CREATED, client.put(binary).body(new ByteArrayInputStream(binaryText.getBytes("UTF-8")),
+                "text/plain").perform().getStatusCode());
+
+        // Run an export process
+        final Process exportProcess = startJarProcess("-m", "export",
+                "-d", exportPath,
+                "-b", exportPath,
+                "-r", parent.toString(),
+                "-u", "fedoraAdmin:password");
+
+        // Verify
+        assertTrue("Process did not exit before timeout!", exportProcess.waitFor(1000, TimeUnit.SECONDS));
+        assertEquals("Did not exit with success status!", 0, exportProcess.exitValue());
+
+        // Remove the resources
+        client.delete(parent).perform();
+        final FcrepoResponse getResponse = client.get(parent).perform();
+        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT,
+                client.delete(getResponse.getLinkHeaders("hasTombstone").get(0)).perform().getStatusCode());
+
+        // Run the import process
+        final Process importProcess = startJarProcess("-m", "import",
+                "-d", exportPath,
+                "-b", exportPath,
+                "-s", parent.toString(),
+                "-r", parent.toString(),
+                "-u", "fedoraAdmin:password");
+
+        // Verify
+        assertTrue("Process did not exit before timeout!", importProcess.waitFor(1000, TimeUnit.SECONDS));
+        assertEquals("Did not exit with success status!", 0, importProcess.exitValue());
+
+        assertHasTitle(parent, parentTitle);
+        assertHasTitle(child, childTitle);
+        assertEquals("Binary should have been imported!",
+                binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
+
+    }
+
     private Process startJarProcess(final String ... args) throws IOException {
         final String[] fullArgs = new String[3 + args.length];
         fullArgs[0] = "java";
@@ -196,6 +262,35 @@ public class ExecutableJarIT extends AbstractResourceIT {
     private FcrepoResponse create() throws FcrepoOperationFailedException {
         logger.debug("Request ------: {}", url);
         return client.put(url).perform();
+    }
+
+    private FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {
+        logger.debug("Request ------: {}", uri);
+        return client.put(uri).perform();
+    }
+
+    private static final String DC_TITLE = "http://purl.org/dc/elements/1.1/title";
+
+    private void assertHasTitle(final URI url, final String title) throws FcrepoOperationFailedException {
+        final FcrepoResponse getResponse = client.get(url).accept("application/n-triples").perform();
+        assertEquals("GET of " + url + " failed!", SC_OK, getResponse.getStatusCode());
+        final Model model = createDefaultModel();
+        final Dataset d = new DatasetImpl(model.read(getResponse
+                .getBody(), "", "application/n-triples"));
+
+        assertTrue(url + " should have had the dc:title, \"" + title + "\"!",
+                d.asDatasetGraph().contains(ANY, createURI(url.toString()),
+                        createProperty(DC_TITLE).asNode(), createLiteral(title)));
+    }
+
+    private InputStream insertTitle(final String title) {
+        try {
+            return new ByteArrayInputStream(("INSERT DATA { <> <" + DC_TITLE + "> '" + title + "' . }")
+                    .getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            // can't actually happen
+            throw new RuntimeException(e);
+        }
     }
 
 }
