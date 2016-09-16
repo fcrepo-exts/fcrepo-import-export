@@ -83,12 +83,11 @@ public class ArgParser {
                 .required(true).build());
 
         // Source Resource option
-        final Option sourceOption = new Option("s", "source", true,
-                "Source (URI) data was exported from, when importing to a different Fedora URI");
-        sourceOption.setRequired(false);
-        sourceOption.setArgs(1);
-        sourceOption.setArgName("source");
-        configOptions.addOption(sourceOption);
+        configOptions.addOption(Option.builder("s")
+                .longOpt("source")
+                .hasArg(true).numberOfArgs(1).argName("source")
+                .desc("Source (URI) data was exported from, when importing to a different Fedora URI")
+                .required(false).build());
 
         // Binary Directory option
         configOptions.addOption(Option.builder("b")
@@ -238,6 +237,9 @@ public class ArgParser {
         config.setDescriptionDirectory(cmd.getOptionValue('d'));
         config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
         config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
+        if (cmd.getOptionValue('s') != null) {
+            config.setSource(cmd.getOptionValue('s'));
+        }
 
         return config;
     }
