@@ -100,7 +100,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     @Test
     public void testJarExport() throws Exception {
         // Create a repository resource
-        final FcrepoResponse response = create();
+        final FcrepoResponse response = create(url);
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
@@ -121,7 +121,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
     @Test
     public void testConfigFileExport() throws Exception {
         // Create a repository resource
-        final FcrepoResponse response = create();
+        final FcrepoResponse response = create(url);
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
@@ -257,11 +257,6 @@ public class ExecutableJarIT extends AbstractResourceIT {
         } catch (final UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private FcrepoResponse create() throws FcrepoOperationFailedException {
-        logger.debug("Request ------: {}", url);
-        return client.put(url).perform();
     }
 
     private FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {

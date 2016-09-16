@@ -159,8 +159,7 @@ public class Importer implements TransferProcess {
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, sanitize(model));
                 } else {
-                    destinationUri = new URI(config.getResource().toString()
-                            + (config.getResource().toString().endsWith("/") ? "" : "/")
+                    destinationUri = new URI(config.getResource().toString() + "/"
                             + uriPathForFile(f, importContainerDirectory));
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
