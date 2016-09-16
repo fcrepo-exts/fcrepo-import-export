@@ -67,8 +67,10 @@ public class Importer implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
 
     /**
-     * The file, within the export directory for the directory mirrors the container
-     * to be imported (and whose content will be imported).
+     * A directory within the metadata directory that serves as the
+     * root of the resource being imported.  If the export directory
+     * contains /fcrepo/rest/one/two/three and we're importing
+     * the resource at /fcrepo/rest/one/two, this stores that path.
      */
     protected File importContainerDirectory;
 
@@ -114,6 +116,9 @@ public class Importer implements TransferProcess {
     }
 
     private void importDirectory(final File dir) {
+        // process all the files first (because otherwise they might be
+        // created as peartree nodes which can't be updated with properties
+        // later.
         for (final File f : dir.listFiles((f) -> {
             return  f.isFile();
             })) {
@@ -128,11 +133,11 @@ public class Importer implements TransferProcess {
 
     private void importFile(final File f) {
         // The path, relative to the metadata root in the export directory.
-        // This used in place of the full path to make the output more readable.
+        // This is used in place of the full path to make the output more readable.
         final String sourceRelativePath = config.getDescriptionDirectory().toPath().relativize(f.toPath()).toString();
 
         if (f.getPath().endsWith(BINARY_EXTENSION)) {
-            // ... this is only expected to happens when binaries and metadata are written to the same directory...
+            // ... this is only expected to happen when binaries and metadata are written to the same directory...
             logger.debug("Skipping binary {}: it will be imported when its metadata is imported.", sourceRelativePath);
             return;
         } else if (!f.getPath().endsWith(config.getRdfExtension())) {
