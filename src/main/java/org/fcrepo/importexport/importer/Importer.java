@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.importer;
 
+import static java.util.Arrays.stream;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -119,15 +120,9 @@ public class Importer implements TransferProcess {
         // process all the files first (because otherwise they might be
         // created as peartree nodes which can't be updated with properties
         // later.
-        for (final File f : dir.listFiles((f) -> {
-            return  f.isFile();
-            })) {
-            importFile(f);
-        }
-        for (final File f : dir.listFiles((f) -> {
-            return  f.isDirectory();
-            })) {
-            importDirectory(f);
+        if (dir.listFiles() != null) {
+            stream(dir.listFiles()).filter(File::isFile).forEach(file -> importFile(file));
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(directory -> importDirectory(directory));
         }
     }
 
