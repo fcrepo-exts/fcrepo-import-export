@@ -27,9 +27,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
@@ -152,8 +152,8 @@ public class Exporter implements TransferProcess {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        try (Writer w = new FileWriter(file)) {
-            copy(response.getBody(), w, "UTF-8");
+        try (OutputStream out = new FileOutputStream(file)) {
+            copy(response.getBody(), out);
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
         }
 

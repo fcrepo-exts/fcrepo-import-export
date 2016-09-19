@@ -179,7 +179,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final File exportedBinary
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
-        assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
+        assert(exportedBinary.exists());
+        final String contentFromFile = new String(FileUtils.readFileToByteArray(exportedBinary));
+        assertEquals("Content was corrupted on export!", content, contentFromFile);
     }
 
     @Test
