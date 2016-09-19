@@ -35,6 +35,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -152,10 +153,11 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
     @Test
     public void testExportBinaryAndRDFToSamePath() throws Exception {
-        final String content = "Hello World 😀";
+        final File binaryFile = new File(TARGET_DIR, "test-classes/sample/binary/bin/rest/bin1.binary");
+        final byte[] content = FileUtils.readFileToByteArray(binaryFile);
 
         // create a binary resource
-        final FcrepoResponse response = createUTF8PlaintextBinary(content);
+        final FcrepoResponse response = createBinary(binaryFile);
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(url, response.getLocation());
 
@@ -179,7 +181,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final File exportedBinary
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
-        assertEquals("Content was corrupted on export!", content, FileUtils.readFileToString(exportedBinary, "UTF-8"));
+        final byte[] contentFromFile = FileUtils.readFileToByteArray(exportedBinary);
+        assertEquals("Content was corrupted on export!", new String(content), new String(contentFromFile));
+        assertEquals(binaryFile.length(), exportedBinary.length());
     }
 
     @Test
@@ -250,13 +254,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         return process;
     }
 
-    private FcrepoResponse createUTF8PlaintextBinary(final String content) throws FcrepoOperationFailedException {
+    private FcrepoResponse createBinary(final File f) throws IOException, FcrepoOperationFailedException {
         logger.debug("Request ------: {}", url);
-        try {
-            return client.put(url).body(new ByteArrayInputStream(content.getBytes("UTF-8")), "text/plain").perform();
-        } catch (final UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return client.put(url).body(new FileInputStream(f), "text/plain").perform();
     }
 
     private FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {
