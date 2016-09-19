@@ -84,10 +84,6 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
-
-        if (config.getSource() == null) {
-            throw new RuntimeException("Source is required for import!");
-        }
     }
 
     private FcrepoClient client() {
@@ -180,7 +176,7 @@ public class Importer implements TransferProcess {
     }
 
     private Model parseFile(final File f) throws IOException {
-        final URI source = (config.getSource() == null) ? config.getResource() : config.getSource();
+        final URI source = config.getSource();
         final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(source, config.getResource());
         try (FileInputStream in = new FileInputStream(f)) {
             RDFDataMgr.parse(mapper, in, contentTypeToLang(config.getRdfLanguage()));

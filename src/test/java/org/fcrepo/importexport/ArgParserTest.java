@@ -142,4 +142,25 @@ public class ArgParserTest {
     public void parseInvalidUser() {
         parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--u", "wrong"));
     }
+
+    @Test
+    public void testImportSource() {
+        final String source = "http://localhost:8080/rest/2";
+        final String[] args = new String[]{"-m", "import",
+                                           "-d", "/tmp/rdf",
+                                           "-r", "http://localhost:8080/rest/1",
+                                           "-s", source};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertEquals(source, config.getSource().toString());
+    }
+
+    @Test
+    public void testImportEmptySource() {
+        final String resource = "http://localhost:8080/rest/1";
+        final String[] args = new String[]{"-m", "import",
+                                           "-d", "/tmp/rdf",
+                                           "-r", resource};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertEquals(resource, config.getSource().toString());
+    }
 }
