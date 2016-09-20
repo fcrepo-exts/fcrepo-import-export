@@ -237,13 +237,7 @@ public class ArgParser {
         config.setDescriptionDirectory(cmd.getOptionValue('d'));
         config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
         config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
-
-        // If 'source' provided, use it... else set it to 'resource'
-        if (cmd.getOptionValue('s') != null) {
-            config.setSource(cmd.getOptionValue('s'));
-        } else {
-            config.setSource(config.getResource());
-        }
+        config.setSource(cmd.getOptionValue('s'));
 
         return config;
     }

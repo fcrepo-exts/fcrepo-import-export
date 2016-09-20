@@ -155,7 +155,9 @@ public class Config {
      * @param source URI to import/export
      */
     public void setSource(final String source) {
-        setSource(URI.create(source));
+        if (source != null) {
+            setSource(URI.create(source));
+        }
     }
 
     /**
@@ -177,7 +179,12 @@ public class Config {
      * @return source source
      */
     public URI getSource() {
-        return source;
+        // If 'source' exists, use it... else return 'resource'
+        if (source != null) {
+            return source;
+        } else {
+            return resource;
+        }
     }
 
     /**
