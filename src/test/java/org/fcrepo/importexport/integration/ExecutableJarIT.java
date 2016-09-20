@@ -20,12 +20,6 @@ package org.fcrepo.importexport.integration;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.apache.jena.graph.Node.ANY;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
-import static org.apache.jena.graph.NodeFactory.createURI;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
-import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,8 +32,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -47,9 +39,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.sparql.core.DatasetImpl;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -68,24 +57,25 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
     private static final Logger logger = getLogger(ExecutableJarIT.class);
 
-    private URI url;
-
     private static final String EXECUTABLE = System.getProperty("fcrepo.executable.jar");
-    private static final String TARGET_DIR = System.getProperty("project.build.directory");
 
     private static final int TIMEOUT_SECONDS = 1000;
 
+    private FcrepoClient client;
+
+    private URI url;
+
     public ExecutableJarIT() throws Exception {
         super();
-        client = FcrepoClient.client().credentials("fedoraAdmin", "password").authScope("localhost").build();
+        client = clientBuilder.build();
     }
 
     @Before
     public void before() {
+        super.before();
         url = URI.create(serverAddress + UUID.randomUUID());
         assertNotNull(EXECUTABLE);
         assertTrue(EXECUTABLE + " doesn't exist!", new File(EXECUTABLE).exists());
-        assertNotNull(TARGET_DIR);
     }
 
     @Test
@@ -259,33 +249,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         return client.put(url).body(new FileInputStream(f), "text/plain").perform();
     }
 
-    private FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {
-        logger.debug("Request ------: {}", uri);
-        return client.put(uri).perform();
+    protected Logger logger() {
+        return getLogger(ExecutableJarIT.class);
     }
-
-    private static final String DC_TITLE = "http://purl.org/dc/elements/1.1/title";
-
-    private void assertHasTitle(final URI url, final String title) throws FcrepoOperationFailedException {
-        final FcrepoResponse getResponse = client.get(url).accept("application/n-triples").perform();
-        assertEquals("GET of " + url + " failed!", SC_OK, getResponse.getStatusCode());
-        final Model model = createDefaultModel();
-        final Dataset d = new DatasetImpl(model.read(getResponse
-                .getBody(), "", "application/n-triples"));
-
-        assertTrue(url + " should have had the dc:title, \"" + title + "\"!",
-                d.asDatasetGraph().contains(ANY, createURI(url.toString()),
-                        createProperty(DC_TITLE).asNode(), createLiteral(title)));
-    }
-
-    private InputStream insertTitle(final String title) {
-        try {
-            return new ByteArrayInputStream(("INSERT DATA { <> <" + DC_TITLE + "> '" + title + "' . }")
-                    .getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            // can't actually happen
-            throw new RuntimeException(e);
-        }
-    }
-
 }
