@@ -204,7 +204,7 @@ public class Importer implements TransferProcess {
         return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
     }
 
-    private Model sanitize(final Model model) {
+    private Model sanitize(final Model model) throws FcrepoOperationFailedException {
         final List<Statement> remove = new ArrayList<>();
         for (final StmtIterator it = model.listStatements(); it.hasNext(); ) {
             final Statement s = it.nextStatement();
@@ -219,10 +219,31 @@ public class Importer implements TransferProcess {
                     || (s.getPredicate().equals(RDF_TYPE)
                         && s.getResource().getNameSpace().equals(REPOSITORY_NAMESPACE)) ) {
                 remove.add(s);
+            } else if (s.getObject().isResource()) {
+                // make sure that referenced repository objects exist
+                final String obj = s.getResource().toString();
+                if (obj.startsWith(config.getResource().toString())) {
+                    ensureExists(URI.create(obj));
+                }
             }
         }
         return model.remove(remove);
     }
+
+    /**
+     * Make sure that a URI exists in the repository.
+     */
+    private void ensureExists(final URI uri) throws FcrepoOperationFailedException {
+        final String rdf = "<> a <http://www.w3.org/ns/ldp#Container> .";
+        final FcrepoResponse response = client().put(uri)
+                .body(new ByteArrayInputStream(rdf.getBytes()), "text/turtle")
+                .preferLenient().perform();
+        if (response.getStatusCode() > 409) {
+            logger.error("Unexpected response when creating {} ({}): {}", uri,
+                    response.getStatusCode(), response.getBody());
+        }
+    }
+
 
     private InputStream modelToStream(final Model model) {
         final ByteArrayOutputStream buf = new ByteArrayOutputStream();

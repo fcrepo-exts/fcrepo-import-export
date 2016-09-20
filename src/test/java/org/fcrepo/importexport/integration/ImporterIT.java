@@ -107,6 +107,33 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
+    @Test
+    public void testReferences() throws Exception {
+        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
+        final URI linkFrom = URI.create(serverAddress + "/linkFrom");
+        final URI linkTo = URI.create(serverAddress + "/linkTo");
+        final String referencePath = TARGET_DIR + "/test-classes/sample/reference";
+        System.out.println("Importing from " + referencePath);
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setDescriptionDirectory(referencePath);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(serverAddress);
+        config.setSource(sourceURI.toString());
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify the resources exist
+        resourceExists(linkFrom);
+        resourceExists(linkTo);
+    }
+
     private boolean resourceExists(final URI uri) throws FcrepoOperationFailedException {
         final FcrepoResponse response = clientBuilder.build().head(uri).perform();
         return response.getStatusCode() == 200;
