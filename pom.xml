@@ -97,6 +97,7 @@
         <configuration>
           <portNames>
             <portName>fcrepo.dynamic.test.port</portName>
+            <portName>fcrepo.dynamic.tomcat.ajp.port</portName>
           </portNames>
         </configuration>
         <executions>
@@ -122,6 +123,7 @@
             <fcrepo.executable.jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</fcrepo.executable.jar>
             <fcrepo.dynamic.test.port>${fcrepo.dynamic.test.port}</fcrepo.dynamic.test.port>
             <project.build.directory>${project.build.directory}</project.build.directory>
+            <fcrepo.dynamic.tomcat.ajp.port>${fcrepo.dynamic.tomcat.ajp.port}</fcrepo.dynamic.tomcat.ajp.port>
           </systemPropertyVariables>
         </configuration>
         <executions>
@@ -251,6 +253,7 @@
           <configuration>
             <properties>
               <cargo.servlet.port>${fcrepo.dynamic.test.port}</cargo.servlet.port>
+              <cargo.tomcat.ajp.port>${fcrepo.dynamic.tomcat.ajp.port}</cargo.tomcat.ajp.port>
             </properties>
             <files>
               <copy>
