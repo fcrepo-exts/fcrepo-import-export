@@ -204,7 +204,7 @@ public class Importer implements TransferProcess {
         return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
     }
 
-    private Model sanitize(final Model model) throws FcrepoOperationFailedException {
+    private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
         final List<Statement> remove = new ArrayList<>();
         for (final StmtIterator it = model.listStatements(); it.hasNext(); ) {
             final Statement s = it.nextStatement();
@@ -233,14 +233,15 @@ public class Importer implements TransferProcess {
     /**
      * Make sure that a URI exists in the repository.
      */
-    private void ensureExists(final URI uri) throws FcrepoOperationFailedException {
+    private void ensureExists(final URI uri) throws IOException, FcrepoOperationFailedException {
         final String rdf = "<> a <http://www.w3.org/ns/ldp#Container> .";
-        final FcrepoResponse response = client().put(uri)
+        try (final FcrepoResponse response = client().put(uri)
                 .body(new ByteArrayInputStream(rdf.getBytes()), "text/turtle")
-                .perform();
-        if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
-            logger.error("Unexpected response when creating {} ({}): {}", uri,
-                    response.getStatusCode(), response.getBody());
+                .perform()) {
+            if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
+                logger.error("Unexpected response when creating {} ({}): {}", uri,
+                        response.getStatusCode(), response.getBody());
+            }
         }
     }
 
