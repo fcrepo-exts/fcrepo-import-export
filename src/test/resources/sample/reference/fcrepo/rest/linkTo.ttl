@@ -27,4 +27,5 @@
 	fedora:lastModified "2016-09-20T18:49:45.482Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
 	a ldp:RDFSource , ldp:Container ;
 	fedora:writable "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
+	ns001:relation <http://localhost:8080/fcrepo/rest/linkFrom> ;
 	fedora:hasParent <http://localhost:8080/fcrepo/rest/> .
