@@ -237,8 +237,8 @@ public class Importer implements TransferProcess {
         final String rdf = "<> a <http://www.w3.org/ns/ldp#Container> .";
         final FcrepoResponse response = client().put(uri)
                 .body(new ByteArrayInputStream(rdf.getBytes()), "text/turtle")
-                .preferLenient().perform();
-        if (response.getStatusCode() > 409) {
+                .perform();
+        if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
             logger.error("Unexpected response when creating {} ({}): {}", uri,
                     response.getStatusCode(), response.getBody());
         }
