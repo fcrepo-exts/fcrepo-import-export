@@ -17,7 +17,11 @@
  */
 package org.fcrepo.importexport.integration;
 
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -38,6 +42,7 @@ import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -107,9 +112,44 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
+    @Test
+    public void testReferences() throws Exception {
+        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
+        final URI linkFrom = URI.create(serverAddress + "linkFrom");
+        final URI linkTo = URI.create(serverAddress + "linkTo");
+        final String referencePath = TARGET_DIR + "/test-classes/sample/reference";
+        System.out.println("Importing from " + referencePath);
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setDescriptionDirectory(referencePath);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(serverAddress);
+        config.setSource(sourceURI.toString());
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify the resources exist and link to each other
+        assertTrue(resourceExists(linkFrom));
+        assertTrue(resourceExists(linkTo));
+        assertTrue(resourceLinksTo(linkTo, linkFrom));
+        assertTrue(resourceLinksTo(linkFrom, linkTo));
+    }
+
     private boolean resourceExists(final URI uri) throws FcrepoOperationFailedException {
         final FcrepoResponse response = clientBuilder.build().head(uri).perform();
         return response.getStatusCode() == 200;
+    }
+
+    private boolean resourceLinksTo(final URI linkFrom, final URI linkTo) throws FcrepoOperationFailedException {
+        final FcrepoResponse response = clientBuilder.build().get(linkFrom).perform();
+        final Model model = createDefaultModel().read(response.getBody(), null, "text/turtle");
+        return model.contains(createResource(linkFrom.toString()), null, createResource(linkTo.toString()));
     }
 
     protected Logger logger() {
