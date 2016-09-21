@@ -189,10 +189,8 @@ public class Importer implements TransferProcess {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
         final File binaryFile = fileForURI(binaryURI);
         final FcrepoResponse binaryResponse = client().put(binaryURI).body(binaryFile, contentType).perform();
-        if (binaryResponse.getStatusCode() == 201) {
+        if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
-        } else {
-            return binaryResponse;
         }
 
         final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
@@ -234,10 +232,7 @@ public class Importer implements TransferProcess {
      * Make sure that a URI exists in the repository.
      */
     private void ensureExists(final URI uri) throws IOException, FcrepoOperationFailedException {
-        final String rdf = "<> a <http://www.w3.org/ns/ldp#Container> .";
-        try (final FcrepoResponse response = client().put(uri)
-                .body(new ByteArrayInputStream(rdf.getBytes()), "text/turtle")
-                .perform()) {
+        try (final FcrepoResponse response = placeholderFor(uri)) {
             if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
                 logger.error("Unexpected response when creating {} ({}): {}", uri,
                         response.getStatusCode(), response.getBody());
@@ -245,6 +240,14 @@ public class Importer implements TransferProcess {
         }
     }
 
+    private FcrepoResponse placeholderFor(final URI uri) throws FcrepoOperationFailedException {
+        if (fileForURI(uri).exists()) {
+            return client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
+        } else {
+            return client().put(uri).body(new ByteArrayInputStream(
+                    "<> a <http://www.w3.org/ns/ldp#Container> .".getBytes()), "text/turtle").perform();
+        }
+    }
 
     private InputStream modelToStream(final Model model) {
         final ByteArrayOutputStream buf = new ByteArrayOutputStream();

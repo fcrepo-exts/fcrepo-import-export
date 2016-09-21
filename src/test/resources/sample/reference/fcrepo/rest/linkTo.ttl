@@ -4,6 +4,7 @@
 @prefix test: <info:fedora/test/> .
 @prefix nt: <http://www.jcp.org/jcr/nt/1.0> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ns002: <http://pcdm.org/models#> .
 @prefix ns001: <http://purl.org/dc/terms/> .
 @prefix xsi: <http://www.w3.org/2001/XMLSchema-instance> .
 @prefix mode: <http://www.modeshape.org/1.0> .
@@ -21,11 +22,13 @@
 
 
 <http://localhost:8080/fcrepo/rest/linkTo> a fedora:Container , fedora:Resource ;
+	ns002:hasFile <http://localhost:8080/fcrepo/rest/linkTo/file1> ;
 	fedora:lastModifiedBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	fedora:createdBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
-	fedora:created "2016-09-20T18:49:45.482Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-	fedora:lastModified "2016-09-20T18:49:45.482Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	fedora:created "2016-09-21T20:00:08.357Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	fedora:lastModified "2016-09-21T20:00:08.914Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	ns001:relation <http://localhost:8080/fcrepo/rest/linkFrom> ;
 	a ldp:RDFSource , ldp:Container ;
 	fedora:writable "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
-	ns001:relation <http://localhost:8080/fcrepo/rest/linkFrom> ;
-	fedora:hasParent <http://localhost:8080/fcrepo/rest/> .
+	fedora:hasParent <http://localhost:8080/fcrepo/rest/> ;
+	ldp:contains <http://localhost:8080/fcrepo/rest/linkTo/file1> .
