@@ -142,6 +142,50 @@ public class ImporterIT extends AbstractResourceIT {
         assertTrue(resourceLinksTo(linkFrom, linkTo));
     }
 
+    @Test
+    public void testImportContainer() throws Exception {
+        // import test-indirect
+
+        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
+        final URI parentURI = URI.create(serverAddress + "indirect/1");
+        final URI memberURI = URI.create(serverAddress + "indirect/2");
+        final String indirectPath = TARGET_DIR + "/test-classes/sample/indirect";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setDescriptionDirectory(indirectPath);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(serverAddress);
+        config.setSource(sourceURI.toString());
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify one title and one hasMember
+        final FcrepoResponse response = clientBuilder.build().get(parentURI).accept("text/plain").perform();
+        final String triples = IOUtils.toString(response.getBody());
+        final String memberTriple = "<" + parentURI + "> <http://pcdm.org/models#hasMember> <" + memberURI + "> .";
+        final String titleTriple = "<" + parentURI + "> <http://purl.org/dc/terms/title> "
+                + "\"foo\"^^<http://www.w3.org/2001/XMLSchema#string> .";
+        assertEquals(1, count(triples, titleTriple));
+        assertEquals(1, count(triples, memberTriple));
+    }
+
+    private int count(final String triples, final String triple) {
+        int count = 0;
+        final String[] arr = triples.split("\\n");
+        for (int i = 0; i < arr.length; i++) {
+            if (triple.equals(arr[i])) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private boolean resourceExists(final URI uri) throws FcrepoOperationFailedException {
         final FcrepoResponse response = clientBuilder.build().head(uri).perform();
         return response.getStatusCode() == 200;
