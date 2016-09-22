@@ -232,21 +232,36 @@ public class Importer implements TransferProcess {
      * Make sure that a URI exists in the repository.
      */
     private void ensureExists(final URI uri) throws IOException, FcrepoOperationFailedException {
-        try (final FcrepoResponse response = placeholderFor(uri)) {
-            if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
-                logger.error("Unexpected response when creating {} ({}): {}", uri,
-                        response.getStatusCode(), response.getBody());
+        try (FcrepoResponse response = client().head(uri).perform()) {
+            if (response.getStatusCode() != 200) {
+                makePlaceholder(uri);
             }
         }
     }
 
-    private FcrepoResponse placeholderFor(final URI uri) throws FcrepoOperationFailedException {
+    private void makePlaceholder(final URI uri) throws IOException, FcrepoOperationFailedException {
+        ensureExists(parent(uri));
+
+        final FcrepoResponse response;
         if (fileForURI(uri).exists()) {
-            return client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
+            response = client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
         } else {
-            return client().put(uri).body(new ByteArrayInputStream(
+            response = client().put(uri).body(new ByteArrayInputStream(
                     "<> a <http://www.w3.org/ns/ldp#Container> .".getBytes()), "text/turtle").perform();
         }
+
+        if (response.getStatusCode() != 201) {
+            logger.error("Unexpected response when creating {} ({}): {}", uri,
+                    response.getStatusCode(), response.getBody());
+        }
+    }
+
+    private static URI parent(final URI uri) {
+        String s = uri.toString();
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return URI.create(s.substring(0, s.lastIndexOf("/")));
     }
 
     private InputStream modelToStream(final Model model) {
