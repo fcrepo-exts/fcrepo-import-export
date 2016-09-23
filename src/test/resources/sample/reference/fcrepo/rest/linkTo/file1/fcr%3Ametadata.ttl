@@ -21,12 +21,17 @@
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 
 
-<http://localhost:8080/fcrepo/rest/linkFrom> a fedora:Container , fedora:Resource ;
+<http://localhost:8080/fcrepo/rest/linkTo/file1> a fedora:Binary , fedora:Resource ;
 	fedora:lastModifiedBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
+	premis:hasSize "4"^^<http://www.w3.org/2001/XMLSchema#long> ;
+	ebucore:hasMimeType "text/plain"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	fedora:createdBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
-	fedora:created "2016-09-21T20:00:08.288Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-	fedora:lastModified "2016-09-21T20:00:08.857Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-	ns001:relation <http://localhost:8080/fcrepo/rest/linkTo> ;
-	a ldp:RDFSource , ldp:Container ;
+	fedora:created "2016-09-21T20:00:08.408Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	fedora:lastModified "2016-09-21T20:00:08.408Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+	premis:hasMessageDigest <urn:sha1:971c419dd609331343dee105fffd0f4608dc0bf2> ;
+	ebucore:filename ""^^<http://www.w3.org/2001/XMLSchema#string> ;
+	a ldp:NonRDFSource ;
 	fedora:writable "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
-	fedora:hasParent <http://localhost:8080/fcrepo/rest/> .
+	<http://www.iana.org/assignments/relation/describedby> <http://localhost:8080/fcrepo/rest/linkTo/file1/fcr:metadata> ;
+	fedora:hasParent <http://localhost:8080/fcrepo/rest/linkTo> ;
+	fedora:hasFixityService <http://localhost:8080/fcrepo/rest/linkTo/file1/fcr:fixity> .

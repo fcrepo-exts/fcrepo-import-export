@@ -122,6 +122,7 @@ public class ImporterIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("import");
+        config.setBinaryDirectory(referencePath);
         config.setDescriptionDirectory(referencePath);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);

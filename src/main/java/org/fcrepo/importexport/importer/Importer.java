@@ -189,10 +189,8 @@ public class Importer implements TransferProcess {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
         final File binaryFile = fileForURI(binaryURI);
         final FcrepoResponse binaryResponse = client().put(binaryURI).body(binaryFile, contentType).perform();
-        if (binaryResponse.getStatusCode() == 201) {
+        if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
-        } else {
-            return binaryResponse;
         }
 
         final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
@@ -234,17 +232,37 @@ public class Importer implements TransferProcess {
      * Make sure that a URI exists in the repository.
      */
     private void ensureExists(final URI uri) throws IOException, FcrepoOperationFailedException {
-        final String rdf = "<> a <http://www.w3.org/ns/ldp#Container> .";
-        try (final FcrepoResponse response = client().put(uri)
-                .body(new ByteArrayInputStream(rdf.getBytes()), "text/turtle")
-                .perform()) {
-            if (response.getStatusCode() > 204 && response.getStatusCode() != 409) {
-                logger.error("Unexpected response when creating {} ({}): {}", uri,
-                        response.getStatusCode(), response.getBody());
+        try (FcrepoResponse response = client().head(uri).perform()) {
+            if (response.getStatusCode() != 200) {
+                makePlaceholder(uri);
             }
         }
     }
 
+    private void makePlaceholder(final URI uri) throws IOException, FcrepoOperationFailedException {
+        ensureExists(parent(uri));
+
+        final FcrepoResponse response;
+        if (fileForURI(uri).exists()) {
+            response = client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
+        } else {
+            response = client().put(uri).body(new ByteArrayInputStream(
+                    "<> a <http://www.w3.org/ns/ldp#Container> .".getBytes()), "text/turtle").perform();
+        }
+
+        if (response.getStatusCode() != 201) {
+            logger.error("Unexpected response when creating {} ({}): {}", uri,
+                    response.getStatusCode(), response.getBody());
+        }
+    }
+
+    private static URI parent(final URI uri) {
+        String s = uri.toString();
+        if (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return URI.create(s.substring(0, s.lastIndexOf("/")));
+    }
 
     private InputStream modelToStream(final Model model) {
         final ByteArrayOutputStream buf = new ByteArrayOutputStream();
