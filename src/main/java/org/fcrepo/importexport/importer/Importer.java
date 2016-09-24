@@ -27,6 +27,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
@@ -44,6 +45,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
@@ -66,6 +68,7 @@ public class Importer implements TransferProcess {
     private static final Logger logger = getLogger(Importer.class);
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
+    private final List<URI> membershipResources = new ArrayList<>();
 
     /**
      * A directory within the metadata directory that serves as the
@@ -102,6 +105,9 @@ public class Importer implements TransferProcess {
                 config.getDescriptionDirectory(), config.getRdfExtension());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
                 config.getDescriptionDirectory());
+
+        discoverMembershipResources(importContainerDirectory);
+
         if (!importContainerMetadataFile.exists()) {
             logger.debug("No container exists in the metadata directory {} for the requested resource {},"
                     + " importing all contained resources instead.", importContainerMetadataFile.getPath(),
@@ -110,6 +116,56 @@ public class Importer implements TransferProcess {
             importFile(importContainerMetadataFile);
         }
         importDirectory(importContainerDirectory);
+
+        importMembershipResources();
+    }
+
+    private void discoverMembershipResources(final File dir) {
+        if (dir.listFiles() != null) {
+            stream(dir.listFiles()).filter(File::isFile).forEach(f -> parseMembershipResources(f));
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(d -> discoverMembershipResources(d));
+        }
+    }
+
+    private void parseMembershipResources(final File f) {
+        try {
+            final Model model = parseStream(new FileInputStream(f));
+            if (model.contains(null, MEMBERSHIP_RESOURCE, (RDFNode)null)) {
+                    model.listObjectsOfProperty(MEMBERSHIP_RESOURCE).forEachRemaining(node -> {
+                        logger.info("Membership resource: {}", node);
+                        membershipResources.add(URI.create(node.toString()));
+                    });
+            }
+        } catch (final Exception e) {
+            logger.warn("Error discovering membership resource: {}", e.toString());
+        }
+    }
+
+    private void importMembershipResources() {
+        membershipResources.stream().forEach(uri -> importMembershipResource(uri));
+    }
+
+    private void importMembershipResource(final URI uri) {
+        final File f = TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(),
+                config.getRdfExtension());
+        try {
+            final Model diskModel = parseStream(new FileInputStream(f));
+            final Model repoModel = parseStream(client().get(uri).perform().getBody());
+            final FcrepoResponse response = importContainer(uri, sanitize(diskModel.difference(repoModel)));
+            if (response.getStatusCode() == 401) {
+                throw new AuthenticationRequiredRuntimeException();
+            } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
+                        + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+            } else {
+                logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
+            }
+        } catch (FcrepoOperationFailedException ex) {
+            throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        } catch (IOException ex) {
+            throw new RuntimeException(
+                    "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        }
     }
 
     private void importDirectory(final File dir) {
@@ -139,7 +195,7 @@ public class Importer implements TransferProcess {
             FcrepoResponse response = null;
             URI destinationUri = null;
             try {
-                final Model model = parseFile(f);
+                final Model model = parseStream(new FileInputStream(f));
                 if (model.contains(null, RDF_TYPE, createResource(REPOSITORY_NAMESPACE + "RepositoryRoot"))) {
                     logger.debug("Skipping import of repository root.");
                     return;
@@ -152,6 +208,10 @@ public class Importer implements TransferProcess {
                 } else {
                     destinationUri = new URI(config.getResource().toString() + "/"
                             + uriPathForFile(f, importContainerDirectory));
+                    if (membershipResources.contains(destinationUri)) {
+                        logger.warn("Skipping Membership Resource: {}", destinationUri);
+                        return;
+                    }
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
                 }
@@ -175,11 +235,11 @@ public class Importer implements TransferProcess {
         }
     }
 
-    private Model parseFile(final File f) throws IOException {
+    private Model parseStream(final InputStream in) throws IOException {
         final URI source = config.getSource();
         final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(source, config.getResource());
-        try (FileInputStream in = new FileInputStream(f)) {
-            RDFDataMgr.parse(mapper, in, contentTypeToLang(config.getRdfLanguage()));
+        try (final InputStream in2 = in) {
+            RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
         }
         return mapper.getModel();
     }
