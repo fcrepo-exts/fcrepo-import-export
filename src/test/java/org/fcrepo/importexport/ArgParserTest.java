@@ -122,6 +122,18 @@ public class ArgParserTest {
         parser.parse(args);
     }
 
+    @Test(expected = RuntimeException.class)
+    public void parseHelpWithNoOtherArgs() {
+        final String[] args = ArrayUtils.addAll(new String[] { "-h" });
+        parser.parseConfiguration(args);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseHelpWithMinimumValidArgs() {
+        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-h");
+        parser.parseConfiguration(args);
+    }
+
     @Test
     public void parseValidUsername() {
         final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-u",  "user:pass");

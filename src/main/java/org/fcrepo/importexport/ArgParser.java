@@ -146,6 +146,11 @@ public class ArgParser {
             logger.debug("Command line argments weren't valid for specifying a config file.");
         }
         if (config == null) {
+            // check for presence of the help flag
+            if (helpFlagged(args)) {
+                printHelpWithoutHeaderMessage();
+            }
+
             try {
                 c = parseConfigArgs(args);
                 config = this.parseConfigurationArgs(c);
@@ -161,6 +166,20 @@ public class ArgParser {
 
 
         return config;
+    }
+
+    /**
+     * @param args
+     * @return
+     */
+    private boolean helpFlagged(final String[] args) {
+        for (String arg : args) {
+            if (arg.equals("-h")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private CommandLine parseConfigFileCommandLineArgs(final String[] args) throws ParseException {
@@ -302,7 +321,6 @@ public class ArgParser {
      * @return A configured Importer or Exporter instance.
     **/
     public TransferProcess parse(final String[] args) {
-
         final Config config = parseConfiguration(args);
         if (config.isImport()) {
             return new Importer(config, clientBuilder());
@@ -316,11 +334,16 @@ public class ArgParser {
         return FcrepoClient.client();
     }
 
+    private void printHelpWithoutHeaderMessage() {
+        printHelp(null);
+    }
+
     private void printHelp(final String message) {
         final HelpFormatter formatter = new HelpFormatter();
         final PrintWriter writer = new PrintWriter(System.out);
-
-        writer.println("\n-----------------------\n" + message + "\n-----------------------\n");
+        if (message != null) {
+            writer.println("\n-----------------------\n" + message + "\n-----------------------\n");
+        }
 
         writer.println("Running Import/Export Utility from command line arguments");
         formatter.printHelp(writer, 80, "java -jar import-export-driver.jar", "", configOptions, 4, 4, "", true);
