@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.integration;
 
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.ArgParser;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.junit.Test;
@@ -28,7 +29,6 @@ import java.net.URI;
 import java.util.UUID;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -59,7 +59,7 @@ public class ExporterIT extends AbstractResourceIT {
         config.setMode("export");
         config.setDescriptionDirectory(TARGET_DIR);
         config.setResource(url);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfExtension(ArgParser.getDefaultRdfExtension());
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
@@ -68,7 +68,7 @@ public class ExporterIT extends AbstractResourceIT {
         exporter.run();
 
         // Verify
-        assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.getDefaultRdfExtension()).exists());
     }
 
     protected Logger logger() {

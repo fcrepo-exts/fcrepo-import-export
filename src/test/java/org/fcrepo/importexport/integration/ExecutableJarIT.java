@@ -106,7 +106,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.getDefaultRdfExtension()).exists());
     }
 
     @Test
@@ -136,7 +136,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + ArgParser.DEFAULT_RDF_EXT))
+        assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + ArgParser.getDefaultRdfExtension()))
                 .exists());
         assertTrue(new File(System.getProperty("java.io.tmpdir"), ArgParser.CONFIG_FILE_NAME).exists());
     }
@@ -167,7 +167,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertFalse("Fedora should have given us at least one describedby header!", describedByHeaders.isEmpty());
         describedByHeaders.forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
                         new File(TARGET_DIR, TransferProcess.encodePath(uri.getPath())
-                                + ArgParser.DEFAULT_RDF_EXT).exists()));
+                                + ArgParser.getDefaultRdfExtension()).exists()));
         final File exportedBinary
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());

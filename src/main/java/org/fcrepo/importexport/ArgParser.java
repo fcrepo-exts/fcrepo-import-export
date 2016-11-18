@@ -23,6 +23,9 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -52,7 +55,6 @@ public class ArgParser {
 
     private static final Logger logger = getLogger(ArgParser.class);
 
-    public static final String DEFAULT_RDF_EXT = ".ttl";
     public static final String DEFAULT_RDF_LANG = "text/turtle";
     public static final String CONFIG_FILE_NAME = "importexport.config";
 
@@ -103,13 +105,6 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("descDir")
                 .desc("Directory where the RDF descriptions are stored")
                 .required(true).build());
-
-        // RDF extension option
-        configOptions.addOption(Option.builder("x")
-                .longOpt("rdfExt")
-                .hasArg(true).numberOfArgs(1).argName("rdfExt")
-                .desc("RDF filename extension (default: " + DEFAULT_RDF_EXT + ")")
-                .required(false).build());
 
         // RDF language option
         configOptions.addOption(Option.builder("l")
@@ -235,11 +230,33 @@ public class ArgParser {
         config.setResource(cmd.getOptionValue('r'));
         config.setBinaryDirectory(cmd.getOptionValue('b'));
         config.setDescriptionDirectory(cmd.getOptionValue('d'));
-        config.setRdfExtension(cmd.getOptionValue('x', DEFAULT_RDF_EXT));
-        config.setRdfLanguage(cmd.getOptionValue('l', DEFAULT_RDF_LANG));
+
+        final String rdfLanguage = cmd.getOptionValue('l', DEFAULT_RDF_LANG);
+
+        if (RDFLanguages.contentTypeToLang(rdfLanguage) == null) {
+            printHelp(rdfLanguage + " is not a valid RDF language");
+        }
+
+        config.setRdfLanguage(rdfLanguage);
+
+        final String extension = getRDFExtension(rdfLanguage);
+        config.setRdfExtension(extension);
+
         config.setSource(cmd.getOptionValue('s'));
 
         return config;
+    }
+
+    private static String getRDFExtension(final String language) {
+       final Lang lang =  RDFLanguages.contentTypeToLang(language);
+       return  "." + lang.getFileExtensions().get(0);
+    }
+
+    /**
+     * @return The default rdf extension (based on the default RDF language)
+     */
+    public static String getDefaultRdfExtension() {
+        return getRDFExtension(DEFAULT_RDF_LANG);
     }
 
     /**

@@ -190,10 +190,10 @@ public class Config {
     /**
      * Sets the RDF filename extension
      *
-     * @param extension of the RDF filename
+     * @param rdfExtension of the exported file
      */
-    public void setRdfExtension(final String extension) {
-        this.rdfExtension = extension;
+    public void setRdfExtension(final String rdfExtension) {
+        this.rdfExtension = rdfExtension;
     }
 
     /**
