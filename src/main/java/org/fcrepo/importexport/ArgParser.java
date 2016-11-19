@@ -24,7 +24,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
 
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.importexport.common.Config;
@@ -42,6 +41,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -56,6 +56,7 @@ public class ArgParser {
     private static final Logger logger = getLogger(ArgParser.class);
 
     public static final String DEFAULT_RDF_LANG = "text/turtle";
+    public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
     public static final String CONFIG_FILE_NAME = "importexport.config";
 
     private final Options configOptions;
@@ -232,31 +233,20 @@ public class ArgParser {
         config.setDescriptionDirectory(cmd.getOptionValue('d'));
 
         final String rdfLanguage = cmd.getOptionValue('l', DEFAULT_RDF_LANG);
-
-        if (RDFLanguages.contentTypeToLang(rdfLanguage) == null) {
-            printHelp(rdfLanguage + " is not a valid RDF language");
-        }
-
         config.setRdfLanguage(rdfLanguage);
-
-        final String extension = getRDFExtension(rdfLanguage);
-        config.setRdfExtension(extension);
-
+        config.setRdfExtension(getRDFExtension(rdfLanguage));
         config.setSource(cmd.getOptionValue('s'));
 
         return config;
     }
 
     private static String getRDFExtension(final String language) {
-       final Lang lang =  RDFLanguages.contentTypeToLang(language);
-       return  "." + lang.getFileExtensions().get(0);
-    }
+        final Lang lang = contentTypeToLang(language);
+        if (lang == null) {
+            throw new RuntimeException(language + " is not a recognized RDF language");
+        }
 
-    /**
-     * @return The default rdf extension (based on the default RDF language)
-     */
-    public static String getDefaultRdfExtension() {
-        return getRDFExtension(DEFAULT_RDF_LANG);
+        return "." + lang.getFileExtensions().get(0);
     }
 
     /**
