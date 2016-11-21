@@ -67,6 +67,14 @@ public class ArgParser {
         configOptions = new Options();
         configFileOptions = new Options();
 
+        // Help option
+        configOptions.addOption(Option.builder("h")
+                .longOpt("help")
+                .hasArg(false)
+                .desc("Print these options")
+                .required(false)
+                .build());
+
         // Mode option
         configOptions.addOption(Option.builder("m")
                 .longOpt("mode")
@@ -174,7 +182,7 @@ public class ArgParser {
      */
     private boolean helpFlagged(final String[] args) {
         for (String arg : args) {
-            if (arg.equals("-h")) {
+            if (arg.equals("-h") || arg.equals("--help")) {
                 return true;
             }
         }
