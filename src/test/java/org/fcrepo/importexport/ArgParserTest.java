@@ -53,7 +53,6 @@ public class ArgParserTest {
         final String[] args = new String[]{"-m", "export",
                                            "-d", "/tmp/rdf",
                                            "-b", "/tmp/bin",
-                                           "-x", ".jsonld",
                                            "-l", "application/ld+json",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
@@ -74,6 +73,12 @@ public class ArgParserTest {
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseInvalidRdfLanguage() throws Exception {
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, new String[] {
+            "-l", "invalid/language" }));
     }
 
     @Test
