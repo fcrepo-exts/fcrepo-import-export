@@ -55,7 +55,6 @@ public class ImportExportDriver {
     private void run(final String[] args) {
         final ArgParser parser = new ArgParser();
         final TransferProcess processor = parser.parse(args);
-
         processor.run();
     }
 
