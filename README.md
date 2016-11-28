@@ -29,7 +29,7 @@ The standalone import/export utility can be run in either of two ways:
 The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
 
 ```sh
-$ java -jar fcrepo-import-export-driver/target/fcrepo-import-export-driver-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --descDir /tmp/test/desc --binDir /tmp/test/bin
+$ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --descDir /tmp/test/desc --binDir /tmp/test/bin
 INFO 15:15:10.048 (ArgParser) Saved configuration to: /tmp/importexport.config
 INFO 15:15:10.091 (Exporter) Running exporter...
 ...
