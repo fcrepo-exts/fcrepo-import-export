@@ -109,13 +109,17 @@ public class Exporter implements TransferProcess {
 
     private void exportBinary(final URI uri)
             throws FcrepoOperationFailedException, IOException {
-
         if (!config.isIncludeBinaries()) {
             logger.info("Skipping {}", uri);
             return;
         }
 
-        final File file = TransferProcess.fileForBinary(uri, config.getBaseDirectory());
+        final File file = TransferProcess.fileForBinary(uri, config.getResource(), null,
+                config.getBaseDirectory());
+        if (file == null) {
+            logger.info("Skipping {}", uri);
+            return;
+        }
 
         try (FcrepoResponse response = client().get(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
@@ -125,8 +129,8 @@ public class Exporter implements TransferProcess {
     }
 
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForContainer(uri, config.getBaseDirectory(),
-                config.getRdfExtension());
+        final File file = TransferProcess.fileForContainer(uri, config.getResource(), null,
+                config.getBaseDirectory(), config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;

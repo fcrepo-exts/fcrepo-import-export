@@ -105,7 +105,7 @@ public class Importer implements TransferProcess {
         logger.info("Running importer...");
         final File importContainerMetadataFile = fileForContainerURI(config.getResource());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
-                config.getBaseDirectory());
+                config.getResource(), config.getSource(), config.getBaseDirectory());
 
         discoverMembershipResources(importContainerDirectory);
 
@@ -216,8 +216,7 @@ public class Importer implements TransferProcess {
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, sanitize(model));
                 } else {
-                    destinationUri = new URI(config.getResource().toString() + "/"
-                            + uriPathForFile(f, importContainerDirectory));
+                    destinationUri = firstSubject(model);
                     if (membershipResources.contains(destinationUri)) {
                         logger.warn("Skipping Membership Resource: {}", destinationUri);
                         return;
@@ -248,6 +247,15 @@ public class Importer implements TransferProcess {
                 throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
         }
+    }
+
+    private URI firstSubject(final Model model) {
+        String subject = null;
+        final ResIterator subjects = model.listSubjects();
+        while (subject == null && subjects.hasNext()) {
+            subject = subjects.nextResource().toString().replaceAll("[#].*","").replaceAll("/fcr:export.*","");
+        }
+        return URI.create(subject);
     }
 
     private Model parseStream(final InputStream in) throws IOException {
@@ -347,23 +355,12 @@ public class Importer implements TransferProcess {
         return new ByteArrayInputStream(buf.toByteArray());
     }
 
-    private String uriPathForFile(final File f, final File baseDir) throws URISyntaxException {
-        String relative = baseDir.toPath().relativize(f.toPath()).toString();
-        relative = TransferProcess.decodePath(relative);
-
-        // for exported RDF, just remove the ".extension" and you have the encoded path
-        if (relative.endsWith(config.getRdfExtension())) {
-            relative = relative.substring(0, relative.length() - config.getRdfExtension().length());
-        }
-
-        return relative;
-    }
-
     private File fileForBinaryURI(final URI uri) {
         return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
     }
 
     private File fileForContainerURI(final URI uri) {
-        return TransferProcess.fileForContainer(uri, config.getBaseDirectory(), config.getRdfExtension());
+        return TransferProcess.fileForContainer(uri, config.getResource(), config.getSource(),
+                config.getBaseDirectory(), config.getRdfExtension());
     }
 }

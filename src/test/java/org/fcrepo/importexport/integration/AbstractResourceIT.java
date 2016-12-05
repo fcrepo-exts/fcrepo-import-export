@@ -25,22 +25,19 @@ import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.sparql.core.DatasetImpl;
 import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoHttpClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.junit.Before;
 import org.slf4j.Logger;
 
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.apache.jena.graph.Node.ANY;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
-import static org.apache.jena.graph.NodeFactory.createURI;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createPlainLiteral;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.junit.Assert.assertEquals;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.riot.RDFDataMgr.loadModel;
+import static org.apache.jena.riot.web.HttpOp.setDefaultHttpClient;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -70,6 +67,7 @@ abstract class AbstractResourceIT {
 
     AbstractResourceIT() {
         clientBuilder = FcrepoClient.client().credentials(USERNAME, PASSWORD).authScope("localhost");
+        setDefaultHttpClient(new FcrepoHttpClientBuilder(USERNAME, PASSWORD, "localhost").build());
 
         final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(Integer.MAX_VALUE);
@@ -98,15 +96,18 @@ abstract class AbstractResourceIT {
         }
     }
 
-    protected void assertHasTitle(final URI url, final String title) throws FcrepoOperationFailedException {
-        final FcrepoResponse getResponse = clientBuilder.build().get(url).accept("application/n-triples").perform();
-        assertEquals("GET of " + url + " failed!", SC_OK, getResponse.getStatusCode());
-        final Model model = createDefaultModel();
-        final Dataset d = new DatasetImpl(model.read(getResponse.getBody(), "", "application/n-triples"));
+    protected boolean exists(final URI uri) throws FcrepoOperationFailedException {
+        final FcrepoResponse resp = clientBuilder.build().head(uri).disableRedirects().perform();
+        return resp.getStatusCode() == 200 || resp.getStatusCode() == 307;
+    }
 
-        assertTrue(url + " should have had the dc:title, \"" + title + "\"!",
-                d.asDatasetGraph().contains(ANY, createURI(url.toString()),
-                        createProperty(DC_TITLE).asNode(), createLiteral(title)));
+    protected Model getAsModel(final URI uri) throws FcrepoOperationFailedException {
+        return loadModel(uri.toString());
+    }
+    protected void assertHasTitle(final URI uri, final String title) throws FcrepoOperationFailedException {
+        final Model model = getAsModel(uri);
+        assertTrue(uri + " should have had the dc:title, \"" + title + "\"!",
+                model.contains(createResource(uri.toString()), createProperty(DC_TITLE), createPlainLiteral(title)));
     }
 
     abstract protected Logger logger();
