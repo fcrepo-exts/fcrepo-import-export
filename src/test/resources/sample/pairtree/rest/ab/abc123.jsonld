@@ -1,0 +1,25 @@
+[ {
+  "@id" : "http://localhost:8080/rest/ab/abc123",
+  "@type" : [ "http://fedora.info/definitions/v4/repository#Container", "http://fedora.info/definitions/v4/repository#Resource", "http://www.w3.org/ns/ldp#RDFSource", "http://www.w3.org/ns/ldp#Container" ],
+  "http://fedora.info/definitions/v4/repository#created" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+    "@value" : "2016-12-05T15:43:55.527Z"
+  } ],
+  "http://fedora.info/definitions/v4/repository#createdBy" : [ {
+    "@value" : "bypassAdmin"
+  } ],
+  "http://fedora.info/definitions/v4/repository#hasParent" : [ {
+    "@id" : "http://localhost:8080/rest/"
+  } ],
+  "http://fedora.info/definitions/v4/repository#lastModified" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+    "@value" : "2016-12-05T15:43:55.527Z"
+  } ],
+  "http://fedora.info/definitions/v4/repository#lastModifiedBy" : [ {
+    "@value" : "bypassAdmin"
+  } ],
+  "http://fedora.info/definitions/v4/repository#writable" : [ {
+    "@type" : "http://www.w3.org/2001/XMLSchema#boolean",
+    "@value" : "true"
+  } ]
+} ]

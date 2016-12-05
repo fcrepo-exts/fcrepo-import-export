@@ -29,6 +29,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
@@ -212,6 +213,11 @@ public class Importer implements TransferProcess {
                         logger.warn("Skipping Membership Resource: {}", destinationUri);
                         return;
                     }
+                    if (model.contains(null, RDF_TYPE, PAIRTREE)) {
+                        logger.info("Skipping PairTree Resource: {}", destinationUri);
+                        return;
+                    }
+
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
                 }
