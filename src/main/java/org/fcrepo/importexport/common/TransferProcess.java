@@ -25,12 +25,26 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.FileAppender;
 
 /**
  * @author barmintor
  * @since 2016-08-31
  */
 public interface TransferProcess {
+
+    final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
+
     /**
      * This method does the import or export
      */
@@ -116,4 +130,33 @@ public interface TransferProcess {
         return new File(baseDir, TransferProcess.encodePath(uri.getPath()));
     }
 
+    /**
+     * Setup a file based logger for import/export audit messages. This is separate from the normal application logging
+     * and is stored in a configuration defined directory or the java temp directory.
+     *
+     * @param config a Config object
+     * @return a Logger to use.
+     */
+    public static Logger configOutputLog(final Config config) {
+        final LocalDateTime today = LocalDateTime.now();
+        final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("YYYYMMdd_HHmmss");
+        final String logName = config.getLogDirectory() + "/import_export_audit_" + today.format(dateFormat) + ".log";
+        final LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        final PatternLayoutEncoder ple = new PatternLayoutEncoder();
+
+        ple.setPattern("%date %level %logger{10} %msg%n");
+        ple.setContext(lc);
+        ple.start();
+        final FileAppender<ILoggingEvent> fileAppender = new FileAppender<ILoggingEvent>();
+        fileAppender.setFile(logName);
+        fileAppender.setEncoder(ple);
+        fileAppender.setContext(lc);
+        fileAppender.start();
+
+        final Logger logger = (Logger) LoggerFactory.getLogger(IMPORT_EXPORT_LOG_PREFIX);
+        logger.addAppender(fileAppender);
+        logger.setLevel(Level.DEBUG);
+        logger.setAdditive(false);
+        return logger;
+    }
 }

@@ -17,20 +17,9 @@
  */
 package org.fcrepo.importexport;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.jena.riot.Lang;
-
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
-import org.slf4j.Logger;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -39,11 +28,25 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.jena.riot.Lang;
+import org.slf4j.Logger;
 
 /**
  * Command-line arguments parser.
@@ -147,6 +150,12 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("config")
                 .desc("Path to config file")
                 .required(true).build());
+
+        // Logfile location
+        final Option logOption = Option.builder("o").longOpt("output").hasArg(true).numberOfArgs(1).argName("output")
+            .desc("Directory to save output log to").build();
+        configOptions.addOption(logOption);
+        configFileOptions.addOption(logOption);
     }
 
     protected Config parseConfiguration(final String[] args) {
@@ -305,6 +314,16 @@ public class ArgParser {
                 config.setPassword(user.substring(user.indexOf(':') + 1));
             }
         }
+        final String logDir = cmd.getOptionValue("output");
+        if (logDir != null) {
+            final Path logPath = Paths.get(logDir);
+            if (Files.exists(logPath) && Files.isDirectory(logPath) && Files.isWritable(logPath)) {
+                config.setLogDirectory(logDir);
+                return;
+            }
+        }
+        // Set to current working directory.
+        config.setLogDirectory(Paths.get(".").toAbsolutePath().toString());
     }
 
     /**

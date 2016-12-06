@@ -33,9 +33,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -44,6 +43,9 @@ import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
+
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
 import org.slf4j.Logger;
 
 /**
@@ -55,10 +57,16 @@ import org.slf4j.Logger;
  */
 public class Exporter implements TransferProcess {
     private static final Logger logger = getLogger(Exporter.class);
+
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private URI binaryURI;
     private URI containerURI;
+
+    private Logger exportLogger;
+
+    private AtomicLong successCount = new AtomicLong(); // set to zero at start
+    private AtomicLong failureCount = new AtomicLong(); // set to zero at start
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -71,6 +79,7 @@ public class Exporter implements TransferProcess {
         this.clientBuilder = clientBuilder;
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
+        this.exportLogger = TransferProcess.configOutputLog(this.config);
     }
 
     private FcrepoClient client() {
@@ -86,7 +95,10 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
+        exportLogger.info("Starting export...");
         export(config.getResource());
+        exportLogger.info("Export finished... {} resources exported, {} failures", successCount.get(),
+            failureCount.get());
     }
 
     private void export(final URI uri) {
@@ -101,11 +113,17 @@ public class Exporter implements TransferProcess {
                 exportDescription(uri);
             } else {
                 logger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
+                exportLogger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
+                failureCount.incrementAndGet();
             }
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
+            exportLogger.error("Error reading context: {}", ex.toString());
+            failureCount.incrementAndGet();
         } catch (IOException ex) {
             logger.warn("Error writing content: {}", ex.toString());
+            exportLogger.error("Error writing content: {}", ex.toString());
+            failureCount.incrementAndGet();
         }
     }
 
@@ -126,6 +144,8 @@ public class Exporter implements TransferProcess {
 
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
+            exportLogger.info("Exporting binary: {} to {}", uri, file.getAbsolutePath());
+            successCount.incrementAndGet();
         }
     }
 
@@ -141,8 +161,12 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri);
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
+            exportLogger.info("Exporting description: {} to {}", uri, file.getAbsolutePath());
+            successCount.incrementAndGet();
         } catch ( Exception ex ) {
             ex.printStackTrace();
+            exportLogger.error("Error exporting description: {}, Cause: {}", uri, ex.getMessage());
+            failureCount.incrementAndGet();
         }
 
         exportMembers(file);
