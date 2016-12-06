@@ -54,4 +54,5 @@ public abstract class FcrepoConstants {
     public static final Property RDF_TYPE = createProperty(RDF_NAMESPACE + "type");
 
     public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
+    public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
 }

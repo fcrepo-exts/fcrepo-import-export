@@ -20,6 +20,7 @@ package org.fcrepo.importexport.importer;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,9 +49,12 @@ public class ImporterTest {
     private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private Config binaryArgs;
     private Config containerArgs;
+    private Config pairtreeArgs;
     private URI binaryURI;
     private URI binaryDescriptionURI;
     private URI containerURI;
+    private URI pairtreeURI;
+    private URI finalContainerURI;
     private File binaryFilesDir;
 
     private FcrepoResponse conResponse;
@@ -79,6 +83,17 @@ public class ImporterTest {
         containerArgs.setResource(new URI("http://example.org:9999/rest"));
         containerArgs.setSource(new URI("http://localhost:8080/rest"));
 
+        pairtreeArgs = new Config();
+        pairtreeArgs.setMode("import");
+        pairtreeArgs.setDescriptionDirectory(new File("src/test/resources/sample/pairtree"));
+        pairtreeArgs.setRdfExtension(".jsonld");
+        pairtreeArgs.setRdfLanguage("application/ld+json");
+        pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));
+        pairtreeArgs.setSource(new URI("http://localhost:8080/rest"));
+
+        pairtreeURI = new URI("http://example.org:9999/rest/ab");
+        finalContainerURI = new URI("http://example.org:9999/rest/ab/abc123");
+
         final List<URI> binLinks = Arrays.asList(binaryDescriptionURI);
 
         // mocks
@@ -99,6 +114,8 @@ public class ImporterTest {
         final PutBuilder conBuilder = mock(PutBuilder.class);
         conResponse = mock(FcrepoResponse.class);
         when(client.put(eq(containerURI))).thenReturn(conBuilder);
+        when(client.put(eq(pairtreeURI))).thenReturn(conBuilder);
+        when(client.put(eq(finalContainerURI))).thenReturn(conBuilder);
         when(client.put(eq(binaryDescriptionURI))).thenReturn(conBuilder);
         when(conBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(conBuilder);
         when(conBuilder.preferLenient()).thenReturn(conBuilder);
@@ -131,4 +148,11 @@ public class ImporterTest {
         importer.run();
     }
 
+    @Test
+    public void testSkipPairtree() throws Exception {
+        final Importer importer = new Importer(pairtreeArgs, clientBuilder);
+        importer.run();
+        verify(client).put(finalContainerURI);
+        verify(client, never()).put(pairtreeURI);
+    }
 }

@@ -29,6 +29,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
@@ -101,8 +102,7 @@ public class Importer implements TransferProcess {
      */
     public void run() {
         logger.info("Running importer...");
-        final File importContainerMetadataFile = TransferProcess.fileForContainer(config.getResource(),
-                config.getDescriptionDirectory(), config.getRdfExtension());
+        final File importContainerMetadataFile = fileForContainerURI(config.getResource());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
                 config.getDescriptionDirectory());
 
@@ -146,8 +146,7 @@ public class Importer implements TransferProcess {
     }
 
     private void importMembershipResource(final URI uri) {
-        final File f = TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(),
-                config.getRdfExtension());
+        final File f = fileForContainerURI(uri);
         try {
             final Model diskModel = parseStream(new FileInputStream(f));
             final Model repoModel = parseStream(client().get(uri).perform().getBody());
@@ -212,6 +211,11 @@ public class Importer implements TransferProcess {
                         logger.warn("Skipping Membership Resource: {}", destinationUri);
                         return;
                     }
+                    if (model.contains(null, RDF_TYPE, PAIRTREE)) {
+                        logger.info("Skipping PairTree Resource: {}", destinationUri);
+                        return;
+                    }
+
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
                 }
@@ -247,7 +251,7 @@ public class Importer implements TransferProcess {
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        final File binaryFile = fileForURI(binaryURI);
+        final File binaryFile = fileForBinaryURI(binaryURI);
         final FcrepoResponse binaryResponse = client().put(binaryURI).body(binaryFile, contentType).perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
@@ -303,11 +307,13 @@ public class Importer implements TransferProcess {
         ensureExists(parent(uri));
 
         final FcrepoResponse response;
-        if (fileForURI(uri).exists()) {
+        if (fileForBinaryURI(uri).exists()) {
             response = client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
-        } else {
+        } else if (fileForContainerURI(uri).exists()) {
             response = client().put(uri).body(new ByteArrayInputStream(
                     "<> a <http://www.w3.org/ns/ldp#Container> .".getBytes()), "text/turtle").perform();
+        } else {
+            return;
         }
 
         if (response.getStatusCode() != 201) {
@@ -342,7 +348,11 @@ public class Importer implements TransferProcess {
         return relative;
     }
 
-    private File fileForURI(final URI uri) {
+    private File fileForBinaryURI(final URI uri) {
         return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
+    }
+
+    private File fileForContainerURI(final URI uri) {
+        return TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(), config.getRdfExtension());
     }
 }
