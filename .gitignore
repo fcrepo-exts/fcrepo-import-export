@@ -12,3 +12,4 @@ target/
 .checkstyle
 .idea/
 dependency-reduced-pom.xml
+*.log
