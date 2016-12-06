@@ -101,19 +101,19 @@ public class ArgParser {
                 .required(false).build());
 
         // Binary Directory option
-        configOptions.addOption(Option.builder("b")
-                .longOpt("binDir")
-                .hasArg(true).numberOfArgs(1).argName("binDir")
-                .desc("Directory where binaries (files) are stored")
-                .required(false).build());
-
-
-        // Description Directory option
         configOptions.addOption(Option.builder("d")
-                .longOpt("descDir")
-                .hasArg(true).numberOfArgs(1).argName("descDir")
-                .desc("Directory where the RDF descriptions are stored")
+                .longOpt("dir")
+                .hasArg(true).numberOfArgs(1).argName("dir")
+                .desc("The directory to export repo to or import the repo from.")
                 .required(true).build());
+
+
+        // Import/export binaries option
+        configOptions.addOption(Option.builder("b")
+                .longOpt("binary")
+                .hasArg(false)
+                .desc("When present this flag indicates that binaries should be imported/exported.")
+                .required(false).build());
 
         // RDF language option
         configOptions.addOption(Option.builder("l")
@@ -256,8 +256,8 @@ public class ArgParser {
 
         config.setMode(mode);
         config.setResource(cmd.getOptionValue('r'));
-        config.setBinaryDirectory(cmd.getOptionValue('b'));
-        config.setDescriptionDirectory(cmd.getOptionValue('d'));
+        config.setBaseDirectory(cmd.getOptionValue('d'));
+        config.setIncludeBinaries(cmd.hasOption('b'));
 
         final String rdfLanguage = cmd.getOptionValue('l', DEFAULT_RDF_LANG);
         config.setRdfLanguage(rdfLanguage);

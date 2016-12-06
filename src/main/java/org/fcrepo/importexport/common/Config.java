@@ -30,8 +30,8 @@ public class Config {
     private String mode;
     private URI resource;
     private URI source;
-    private File binaryDirectory;
-    private File descriptionDirectory;
+    private File baseDirectory;
+    private boolean includeBinaries;
     private String rdfExtension;
     private String rdfLanguage;
     private String username;
@@ -65,57 +65,39 @@ public class Config {
     }
 
     /**
-     * Sets the base directory for binaries.
+     * Sets the directory for the import/export
      *
-     * @param directory to export to
+     * @param directory to export to or import from
      */
-    public void setBinaryDirectory(final String directory) {
-        this.binaryDirectory = directory == null ? null : new File(directory);
+    public void setBaseDirectory(final String directory) {
+        this.baseDirectory = directory == null ? null : new File(directory);
     }
 
     /**
-     * Sets the base directory for binaries.
-     *
-     * @param directory to export binaries to
-     */
-    public void setBinaryDirectory(final File directory) {
-        this.binaryDirectory = directory;
-    }
-
-    /**
-     * Gets the base directory for binaries.
+     * Gets the base directory for the import/export
      *
      * @return binaryDirectory
      */
-    public File getBinaryDirectory() {
-        return binaryDirectory;
+    public File getBaseDirectory() {
+        return baseDirectory;
     }
 
     /**
-     * Sets the base directory for descriptions.
+     * Sets flag indicating whether or not binaries should be imported/exported.
      *
-     * @param directory to export descriptions to
+     * @param includeBinaries in import/export
      */
-    public void setDescriptionDirectory(final String directory) {
-        this.descriptionDirectory = new File(directory);
+    public void setIncludeBinaries(final boolean includeBinaries) {
+        this.includeBinaries = includeBinaries;
     }
 
     /**
-     * Sets the base directory for descriptions.
+     * Returns true if binaries should be imported/exported.
      *
-     * @param directory to export descriptions to
+     * @return include binaries flag
      */
-    public void setDescriptionDirectory(final File directory) {
-        this.descriptionDirectory = directory;
-    }
-
-    /**
-     * Gets the base directory for descriptions.
-     *
-     * @return descriptionDirectory
-     */
-    public File getDescriptionDirectory() {
-        return descriptionDirectory;
+    public boolean isIncludeBinaries() {
+        return includeBinaries;
     }
 
     /**

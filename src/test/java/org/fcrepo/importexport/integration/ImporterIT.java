@@ -78,8 +78,8 @@ public class ImporterIT extends AbstractResourceIT {
         // Run an export process
         final Config config = new Config();
         config.setMode("export");
-        config.setDescriptionDirectory(exportPath);
-        config.setBinaryDirectory(exportPath);
+        config.setBaseDirectory(exportPath);
+        config.setIncludeBinaries(true);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(parent.toString());
@@ -122,8 +122,8 @@ public class ImporterIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("import");
-        config.setBinaryDirectory(referencePath);
-        config.setDescriptionDirectory(referencePath);
+        config.setIncludeBinaries(true);
+        config.setBaseDirectory(referencePath);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
@@ -153,7 +153,7 @@ public class ImporterIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("import");
-        config.setDescriptionDirectory(indirectPath);
+        config.setBaseDirectory(indirectPath);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);

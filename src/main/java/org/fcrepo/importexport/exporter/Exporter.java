@@ -106,7 +106,7 @@ public class Exporter implements TransferProcess {
     }
     private void exportBinary(final URI uri)
             throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForBinary(uri, config.getBinaryDirectory());
+        final File file = TransferProcess.fileForBinary(uri, config.getBaseDirectory());
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;
@@ -120,7 +120,7 @@ public class Exporter implements TransferProcess {
     }
 
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(),
+        final File file = TransferProcess.fileForContainer(uri, config.getBaseDirectory(),
                 config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);

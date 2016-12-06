@@ -56,20 +56,18 @@ public class ImporterTest {
     private URI pairtreeURI;
     private URI finalContainerURI;
     private File binaryFilesDir;
-
     private FcrepoResponse conResponse;
     private PutBuilder binBuilder;
-
     @Before
     public void setUp() throws Exception {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
-        binaryFilesDir = new File("src/test/resources/sample/binary/bin");
+        binaryFilesDir = new File("src/test/resources/sample/binary");
         binaryArgs = new Config();
         binaryArgs.setMode("import");
-        binaryArgs.setDescriptionDirectory(new File("src/test/resources/sample/binary/rdf"));
-        binaryArgs.setBinaryDirectory(binaryFilesDir);
+        binaryArgs.setBaseDirectory("src/test/resources/sample/binary");
+        binaryArgs.setIncludeBinaries(true);
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
@@ -77,7 +75,7 @@ public class ImporterTest {
 
         containerArgs = new Config();
         containerArgs.setMode("import");
-        containerArgs.setDescriptionDirectory(new File("src/test/resources/sample/container"));
+        containerArgs.setBaseDirectory("src/test/resources/sample/container");
         containerArgs.setRdfExtension(".jsonld");
         containerArgs.setRdfLanguage("application/ld+json");
         containerArgs.setResource(new URI("http://example.org:9999/rest"));
@@ -85,7 +83,7 @@ public class ImporterTest {
 
         pairtreeArgs = new Config();
         pairtreeArgs.setMode("import");
-        pairtreeArgs.setDescriptionDirectory(new File("src/test/resources/sample/pairtree"));
+        pairtreeArgs.setBaseDirectory("src/test/resources/sample/pairtree");
         pairtreeArgs.setRdfExtension(".jsonld");
         pairtreeArgs.setRdfLanguage("application/ld+json");
         pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));

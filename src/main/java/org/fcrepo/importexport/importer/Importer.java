@@ -104,7 +104,7 @@ public class Importer implements TransferProcess {
         logger.info("Running importer...");
         final File importContainerMetadataFile = fileForContainerURI(config.getResource());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
-                config.getDescriptionDirectory());
+                config.getBaseDirectory());
 
         discoverMembershipResources(importContainerDirectory);
 
@@ -178,9 +178,10 @@ public class Importer implements TransferProcess {
     }
 
     private void importFile(final File f) {
-        // The path, relative to the metadata root in the export directory.
+        // The path, relative to the base in the export directory.
         // This is used in place of the full path to make the output more readable.
-        final String sourceRelativePath = config.getDescriptionDirectory().toPath().relativize(f.toPath()).toString();
+        final String sourceRelativePath =
+                config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
 
         if (f.getPath().endsWith(BINARY_EXTENSION)) {
             // ... this is only expected to happen when binaries and metadata are written to the same directory...
@@ -349,10 +350,10 @@ public class Importer implements TransferProcess {
     }
 
     private File fileForBinaryURI(final URI uri) {
-        return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
+        return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
     }
 
     private File fileForContainerURI(final URI uri) {
-        return TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(), config.getRdfExtension());
+        return TransferProcess.fileForContainer(uri, config.getBaseDirectory(), config.getRdfExtension());
     }
 }
