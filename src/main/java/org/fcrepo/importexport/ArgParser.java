@@ -314,7 +314,7 @@ public class ArgParser {
                 config.setPassword(user.substring(user.indexOf(':') + 1));
             }
         }
-        final String logDir = cmd.getOptionValue("output");
+        final String logDir = cmd.getOptionValue("output", null);
         if (logDir != null) {
             final Path logPath = Paths.get(logDir);
             if (Files.exists(logPath) && Files.isDirectory(logPath) && Files.isWritable(logPath)) {
