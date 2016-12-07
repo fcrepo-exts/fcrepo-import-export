@@ -76,7 +76,7 @@ public class Importer implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
 
-    private Logger importLogger;
+    private static final Logger importLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
     private AtomicLong failureCount = new AtomicLong(); // set to zero at start
 
@@ -97,7 +97,6 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
-        this.importLogger = TransferProcess.configOutputLog(this.config);
     }
 
     private FcrepoClient client() {

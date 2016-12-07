@@ -259,27 +259,4 @@ public class Config {
     public String getPassword() {
         return this.password;
     }
-
-    /**
-     * Set the log directory.
-     *
-     * @param dir the directory
-     */
-    public void setLogDirectory(final String dir) {
-        // Trim off trailing slash if it exists.
-        if (dir.endsWith("/")) {
-            this.logDirectory = dir.substring(0, dir.length() - 1);
-        } else {
-            this.logDirectory = dir;
-        }
-    }
-
-    /**
-     * Gets the log directory.
-     *
-     * @return the directory
-     */
-    public String getLogDirectory() {
-        return this.logDirectory;
-    }
 }

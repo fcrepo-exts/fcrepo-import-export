@@ -28,9 +28,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import org.fcrepo.client.FcrepoClient;
@@ -151,11 +148,6 @@ public class ArgParser {
                 .desc("Path to config file")
                 .required(true).build());
 
-        // Logfile location
-        final Option logOption = Option.builder("o").longOpt("output").hasArg(true).numberOfArgs(1).argName("output")
-            .desc("Directory to save output log to").build();
-        configOptions.addOption(logOption);
-        configFileOptions.addOption(logOption);
     }
 
     protected Config parseConfiguration(final String[] args) {
@@ -314,16 +306,6 @@ public class ArgParser {
                 config.setPassword(user.substring(user.indexOf(':') + 1));
             }
         }
-        final String logDir = cmd.getOptionValue("output", null);
-        if (logDir != null) {
-            final Path logPath = Paths.get(logDir);
-            if (Files.exists(logPath) && Files.isDirectory(logPath) && Files.isWritable(logPath)) {
-                config.setLogDirectory(logDir);
-                return;
-            }
-        }
-        // Set to current working directory.
-        config.setLogDirectory(Paths.get(".").toAbsolutePath().toString());
     }
 
     /**

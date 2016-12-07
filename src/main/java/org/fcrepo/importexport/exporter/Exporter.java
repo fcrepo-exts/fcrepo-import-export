@@ -63,8 +63,7 @@ public class Exporter implements TransferProcess {
     private URI binaryURI;
     private URI containerURI;
 
-    private Logger exportLogger;
-
+    private static final Logger exportLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
     private AtomicLong failureCount = new AtomicLong(); // set to zero at start
 
@@ -79,7 +78,6 @@ public class Exporter implements TransferProcess {
         this.clientBuilder = clientBuilder;
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
-        this.exportLogger = TransferProcess.configOutputLog(this.config);
     }
 
     private FcrepoClient client() {

@@ -6,6 +6,17 @@
       <pattern>%p %d{HH:mm:ss.SSS} \(%c{0}\) %m%n</pattern>
     </encoder>
   </appender>
+
+  <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+  <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
+    <!-- use the previously created timestamp to create a uniquely
+         named log file -->
+    <file>${fcrepo.log.importexport.logdir:-${PWD}}/importexport_audit_${bySecond}.log</file>
+    <encoder>
+      <pattern>%date %level %logger{10} %msg%n</pattern>
+    </encoder>
+  </appender>
+
   <logger name="org.fcrepo.exporter" additivity="false" level="${fcrepo.log.exporter:-null}">
     <appender-ref ref="STDOUT"/>
   </logger>
@@ -17,6 +28,9 @@
   </logger>
   <logger name="org.fcrepo" additivity="false" level="${fcrepo.log:-INFO}">
     <appender-ref ref="STDOUT"/>
+  </logger>
+  <logger name="org.fcrepo.importexport.audit" additivity="false" level="${fcrepo.log.importexport.audit:INFO}">
+    <appender-ref ref="AUDIT_FILE"/>
   </logger>
   <root level="WARN">
     <appender-ref ref="STDOUT"/>
