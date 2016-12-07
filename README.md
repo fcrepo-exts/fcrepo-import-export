@@ -29,7 +29,7 @@ The standalone import/export utility can be run in either of two ways:
 The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
 
 ```sh
-$ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --descDir /tmp/test/desc --binDir /tmp/test/bin
+$ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
 INFO 15:15:10.048 (ArgParser) Saved configuration to: /tmp/importexport.config
 INFO 15:15:10.091 (Exporter) Running exporter...
 ...
@@ -56,10 +56,10 @@ The list of RDF languages supported:
 - text/plain
 - text/turtle (or application/x-turtle)
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries in `/tmp/bin` and RDF in `/tmp/rdf`:
+For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --descDir /tmp/rdf --binDir /tmp/bin
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
@@ -78,7 +78,7 @@ That configuration file will look something like the following:
 -m
 export
 -d
-/tmp/rdf
+/tmp/test
 -r
 http://localhost:8080/rest/1
 ```

@@ -64,8 +64,10 @@ public class ExporterTest {
     private URI resource5;
     private Config args;
     private Config binaryArgs;
+    private Config noBinaryArgs;
     private Config metadataArgs;
     private String exportDirectory = "target/export";
+
     @Before
     public void setUp() throws Exception {
         clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
@@ -94,6 +96,14 @@ public class ExporterTest {
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(resource3);
+
+        noBinaryArgs = new Config();
+        noBinaryArgs.setMode("export");
+        noBinaryArgs.setBaseDirectory(exportDirectory);
+        noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setRdfExtension(".jsonld");
+        noBinaryArgs.setRdfLanguage("application/ld+json");
+        noBinaryArgs.setResource(resource3);
 
         metadataArgs = new Config();
         metadataArgs.setMode("export");
@@ -143,6 +153,17 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
+    }
+
+    @Test
+    public void testExportNoBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+        final ExporterWrapper exporter = new ExporterWrapper(noBinaryArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
     }
 
     @Test
@@ -206,6 +227,7 @@ class ExporterWrapper extends Exporter {
     ExporterWrapper(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         super(config, clientBuilder);
     }
+    @Override
     void writeResponse(final FcrepoResponse response, final File file)
             throws IOException, FcrepoOperationFailedException {
         super.writeResponse(response, file);

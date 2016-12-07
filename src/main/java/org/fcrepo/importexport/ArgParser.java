@@ -100,7 +100,7 @@ public class ArgParser {
                 .desc("Source (URI) data was exported from, when importing to a different Fedora URI")
                 .required(false).build());
 
-        // Binary Directory option
+        // Base Directory option
         configOptions.addOption(Option.builder("d")
                 .longOpt("dir")
                 .hasArg(true).numberOfArgs(1).argName("dir")
@@ -110,7 +110,7 @@ public class ArgParser {
 
         // Import/export binaries option
         configOptions.addOption(Option.builder("b")
-                .longOpt("binary")
+                .longOpt("binaries")
                 .hasArg(false)
                 .desc("When present this flag indicates that binaries should be imported/exported.")
                 .required(false).build());

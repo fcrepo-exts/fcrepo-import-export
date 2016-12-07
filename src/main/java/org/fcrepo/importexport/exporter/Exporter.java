@@ -83,10 +83,12 @@ public class Exporter implements TransferProcess {
     /**
      * This method does the export
      */
+    @Override
     public void run() {
         logger.info("Running exporter...");
         export(config.getResource());
     }
+
     private void export(final URI uri) {
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
@@ -104,13 +106,16 @@ public class Exporter implements TransferProcess {
             logger.warn("Error writing content: {}", ex.toString());
         }
     }
+
     private void exportBinary(final URI uri)
             throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForBinary(uri, config.getBaseDirectory());
-        if (file == null) {
+
+        if (!config.isIncludeBinaries()) {
             logger.info("Skipping {}", uri);
             return;
         }
+
+        final File file = TransferProcess.fileForBinary(uri, config.getBaseDirectory());
 
         try (FcrepoResponse response = client().get(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
