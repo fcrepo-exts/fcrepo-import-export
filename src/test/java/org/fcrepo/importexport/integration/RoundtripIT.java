@@ -59,19 +59,45 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(source, response.getLocation());
         create(URI.create(source.toString() + "/res1"));
 
-        final URI destination = roundtrip(source);
+        final URI destination = URI.create(serverAddress + UUID.randomUUID());
+        roundtrip(source, destination);
 
         final Model model = getAsModel(URI.create(destination.toString() + "/res1"));
         assertTrue(model.contains(null, RDF_TYPE, CONTAINER));
     }
 
-    private URI roundtrip(final URI source) throws FcrepoOperationFailedException {
-        final String uuid = UUID.randomUUID().toString();
+    @Test
+    public void testRoundtripLinked() throws Exception {
+        final String baseURI = serverAddress + UUID.randomUUID();
+        final URI src1 = URI.create(baseURI + "/res1");
+        final URI src2 = URI.create(baseURI + "/res2");
+        create(src1);
 
+        final String turtle = "<> <" + DC_TITLE + "> \"metadata test\" ; "
+            + "<" + DC_RELATION + "> <" + src1.toString() + "> ; "
+            + "<" + DC_DATE + "> <#date1> . "
+            + "<#date1> a <" + EDM_TIMESPAN + "> ; "
+            + "<" + SKOS_PREFLABEL + "> \"The last 20 seconds of 2013\" ; "
+            + "<" + EDM_BEGIN + "> \"2013-12-31T23:59:39Z\"^^" + XSD_DATETIME + " ; "
+            + "<" + EDM_END + "> \"2013-12-31T23:59:59Z\"^^" + XSD_DATETIME + " . ";
+        createTurtle(src2, turtle);
+
+        final String dstURI = serverAddress + UUID.randomUUID();
+        final URI dst1 = URI.create(dstURI + "/res1");
+        final URI dst2 = URI.create(dstURI + "/res2");
+        roundtrip(src2, dst2);
+
+        assertTrue(exists(dst1));
+        final Model model = getAsModel(dst2);
+        assertTrue(model.contains(null, RDF_TYPE, CONTAINER));
+        assertTrue(model.contains(null, RDF_TYPE, CONTAINER));
+    }
+
+    private void roundtrip(final URI source, final URI destination) throws FcrepoOperationFailedException {
         // setup config for export, then export resources
         final Config config = new Config();
         config.setMode("export");
-        config.setDescriptionDirectory(TARGET_DIR + File.separator + uuid);
+        config.setBaseDirectory(TARGET_DIR + File.separator + UUID.randomUUID());
         config.setResource(source);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
@@ -80,15 +106,11 @@ public class RoundtripIT extends AbstractResourceIT {
         new Exporter(config, clientBuilder).run();
 
         // setup config for import to a new base URL, then perform import
-        final URI destination = URI.create(serverAddress + uuid);
         create(destination);
         config.setMode("import");
         config.setSource(source);
         config.setResource(destination);
         new Importer(config, clientBuilder).run();
-
-        // return the newly-created destination
-        return destination;
     }
 
     protected Logger logger() {

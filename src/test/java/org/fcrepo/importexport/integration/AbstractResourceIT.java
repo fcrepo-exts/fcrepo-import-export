@@ -53,7 +53,14 @@ abstract class AbstractResourceIT {
 
     private static final String HOSTNAME = "localhost";
 
+    static final String DC_DATE = "http://purl.org/dc/elements/1.1/date";
+    static final String DC_RELATION = "http://purl.org/dc/elements/1.1/relation";
     static final String DC_TITLE = "http://purl.org/dc/elements/1.1/title";
+    static final String EDM_BEGIN = "http://www.europeana.eu/schemas/edm/begin";
+    static final String EDM_END = "http://www.europeana.eu/schemas/edm/end";
+    static final String EDM_TIMESPAN = "http://www.europeana.eu/schemas/edm/TimeSpan";
+    static final String SKOS_PREFLABEL = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    static final String XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime";
 
     static final String USERNAME = "fedoraAdmin";
 
@@ -84,6 +91,13 @@ abstract class AbstractResourceIT {
     protected FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {
         logger.debug("Request ------: {}", uri);
         return clientBuilder.build().put(uri).perform();
+    }
+
+    protected FcrepoResponse createTurtle(final URI uri, final String body)
+            throws FcrepoOperationFailedException {
+        logger.debug("Create with body: {}", uri);
+        final InputStream stream = new ByteArrayInputStream(body.getBytes());
+        return clientBuilder.build().put(uri).body(stream, "text/turtle").perform();
     }
 
     protected InputStream insertTitle(final String title) {

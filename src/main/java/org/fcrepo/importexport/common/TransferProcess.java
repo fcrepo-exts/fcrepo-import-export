@@ -123,10 +123,31 @@ public interface TransferProcess {
      * @param uri the URI for the resource
      * @param resource the URI for the import/export base resource
      * @param source the URI for the original export source
+     * @return The translated destination path
      */
     static String relativePath(final URI uri, final URI resource, final URI source) {
         final String path = (source == null) ? uri.getPath() :
-                source.getPath() + uri.getPath().substring(resource.getPath().length());
-        return TransferProcess.encodePath(path);
+                uri.getPath().replaceAll(trimPath(source, resource), trimPath(resource, source));
+        return encodePath(path);
+    }
+
+    /**
+     * Find the differing base directory by trimming trailing path elements from a URI that match
+     * another URI.
+     * @param uri1 The URI to trim
+     * @param uri2 The URI to find matching trailing path elements
+     * @return The differing base directory from uri1
+     */
+    static String trimPath(final URI uri1, final URI uri2) {
+        final String[] parts = uri1.getPath().split("\\/");
+        String tail = "";
+        for (int i = parts.length - 1; i > 0; i-- ) {
+            if (uri2.getPath().endsWith("/" + parts[i] + tail)) {
+                tail = "/" + parts[i] + tail;
+            } else {
+                break;
+            }
+        }
+        return uri1.getPath().substring(0, uri1.getPath().lastIndexOf(tail));
     }
 }
