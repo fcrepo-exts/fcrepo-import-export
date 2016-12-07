@@ -70,43 +70,84 @@ public interface TransferProcess {
      * Gets the file where a binary resource at the given URL would be stored
      * in the export package.
      * @param uri the URI for the resource
+     * @param resource the URI for the import/export base resource
+     * @param source the URI for the original export source
      * @param binaryRoot the root directory in the export package where binaries
      *        are stored
      * @return a unique location for binary resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForBinary(final URI uri, final File binaryRoot) {
+    public static File fileForBinary(final URI uri, final URI resource, final URI source, final File binaryRoot) {
         if (binaryRoot == null) {
             return null;
         }
-        return new File(binaryRoot, TransferProcess.encodePath(uri.getPath()) + BINARY_EXTENSION);
+        return new File(binaryRoot, relativePath(uri, resource, source) + BINARY_EXTENSION);
     }
 
     /**
      * Gets the file where a metadata resource at the given URL with the given extension
      * would be stored in the export package.
      * @param uri the URI for the resource
+     * @param resource the URI for the import/export base resource
+     * @param source the URI for the original export source
      * @param metadataRoot the root directory in the export package where metadata files
      *        are stored
      * @param extension the arbitrary extension expected for the metadata file
      * @return a unique location for metadata resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForContainer(final URI uri, final File metadataRoot, final String extension) {
-        return new File(metadataRoot, TransferProcess.encodePath(uri.getPath()) + extension);
+    public static File fileForContainer(final URI uri, final URI resource, final URI source, final File metadataRoot,
+            final String extension) {
+        return new File(metadataRoot, relativePath(uri, resource, source) + extension);
     }
 
     /**
      * Gets the directory where metadata resources contained by the resource at the given
      * URI would be stored in the export package.
      * @param uri the URI for the resource
+     * @param resource the URI for the import/export base resource
+     * @param source the URI for the original export source
      * @param metadataRoot the root directory in the export package where metadata files
      *        are stored
      * @return a unique location for metadata resources contained by the resource at the
      *         given URI would be stored
      */
-    public static File directoryForContainer(final URI uri, final File metadataRoot) {
-        return new File(metadataRoot, TransferProcess.encodePath(uri.getPath()));
+    public static File directoryForContainer(final URI uri, final URI resource, final URI source,
+            final File metadataRoot) {
+        return new File(metadataRoot, relativePath(uri, resource, source));
     }
 
+    /**
+     * Map a URI path to a filesystem path, taking into account the mapping needed when importing
+     * into a different base path.
+     * @param uri the URI for the resource
+     * @param resource the URI for the import/export base resource
+     * @param source the URI for the original export source
+     * @return The translated destination path
+     */
+    static String relativePath(final URI uri, final URI resource, final URI source) {
+        final String path = (source == null) ? uri.getPath() :
+                uri.getPath().replaceAll(trimPath(source, resource), trimPath(resource, source));
+        return encodePath(path);
+    }
+
+    /**
+     * Find the differing base directory by trimming trailing path elements from a URI that match
+     * another URI.
+     * @param uri1 The URI to trim
+     * @param uri2 The URI to find matching trailing path elements
+     * @return The differing base directory from uri1
+     */
+    static String trimPath(final URI uri1, final URI uri2) {
+        final String[] parts = uri1.getPath().split("\\/");
+        String tail = "";
+        for (int i = parts.length - 1; i > 0; i-- ) {
+            if (uri2.getPath().endsWith("/" + parts[i] + tail)) {
+                tail = "/" + parts[i] + tail;
+            } else {
+                break;
+            }
+        }
+        return uri1.getPath().substring(0, uri1.getPath().lastIndexOf(tail));
+    }
 }

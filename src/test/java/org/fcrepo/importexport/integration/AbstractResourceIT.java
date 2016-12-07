@@ -25,22 +25,19 @@ import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.sparql.core.DatasetImpl;
 import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoHttpClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.junit.Before;
 import org.slf4j.Logger;
 
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.apache.jena.graph.Node.ANY;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
-import static org.apache.jena.graph.NodeFactory.createURI;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createPlainLiteral;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.junit.Assert.assertEquals;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.riot.RDFDataMgr.loadModel;
+import static org.apache.jena.riot.web.HttpOp.setDefaultHttpClient;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -56,7 +53,14 @@ abstract class AbstractResourceIT {
 
     private static final String HOSTNAME = "localhost";
 
+    static final String DC_DATE = "http://purl.org/dc/elements/1.1/date";
+    static final String DC_RELATION = "http://purl.org/dc/elements/1.1/relation";
     static final String DC_TITLE = "http://purl.org/dc/elements/1.1/title";
+    static final String EDM_BEGIN = "http://www.europeana.eu/schemas/edm/begin";
+    static final String EDM_END = "http://www.europeana.eu/schemas/edm/end";
+    static final String EDM_TIMESPAN = "http://www.europeana.eu/schemas/edm/TimeSpan";
+    static final String SKOS_PREFLABEL = "http://www.w3.org/2004/02/skos/core#prefLabel";
+    static final String XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime";
 
     static final String USERNAME = "fedoraAdmin";
 
@@ -70,6 +74,7 @@ abstract class AbstractResourceIT {
 
     AbstractResourceIT() {
         clientBuilder = FcrepoClient.client().credentials(USERNAME, PASSWORD).authScope("localhost");
+        setDefaultHttpClient(new FcrepoHttpClientBuilder(USERNAME, PASSWORD, "localhost").build());
 
         final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(Integer.MAX_VALUE);
@@ -88,6 +93,13 @@ abstract class AbstractResourceIT {
         return clientBuilder.build().put(uri).perform();
     }
 
+    protected FcrepoResponse createTurtle(final URI uri, final String body)
+            throws FcrepoOperationFailedException {
+        logger.debug("Create with body: {}", uri);
+        final InputStream stream = new ByteArrayInputStream(body.getBytes());
+        return clientBuilder.build().put(uri).body(stream, "text/turtle").perform();
+    }
+
     protected InputStream insertTitle(final String title) {
         try {
             return new ByteArrayInputStream(("INSERT DATA { <> <" + DC_TITLE + "> '" + title + "' . }")
@@ -98,15 +110,18 @@ abstract class AbstractResourceIT {
         }
     }
 
-    protected void assertHasTitle(final URI url, final String title) throws FcrepoOperationFailedException {
-        final FcrepoResponse getResponse = clientBuilder.build().get(url).accept("application/n-triples").perform();
-        assertEquals("GET of " + url + " failed!", SC_OK, getResponse.getStatusCode());
-        final Model model = createDefaultModel();
-        final Dataset d = new DatasetImpl(model.read(getResponse.getBody(), "", "application/n-triples"));
+    protected boolean exists(final URI uri) throws FcrepoOperationFailedException {
+        final FcrepoResponse resp = clientBuilder.build().head(uri).disableRedirects().perform();
+        return resp.getStatusCode() == 200 || resp.getStatusCode() == 307;
+    }
 
-        assertTrue(url + " should have had the dc:title, \"" + title + "\"!",
-                d.asDatasetGraph().contains(ANY, createURI(url.toString()),
-                        createProperty(DC_TITLE).asNode(), createLiteral(title)));
+    protected Model getAsModel(final URI uri) throws FcrepoOperationFailedException {
+        return loadModel(uri.toString());
+    }
+    protected void assertHasTitle(final URI uri, final String title) throws FcrepoOperationFailedException {
+        final Model model = getAsModel(uri);
+        assertTrue(uri + " should have had the dc:title, \"" + title + "\"!",
+                model.contains(createResource(uri.toString()), createProperty(DC_TITLE), createPlainLiteral(title)));
     }
 
     abstract protected Logger logger();
