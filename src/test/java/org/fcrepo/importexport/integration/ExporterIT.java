@@ -57,7 +57,7 @@ public class ExporterIT extends AbstractResourceIT {
         // Run an export process
         final Config config = new Config();
         config.setMode("export");
-        config.setDescriptionDirectory(TARGET_DIR);
+        config.setBaseDirectory(TARGET_DIR);
         config.setResource(url);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);

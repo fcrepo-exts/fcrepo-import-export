@@ -64,7 +64,9 @@ public class ExporterTest {
     private URI resource5;
     private Config args;
     private Config binaryArgs;
+    private Config noBinaryArgs;
     private Config metadataArgs;
+    private String exportDirectory = "target/export";
 
     @Before
     public void setUp() throws Exception {
@@ -81,23 +83,31 @@ public class ExporterTest {
 
         args = new Config();
         args.setMode("export");
-        args.setDescriptionDirectory(new File("target/rdf"));
-        args.setBinaryDirectory(new File("target/bin"));
+        args.setBaseDirectory(exportDirectory);
+        args.setIncludeBinaries(true);
         args.setRdfExtension(".jsonld");
         args.setRdfLanguage("application/ld+json");
         args.setResource(resource);
 
         binaryArgs = new Config();
         binaryArgs.setMode("export");
-        binaryArgs.setDescriptionDirectory(new File("target/rdf"));
-        binaryArgs.setBinaryDirectory(new File("target/bin"));
+        binaryArgs.setBaseDirectory(exportDirectory);
+        binaryArgs.setIncludeBinaries(true);
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(resource3);
 
+        noBinaryArgs = new Config();
+        noBinaryArgs.setMode("export");
+        noBinaryArgs.setBaseDirectory(exportDirectory);
+        noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setRdfExtension(".jsonld");
+        noBinaryArgs.setRdfLanguage("application/ld+json");
+        noBinaryArgs.setResource(resource3);
+
         metadataArgs = new Config();
         metadataArgs.setMode("export");
-        metadataArgs.setDescriptionDirectory(new File("target/rdf"));
+        metadataArgs.setBaseDirectory(exportDirectory);
         metadataArgs.setRdfExtension(".jsonld");
         metadataArgs.setRdfLanguage("application/ld+json");
         metadataArgs.setResource(resource);
@@ -140,9 +150,20 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/alt_description.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
+    }
+
+    @Test
+    public void testExportNoBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+        final ExporterWrapper exporter = new ExporterWrapper(noBinaryArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
     }
 
     @Test
@@ -154,8 +175,8 @@ public class ExporterTest {
         when(headResponse.getContentType())
             .thenReturn("message/external-body;access-type=URL;url=\"http://www.example.com/file\"");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/bin/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
     }
 
 
@@ -164,7 +185,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)
@@ -179,7 +200,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertFalse(exporter.wroteFile(new File("/target/bin/rest/1")));
+        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/1")));
     }
 
     @Test
@@ -187,7 +208,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
     }
 
     @Test
@@ -195,8 +216,8 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File("target/rdf/rest/1/2.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1/2.jsonld")));
     }
 }
 
@@ -206,6 +227,7 @@ class ExporterWrapper extends Exporter {
     ExporterWrapper(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         super(config, clientBuilder);
     }
+    @Override
     void writeResponse(final FcrepoResponse response, final File file)
             throws IOException, FcrepoOperationFailedException {
         super.writeResponse(response, file);

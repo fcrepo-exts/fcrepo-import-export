@@ -48,6 +48,7 @@ public class ImporterTest {
     private FcrepoClient client;
     private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private Config binaryArgs;
+    private Config noBinaryArgs;
     private Config containerArgs;
     private Config pairtreeArgs;
     private URI binaryURI;
@@ -56,7 +57,6 @@ public class ImporterTest {
     private URI pairtreeURI;
     private URI finalContainerURI;
     private File binaryFilesDir;
-
     private FcrepoResponse conResponse;
     private PutBuilder binBuilder;
 
@@ -65,19 +65,28 @@ public class ImporterTest {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
-        binaryFilesDir = new File("src/test/resources/sample/binary/bin");
+        binaryFilesDir = new File("src/test/resources/sample/binary");
         binaryArgs = new Config();
         binaryArgs.setMode("import");
-        binaryArgs.setDescriptionDirectory(new File("src/test/resources/sample/binary/rdf"));
-        binaryArgs.setBinaryDirectory(binaryFilesDir);
+        binaryArgs.setBaseDirectory("src/test/resources/sample/binary");
+        binaryArgs.setIncludeBinaries(true);
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
         binaryArgs.setSource(new URI("http://localhost:8080/rest"));
 
+        noBinaryArgs = new Config();
+        noBinaryArgs.setMode("import");
+        noBinaryArgs.setBaseDirectory("src/test/resources/sample/binary");
+        noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setRdfExtension(".jsonld");
+        noBinaryArgs.setRdfLanguage("application/ld+json");
+        noBinaryArgs.setResource(new URI("http://example.org:9999/rest"));
+        noBinaryArgs.setSource(new URI("http://localhost:8080/rest"));
+
         containerArgs = new Config();
         containerArgs.setMode("import");
-        containerArgs.setDescriptionDirectory(new File("src/test/resources/sample/container"));
+        containerArgs.setBaseDirectory("src/test/resources/sample/container");
         containerArgs.setRdfExtension(".jsonld");
         containerArgs.setRdfLanguage("application/ld+json");
         containerArgs.setResource(new URI("http://example.org:9999/rest"));
@@ -85,7 +94,7 @@ public class ImporterTest {
 
         pairtreeArgs = new Config();
         pairtreeArgs.setMode("import");
-        pairtreeArgs.setDescriptionDirectory(new File("src/test/resources/sample/pairtree"));
+        pairtreeArgs.setBaseDirectory("src/test/resources/sample/pairtree");
         pairtreeArgs.setRdfExtension(".jsonld");
         pairtreeArgs.setRdfLanguage("application/ld+json");
         pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));
@@ -132,6 +141,16 @@ public class ImporterTest {
         verify(binBuilder).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
                                 eq("application/x-www-form-urlencoded"));
         verify(client).put(binaryDescriptionURI);
+    }
+
+    @Test
+    public void testImportWithoutBinaries() throws Exception {
+        final Importer importer = new Importer(noBinaryArgs, clientBuilder);
+        importer.run();
+        verify(client, never()).put(binaryURI);
+        verify(binBuilder, never()).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
+                                eq("application/x-www-form-urlencoded"));
+        verify(client, never()).put(binaryDescriptionURI);
     }
 
     @Test

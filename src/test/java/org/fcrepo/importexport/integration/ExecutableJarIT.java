@@ -143,7 +143,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
     @Test
     public void testExportBinaryAndRDFToSamePath() throws Exception {
-        final File binaryFile = new File(TARGET_DIR, "test-classes/sample/binary/bin/rest/bin1.binary");
+        final File binaryFile = new File(TARGET_DIR, "test-classes/sample/binary/rest/bin1.binary");
         final byte[] content = FileUtils.readFileToByteArray(binaryFile);
 
         // create a binary resource

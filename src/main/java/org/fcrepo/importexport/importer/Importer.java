@@ -100,11 +100,12 @@ public class Importer implements TransferProcess {
     /**
      * This method does the import
      */
+    @Override
     public void run() {
         logger.info("Running importer...");
         final File importContainerMetadataFile = fileForContainerURI(config.getResource());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
-                config.getDescriptionDirectory());
+                config.getBaseDirectory());
 
         discoverMembershipResources(importContainerDirectory);
 
@@ -178,19 +179,26 @@ public class Importer implements TransferProcess {
     }
 
     private void importFile(final File f) {
-        // The path, relative to the metadata root in the export directory.
+        // The path, relative to the base in the export directory.
         // This is used in place of the full path to make the output more readable.
-        final String sourceRelativePath = config.getDescriptionDirectory().toPath().relativize(f.toPath()).toString();
+        final String sourceRelativePath =
+                config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
 
         if (f.getPath().endsWith(BINARY_EXTENSION)) {
             // ... this is only expected to happen when binaries and metadata are written to the same directory...
-            logger.debug("Skipping binary {}: it will be imported when its metadata is imported.", sourceRelativePath);
+            if (config.isIncludeBinaries()) {
+                logger.debug("Skipping binary {}: it will be imported when its metadata is imported.",
+                        sourceRelativePath);
+            } else {
+                logger.debug("Skipping binary {}", sourceRelativePath);
+            }
             return;
         } else if (!f.getPath().endsWith(config.getRdfExtension())) {
             // this could be hidden files created by the OS
             logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
             return;
         } else {
+
             FcrepoResponse response = null;
             URI destinationUri = null;
             try {
@@ -201,6 +209,9 @@ public class Importer implements TransferProcess {
                 }
                 final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
                 if (binaryResources.hasNext()) {
+                    if (!config.isIncludeBinaries()) {
+                        return;
+                    }
                     destinationUri = new URI(binaryResources.nextResource().getURI());
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, sanitize(model));
@@ -349,10 +360,10 @@ public class Importer implements TransferProcess {
     }
 
     private File fileForBinaryURI(final URI uri) {
-        return new File(config.getBinaryDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
+        return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
     }
 
     private File fileForContainerURI(final URI uri) {
-        return TransferProcess.fileForContainer(uri, config.getDescriptionDirectory(), config.getRdfExtension());
+        return TransferProcess.fileForContainer(uri, config.getBaseDirectory(), config.getRdfExtension());
     }
 }

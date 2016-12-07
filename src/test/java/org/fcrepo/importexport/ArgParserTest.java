@@ -52,13 +52,12 @@ public class ArgParserTest {
     public void parseValidExport() throws Exception {
         final String[] args = new String[]{"-m", "export",
                                            "-d", "/tmp/rdf",
-                                           "-b", "/tmp/bin",
                                            "-l", "application/ld+json",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
-        Assert.assertEquals(new File("/tmp/bin"), config.getBinaryDirectory());
+        Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
+        Assert.assertEquals(false, config.isIncludeBinaries());
         Assert.assertEquals(".jsonld", config.getRdfExtension());
         Assert.assertEquals("application/ld+json", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
@@ -68,8 +67,8 @@ public class ArgParserTest {
     public void parseMinimalValidExport() throws Exception {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/rdf"), config.getDescriptionDirectory());
-        Assert.assertNull(config.getBinaryDirectory());
+        Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
+        Assert.assertEquals(false, config.isIncludeBinaries());
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
@@ -86,21 +85,20 @@ public class ArgParserTest {
         // Create test config file
         final File configFile = File.createTempFile("config-test", ".txt");
         final FileWriter writer = new FileWriter(configFile);
-        writer.append("-d\n");
-        writer.append("/tmp/desc\n");
+        writer.append("-b\n");
         writer.append("-m\n");
         writer.append("export\n");
         writer.append("-r\n");
         writer.append("http://localhost:8080/rest/test\n");
-        writer.append("-b\n");
-        writer.append("/tmp/bin\n");
+        writer.append("-d\n");
+        writer.append("/tmp/import-export-dir\n");
         writer.flush();
 
         final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/desc"), config.getDescriptionDirectory());
-        Assert.assertEquals(new File("/tmp/bin"), config.getBinaryDirectory());
+        Assert.assertEquals(new File("/tmp/import-export-dir"), config.getBaseDirectory());
+        Assert.assertEquals(true, config.isIncludeBinaries());
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(URI.create("http://localhost:8080/rest/test"), config.getResource());
