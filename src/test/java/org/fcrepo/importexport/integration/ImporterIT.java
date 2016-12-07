@@ -37,7 +37,6 @@ import java.net.URI;
 import java.util.UUID;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
@@ -93,11 +92,7 @@ public class ImporterIT extends AbstractResourceIT {
         resourceExists(parent);
 
         // Remove the resources
-        client.delete(parent).perform();
-        final FcrepoResponse getResponse = client.get(parent).perform();
-        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
-        assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT,
-                client.delete(getResponse.getLinkHeaders("hasTombstone").get(0)).perform().getStatusCode());
+        removeAndReset(parent);
 
         // Run the import process
         config.setMode("import");
