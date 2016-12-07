@@ -38,8 +38,6 @@ public class Config {
     private String username;
     private String password;
 
-    private String logDirectory;
-
     /**
      * This method returns true if the configuration is set for 'import'
      *
