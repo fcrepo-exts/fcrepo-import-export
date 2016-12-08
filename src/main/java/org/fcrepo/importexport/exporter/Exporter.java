@@ -65,7 +65,6 @@ public class Exporter implements TransferProcess {
 
     private static final Logger exportLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
-    private AtomicLong failureCount = new AtomicLong(); // set to zero at start
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -93,10 +92,8 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
-        exportLogger.info("Starting export...");
         export(config.getResource());
-        exportLogger.info("Export finished... {} resources exported, {} failures", successCount.get(),
-            failureCount.get());
+        exportLogger.info("Finished export... {} resources exported", successCount.get());
     }
 
     private void export(final URI uri) {
@@ -112,16 +109,15 @@ public class Exporter implements TransferProcess {
             } else {
                 logger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
                 exportLogger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
-                failureCount.incrementAndGet();
             }
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
-            exportLogger.error("Error reading context: {}", ex.toString());
-            failureCount.incrementAndGet();
+            exportLogger.error(String.format("Error retrieving context of uri: {}, Message: {}", uri, ex.toString()),
+                ex);
         } catch (IOException ex) {
             logger.warn("Error writing content: {}", ex.toString());
-            exportLogger.error("Error writing content: {}", ex.toString());
-            failureCount.incrementAndGet();
+            exportLogger.error(String.format("Error writing content from uri: {}, Message: {}", uri, ex.toString()),
+                ex);
         }
     }
 
@@ -142,7 +138,7 @@ public class Exporter implements TransferProcess {
 
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
-            exportLogger.info("Exporting binary: {} to {}", uri, file.getAbsolutePath());
+            exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         }
     }
@@ -159,12 +155,11 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri);
             logger.info("Exporting description: {}", uri);
             writeResponse(response, file);
-            exportLogger.info("Exporting description: {} to {}", uri, file.getAbsolutePath());
+            exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         } catch ( Exception ex ) {
             ex.printStackTrace();
-            exportLogger.error("Error exporting description: {}, Cause: {}", uri, ex.getMessage());
-            failureCount.incrementAndGet();
+            exportLogger.error(String.format("Error exporting description: {}, Cause: {}", uri, ex.getMessage()), ex);
         }
 
         exportMembers(file);

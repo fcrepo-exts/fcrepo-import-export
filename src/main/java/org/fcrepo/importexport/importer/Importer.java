@@ -78,7 +78,6 @@ public class Importer implements TransferProcess {
 
     private static final Logger importLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
-    private AtomicLong failureCount = new AtomicLong(); // set to zero at start
 
     /**
      * A directory within the metadata directory that serves as the
@@ -112,7 +111,6 @@ public class Importer implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running importer...");
-        importLogger.info("Starting import...");
         final File importContainerMetadataFile = fileForContainerURI(config.getResource());
         importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
                 config.getBaseDirectory());
@@ -129,8 +127,7 @@ public class Importer implements TransferProcess {
         importDirectory(importContainerDirectory);
 
         importMembershipResources();
-        importLogger.info("Finished import... {} resources imported, {} failures.", successCount.get(),
-            failureCount.get());
+        importLogger.info("Finished import... {} resources imported", successCount.get());
     }
 
     private void discoverMembershipResources(final File dir) {
@@ -173,26 +170,24 @@ public class Importer implements TransferProcess {
             final FcrepoResponse response = importContainer(uri, sanitize(diskModel.difference(repoModel)));
             if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(), uri);
-                failureCount.incrementAndGet();
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), uri,
                     response.getStatusCode());
-                failureCount.incrementAndGet();
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
                         + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
             } else {
                 logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
-                importLogger.info("Imported description: {} to {}", f.getAbsolutePath(), uri);
+                importLogger.info("import {} to {}", f.getAbsolutePath(), uri);
                 successCount.incrementAndGet();
             }
         } catch (FcrepoOperationFailedException ex) {
-            importLogger.error("Error importing: {} to {}, Message: {}", f.getAbsolutePath(), uri, ex.getMessage());
-            failureCount.incrementAndGet();
+            importLogger.error(
+                String.format("Error importing: {} to {}, Message: {}", f.getAbsolutePath(), uri, ex.getMessage()), ex);
             throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (IOException ex) {
-            importLogger.error("Error reading/parsing file: {}, Message: {}", f.getAbsolutePath(), ex.getMessage());
-            failureCount.incrementAndGet();
+            importLogger.error(
+                String.format("Error reading/parsing file: {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException(
                     "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
@@ -259,30 +254,35 @@ public class Importer implements TransferProcess {
 
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
+
                 }
 
                 if (response.getStatusCode() == 401) {
                     importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
                         destinationUri);
-                    failureCount.incrementAndGet();
                     throw new AuthenticationRequiredRuntimeException();
                 } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                     importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                         response.getStatusCode());
-                    failureCount.incrementAndGet();
                     throw new RuntimeException("Error while importing " + f.getAbsolutePath()
                             + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
                 } else {
                     logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
-                    importLogger.info("Imported: {} to {}", f.getAbsolutePath(), destinationUri);
+                    importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
                     successCount.incrementAndGet();
                 }
             } catch (FcrepoOperationFailedException ex) {
+                importLogger.error(String.format("Error importing {} to {}, Message: {}", f.getAbsolutePath(),
+                    destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (IOException ex) {
+                importLogger.error(String.format("Error reading/parsing {} to {}, Message: {}", f.getAbsolutePath(),
+                    destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException(
                         "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (URISyntaxException ex) {
+                importLogger.error(
+                    String.format("Error building URI for {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
                 throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
         }
@@ -307,6 +307,8 @@ public class Importer implements TransferProcess {
                                                       .perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
+            importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
+            successCount.incrementAndGet();
         }
 
         final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);

@@ -13,14 +13,14 @@
          named log file -->
     <file>${fcrepo.log.importexport.logdir:-${PWD}}/importexport_audit_${bySecond}.log</file>
     <encoder>
-      <pattern>%date %level %logger{10} %msg%n</pattern>
+      <pattern>%date %msg%n</pattern>
     </encoder>
   </appender>
 
-  <logger name="org.fcrepo.exporter" additivity="false" level="${fcrepo.log.exporter:-null}">
+  <logger name="org.fcrepo.importexport.exporter" additivity="false" level="${fcrepo.log.exporter:-null}">
     <appender-ref ref="STDOUT"/>
   </logger>
-  <logger name="org.fcrepo.importer" additivity="false" level="${fcrepo.log.importer:-null}">
+  <logger name="org.fcrepo.importexport.importer" additivity="false" level="${fcrepo.log.importer:-null}">
     <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.fcrepo.importexport" additivity="false" level="${fcrepo.log.importexport:-null}">
@@ -29,7 +29,7 @@
   <logger name="org.fcrepo" additivity="false" level="${fcrepo.log:-INFO}">
     <appender-ref ref="STDOUT"/>
   </logger>
-  <logger name="org.fcrepo.importexport.audit" additivity="false" level="${fcrepo.log.importexport.audit:INFO}">
+  <logger name="org.fcrepo.importexport.audit" additivity="false" level="${fcrepo.log.importexport.audit:-INFO}">
     <appender-ref ref="AUDIT_FILE"/>
   </logger>
   <root level="WARN">
