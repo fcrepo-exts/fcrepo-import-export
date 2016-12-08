@@ -51,6 +51,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.NullLogger;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
@@ -76,7 +77,7 @@ public class Importer implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
 
-    private static final Logger importLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
+    private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
 
     /**
@@ -96,6 +97,11 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
+        if (config.getAuditLog()) {
+            importLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
+        } else {
+            importLogger = new NullLogger();
+        }
     }
 
     private FcrepoClient client() {

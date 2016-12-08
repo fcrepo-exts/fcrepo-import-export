@@ -38,6 +38,8 @@ public class Config {
     private String username;
     private String password;
 
+    private boolean auditLog = false;
+
     /**
      * This method returns true if the configuration is set for 'import'
      *
@@ -256,5 +258,23 @@ public class Config {
      */
     public String getPassword() {
         return this.password;
+    }
+
+    /**
+     * Turn on/off audit logging
+     *
+     * @param auditLevel the state of audit logging.
+     */
+    public void setAuditLog(final boolean auditLevel) {
+        this.auditLog = auditLevel;
+    }
+
+    /**
+     * Check whether the audit log is enabled.
+     *
+     * @return whether audit logging is enabled.
+     */
+    public boolean getAuditLog() {
+        return this.auditLog;
     }
 }

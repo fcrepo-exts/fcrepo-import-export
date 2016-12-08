@@ -8,13 +8,22 @@
   </appender>
 
   <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
-  <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
-    <!-- use the previously created timestamp to create a uniquely
-         named log file -->
-    <file>${fcrepo.log.importexport.logdir:-${PWD}}/importexport_audit_${bySecond}.log</file>
-    <encoder>
-      <pattern>%date %msg%n</pattern>
-    </encoder>
+  <appender name="SIFT" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <discriminator>
+        <Key>defaultKey</Key>
+        <defaultValue>defaultValue</defaultValue>
+    </discriminator>
+    <sift>
+	    <appender name="AUDIT_ON" class="ch.qos.logback.core.FileAppender">
+	       <!-- use the previously created timestamp to create a uniquely
+	         named log file -->
+	        <file>${fcrepo.log.importexport.logdir:-${PWD}}/importexport_audit_${bySecond}.log</file>
+	        <prudent>true</prudent>
+	        <encoder>
+	            <pattern>%date %msg%n</pattern>
+	        </encoder>
+	    </appender>
+    </sift>
   </appender>
 
   <logger name="org.fcrepo.importexport.exporter" additivity="false" level="${fcrepo.log.exporter:-null}">
@@ -30,7 +39,7 @@
     <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.fcrepo.importexport.audit" additivity="false" level="${fcrepo.log.importexport.audit:-INFO}">
-    <appender-ref ref="AUDIT_FILE"/>
+    <appender-ref ref="SIFT"/>
   </logger>
   <root level="WARN">
     <appender-ref ref="STDOUT"/>

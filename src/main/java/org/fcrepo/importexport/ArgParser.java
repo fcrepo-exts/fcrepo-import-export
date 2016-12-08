@@ -147,6 +147,12 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("config")
                 .desc("Path to config file")
                 .required(true).build());
+
+        configOptions.addOption(Option.builder("a")
+                .longOpt("auditLog")
+                .desc("Enable audit log creation, disabled by default")
+                .required(false).build());
+
     }
 
     protected Config parseConfiguration(final String[] args) {
@@ -275,6 +281,7 @@ public class ArgParser {
         config.setRdfExtension(getRDFExtension(rdfLanguage));
         config.setSource(cmd.getOptionValue('s'));
         config.setPredicates((cmd.getOptionValues('p') == null) ? DEFAULT_PREDICATES : cmd.getOptionValues('p'));
+        config.setAuditLog(cmd.hasOption('a'));
 
         return config;
     }
