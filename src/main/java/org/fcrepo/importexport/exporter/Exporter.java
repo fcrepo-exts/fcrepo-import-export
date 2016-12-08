@@ -94,7 +94,9 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri);
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
-                exportBinary(uri);
+                final String contentType = response.getContentType();
+                final boolean external = contentType != null && contentType.contains("message/external-body");
+                exportBinary(uri, external);
             } else if (linkHeaders.contains(containerURI)) {
                 exportDescription(uri);
             } else {
@@ -107,7 +109,7 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private void exportBinary(final URI uri)
+    private void exportBinary(final URI uri, final boolean external)
             throws FcrepoOperationFailedException, IOException {
 
         if (!config.isIncludeBinaries()) {
@@ -115,17 +117,20 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        final File file = TransferProcess.fileForBinary(uri, config.getBaseDirectory());
-
         try (FcrepoResponse response = client().get(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri);
+
+            final File file = external ?
+                                TransferProcess.fileForExternalResources(uri, config.getBaseDirectory()) :
+                                    TransferProcess.fileForBinary(uri, config.getBaseDirectory());
+
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, file);
         }
     }
 
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForContainer(uri, config.getBaseDirectory(),
+        final File file = TransferProcess.fileForURI(uri, config.getBaseDirectory(),
                 config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);

@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -70,43 +71,49 @@ public interface TransferProcess {
      * Gets the file where a binary resource at the given URL would be stored
      * in the export package.
      * @param uri the URI for the resource
-     * @param binaryRoot the root directory in the export package where binaries
-     *        are stored
+     * @param baseDir the base directory in the export package
      * @return a unique location for binary resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForBinary(final URI uri, final File binaryRoot) {
-        if (binaryRoot == null) {
-            return null;
-        }
-        return new File(binaryRoot, TransferProcess.encodePath(uri.getPath()) + BINARY_EXTENSION);
+    public static File fileForBinary(final URI uri, final File baseDir) {
+        return fileForURI(uri, baseDir, BINARY_EXTENSION);
     }
 
     /**
-     * Gets the file where a metadata resource at the given URL with the given extension
-     * would be stored in the export package.
+     * Gets the file where an external binary resource at the given URL would be stored
+     * in the export package.
      * @param uri the URI for the resource
-     * @param metadataRoot the root directory in the export package where metadata files
-     *        are stored
-     * @param extension the arbitrary extension expected for the metadata file
-     * @return a unique location for metadata resources from the path of the given URI
+     * @param baseDir the base directory in the export package
+     * @return a unique location for external resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForContainer(final URI uri, final File metadataRoot, final String extension) {
-        return new File(metadataRoot, TransferProcess.encodePath(uri.getPath()) + extension);
+    public static File fileForExternalResources(final URI uri, final File baseDir) {
+        return fileForURI(uri, baseDir, EXTERNAL_RESOURCE_EXTENSION);
+    }
+
+    /**
+     * Gets the file where a resource at the given URL with the given extension
+     * would be stored in the export package.
+     * @param uri the URI for the resource
+     * @param baseDir the baseDir directory in the export package
+     * @param extension the arbitrary extension expected the file
+     * @return a unique location for resources from the path of the given URI
+     *         would be stored
+     */
+    public static File fileForURI(final URI uri, final File baseDir, final String extension) {
+        return new File(baseDir, TransferProcess.encodePath(uri.getPath()) + extension);
     }
 
     /**
      * Gets the directory where metadata resources contained by the resource at the given
      * URI would be stored in the export package.
      * @param uri the URI for the resource
-     * @param metadataRoot the root directory in the export package where metadata files
-     *        are stored
+     * @param baseDir the base directory in the export package
      * @return a unique location for metadata resources contained by the resource at the
      *         given URI would be stored
      */
-    public static File directoryForContainer(final URI uri, final File metadataRoot) {
-        return new File(metadataRoot, TransferProcess.encodePath(uri.getPath()));
+    public static File directoryForContainer(final URI uri, final File baseDir) {
+        return new File(baseDir, TransferProcess.encodePath(uri.getPath()));
     }
 
 }

@@ -22,6 +22,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
@@ -183,8 +184,8 @@ public class Importer implements TransferProcess {
         // This is used in place of the full path to make the output more readable.
         final String sourceRelativePath =
                 config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
-
-        if (f.getPath().endsWith(BINARY_EXTENSION)) {
+        final String filePath = f.getPath();
+        if (filePath.endsWith(BINARY_EXTENSION) || filePath.endsWith(EXTERNAL_RESOURCE_EXTENSION)) {
             // ... this is only expected to happen when binaries and metadata are written to the same directory...
             if (config.isIncludeBinaries()) {
                 logger.debug("Skipping binary {}: it will be imported when its metadata is imported.",
@@ -193,7 +194,7 @@ public class Importer implements TransferProcess {
                 logger.debug("Skipping binary {}", sourceRelativePath);
             }
             return;
-        } else if (!f.getPath().endsWith(config.getRdfExtension())) {
+        } else if (!filePath.endsWith(config.getRdfExtension())) {
             // this could be hidden files created by the OS
             logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
             return;
@@ -262,8 +263,11 @@ public class Importer implements TransferProcess {
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        final File binaryFile = fileForBinaryURI(binaryURI);
-        final FcrepoResponse binaryResponse = client().put(binaryURI).body(binaryFile, contentType).perform();
+        final boolean external = contentType.contains("message/external-body");
+        final File binaryFile =  fileForBinaryURI(binaryURI, external);
+        final FcrepoResponse binaryResponse = client().put(binaryURI)
+                                                      .body(binaryFile, contentType)
+                                                      .perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
         }
@@ -318,7 +322,7 @@ public class Importer implements TransferProcess {
         ensureExists(parent(uri));
 
         final FcrepoResponse response;
-        if (fileForBinaryURI(uri).exists()) {
+        if (fileForBinaryURI(uri, false).exists() || fileForBinaryURI(uri, true).exists()) {
             response = client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
         } else if (fileForContainerURI(uri).exists()) {
             response = client().put(uri).body(new ByteArrayInputStream(
@@ -359,11 +363,12 @@ public class Importer implements TransferProcess {
         return relative;
     }
 
-    private File fileForBinaryURI(final URI uri) {
-        return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) + BINARY_EXTENSION);
+    private File fileForBinaryURI(final URI uri, final boolean external) {
+        return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) +
+                    (external ? EXTERNAL_RESOURCE_EXTENSION : BINARY_EXTENSION));
     }
 
     private File fileForContainerURI(final URI uri) {
-        return TransferProcess.fileForContainer(uri, config.getBaseDirectory(), config.getRdfExtension());
+        return TransferProcess.fileForURI(uri, config.getBaseDirectory(), config.getRdfExtension());
     }
 }

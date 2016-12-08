@@ -48,23 +48,31 @@ public class ImporterTest {
     private FcrepoClient client;
     private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private Config binaryArgs;
-    private Config noBinaryArgs;
+    private Config externalResourceArgs;
     private Config containerArgs;
     private Config pairtreeArgs;
     private URI binaryURI;
     private URI binaryDescriptionURI;
+    private URI externalResourceURI;
+    private URI externalResourceDescriptionURI;
     private URI containerURI;
     private URI pairtreeURI;
     private URI finalContainerURI;
     private File binaryFilesDir;
+    private File externalFilesDir;
+
     private FcrepoResponse conResponse;
     private PutBuilder binBuilder;
+    private PutBuilder externalResourceBuilder;
 
     @Before
     public void setUp() throws Exception {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
+        externalResourceURI  = new URI("http://example.org:9999/rest/ext1");
+        externalResourceDescriptionURI = new URI("http://example.org:9999/rest/ext1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
+
         binaryFilesDir = new File("src/test/resources/sample/binary");
         binaryArgs = new Config();
         binaryArgs.setMode("import");
@@ -75,14 +83,15 @@ public class ImporterTest {
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
         binaryArgs.setSource(new URI("http://localhost:8080/rest"));
 
-        noBinaryArgs = new Config();
-        noBinaryArgs.setMode("import");
-        noBinaryArgs.setBaseDirectory("src/test/resources/sample/binary");
-        noBinaryArgs.setIncludeBinaries(false);
-        noBinaryArgs.setRdfExtension(".jsonld");
-        noBinaryArgs.setRdfLanguage("application/ld+json");
-        noBinaryArgs.setResource(new URI("http://example.org:9999/rest"));
-        noBinaryArgs.setSource(new URI("http://localhost:8080/rest"));
+        externalFilesDir = new File("src/test/resources/sample/external");
+        externalResourceArgs = new Config();
+        externalResourceArgs.setMode("import");
+        externalResourceArgs.setBaseDirectory("src/test/resources/sample/external");
+        externalResourceArgs.setIncludeBinaries(true);
+        externalResourceArgs.setRdfExtension(".jsonld");
+        externalResourceArgs.setRdfLanguage("application/ld+json");
+        externalResourceArgs.setResource(new URI("http://example.org:9999/rest"));
+        externalResourceArgs.setSource(new URI("http://localhost:8080/rest"));
 
         containerArgs = new Config();
         containerArgs.setMode("import");
@@ -104,6 +113,7 @@ public class ImporterTest {
         finalContainerURI = new URI("http://example.org:9999/rest/ab/abc123");
 
         final List<URI> binLinks = Arrays.asList(binaryDescriptionURI);
+        final List<URI> externalResourceLinks = Arrays.asList(externalResourceDescriptionURI);
 
         // mocks
         clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
@@ -119,6 +129,16 @@ public class ImporterTest {
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
 
+        // mock external resource interactions
+        externalResourceBuilder = mock(PutBuilder.class);
+        final FcrepoResponse externalResourceResponse = mock(FcrepoResponse.class);
+        when(client.put(eq(externalResourceURI))).thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.body(isA(File.class), isA(String.class))).thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
+        when(externalResourceResponse.getStatusCode()).thenReturn(201);
+        when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
+
+
         // mock container/description interactions
         final PutBuilder conBuilder = mock(PutBuilder.class);
         conResponse = mock(FcrepoResponse.class);
@@ -126,6 +146,7 @@ public class ImporterTest {
         when(client.put(eq(pairtreeURI))).thenReturn(conBuilder);
         when(client.put(eq(finalContainerURI))).thenReturn(conBuilder);
         when(client.put(eq(binaryDescriptionURI))).thenReturn(conBuilder);
+        when(client.put(eq(externalResourceDescriptionURI))).thenReturn(conBuilder);
         when(conBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(conBuilder);
         when(conBuilder.preferLenient()).thenReturn(conBuilder);
         when(conBuilder.perform()).thenReturn(conResponse);
@@ -144,8 +165,19 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportExternalResource() throws Exception {
+        final Importer importer = new Importer(externalResourceArgs, clientBuilder);
+        importer.run();
+        verify(client).put(externalResourceURI);
+        verify(externalResourceBuilder).body(eq(new File(externalFilesDir, "rest/ext1.external")),
+                                eq("message/external-body"));
+        verify(client).put(externalResourceDescriptionURI);
+    }
+
+    @Test
     public void testImportWithoutBinaries() throws Exception {
-        final Importer importer = new Importer(noBinaryArgs, clientBuilder);
+        binaryArgs.setIncludeBinaries(false);
+        final Importer importer = new Importer(binaryArgs, clientBuilder);
         importer.run();
         verify(client, never()).put(binaryURI);
         verify(binBuilder, never()).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
