@@ -21,6 +21,21 @@ import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.jena.riot.Lang;
+
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
+import org.slf4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,21 +44,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.jena.riot.Lang;
-import org.slf4j.Logger;
 
 /**
  * Command-line arguments parser.
@@ -147,7 +147,6 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("config")
                 .desc("Path to config file")
                 .required(true).build());
-
     }
 
     protected Config parseConfiguration(final String[] args) {
