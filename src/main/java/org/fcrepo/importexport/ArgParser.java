@@ -36,7 +36,6 @@ import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
 import org.slf4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
@@ -45,6 +44,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
+import com.esotericsoftware.yamlbeans.YamlWriter;
 /**
  * Command-line arguments parser.
  *
@@ -58,8 +59,8 @@ public class ArgParser {
 
     public static final String DEFAULT_RDF_LANG = "text/turtle";
     public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
-    public static final String CONFIG_FILE_NAME = "importexport.config";
     public static final String[] DEFAULT_PREDICATES = new String[]{ CONTAINS.toString() };
+    public static final String CONFIG_FILE_NAME = "importexport.yml";
 
     private final Options configOptions;
     private final Options configFileOptions;
@@ -242,12 +243,11 @@ public class ArgParser {
 
         final ArrayList<String> args = new ArrayList<>();
         try {
-            try (final BufferedReader configReader = new BufferedReader(new FileReader(configFile))) {
-                String line = configReader.readLine();
-                while (line != null) {
-                    args.add(line);
-                    line = configReader.readLine();
-                }
+            final YamlReader reader = new YamlReader(new FileReader(configFile));
+            String line = reader.readLine();
+            while (line != null) {
+              args.add(line);
+              line = reader.readLine();
             }
             return args.toArray(new String[args.size()]);
 
@@ -329,15 +329,15 @@ public class ArgParser {
         }
 
         // Write config to file
-        try (final BufferedWriter configWriter = new BufferedWriter(new FileWriter(configFile));) {
+        try {
+            final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
             for (Option option : cmd.getOptions()) {
                 // write out all but the username/password
                 if (!option.getOpt().equals("u")) {
-                    configWriter.write("-" + option.getOpt());
-                    configWriter.newLine();
+                    writer.write("-" + option.getOpt());
                     if (option.getValue() != null) {
-                        configWriter.write(option.getValue());
-                        configWriter.newLine();
+                        writer.write(option.getValue());
+                        writer.close();
                     }
                 }
             }
