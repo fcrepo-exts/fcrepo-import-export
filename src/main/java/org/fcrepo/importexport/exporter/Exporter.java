@@ -19,8 +19,8 @@ package org.fcrepo.importexport.exporter;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -145,8 +145,10 @@ public class Exporter implements TransferProcess {
     private void exportMembers(final File file) {
         try {
             final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
-            for (final NodeIterator it = model.listObjectsOfProperty(CONTAINS); it.hasNext();) {
-                export(URI.create(it.nextNode().toString()));
+            for (final String p : config.getPredicates()) {
+                for (final NodeIterator it = model.listObjectsOfProperty(createProperty(p)); it.hasNext();) {
+                    export(URI.create(it.nextNode().toString()));
+                }
             }
         } catch (FileNotFoundException ex) {
             logger.warn("Unable to parse file: {}", ex.toString());

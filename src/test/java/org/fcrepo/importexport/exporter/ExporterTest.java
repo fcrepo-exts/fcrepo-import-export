@@ -67,6 +67,7 @@ public class ExporterTest {
     private Config noBinaryArgs;
     private Config metadataArgs;
     private String exportDirectory = "target/export";
+    private String[] predicates = new String[]{ CONTAINS.toString() };
 
     @Before
     public void setUp() throws Exception {
@@ -85,6 +86,7 @@ public class ExporterTest {
         args.setMode("export");
         args.setBaseDirectory(exportDirectory);
         args.setIncludeBinaries(true);
+        args.setPredicates(predicates);
         args.setRdfExtension(".jsonld");
         args.setRdfLanguage("application/ld+json");
         args.setResource(resource);
@@ -93,6 +95,7 @@ public class ExporterTest {
         binaryArgs.setMode("export");
         binaryArgs.setBaseDirectory(exportDirectory);
         binaryArgs.setIncludeBinaries(true);
+        binaryArgs.setPredicates(predicates);
         binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(resource3);
@@ -101,6 +104,7 @@ public class ExporterTest {
         noBinaryArgs.setMode("export");
         noBinaryArgs.setBaseDirectory(exportDirectory);
         noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setPredicates(predicates);
         noBinaryArgs.setRdfExtension(".jsonld");
         noBinaryArgs.setRdfLanguage("application/ld+json");
         noBinaryArgs.setResource(resource3);
@@ -108,6 +112,7 @@ public class ExporterTest {
         metadataArgs = new Config();
         metadataArgs.setMode("export");
         metadataArgs.setBaseDirectory(exportDirectory);
+        metadataArgs.setPredicates(predicates);
         metadataArgs.setRdfExtension(".jsonld");
         metadataArgs.setRdfLanguage("application/ld+json");
         metadataArgs.setResource(resource);

@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.integration;
 
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
@@ -30,7 +31,9 @@ import java.util.UUID;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -63,12 +66,83 @@ public class ExporterIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setPredicates(new String[]{ CONTAINS.toString() });
 
         final Exporter exporter = new Exporter(config, clientBuilder);
         exporter.run();
 
         // Verify
         assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportCustomPredicate() throws Exception {
+        final String[] predicates = new String[]{ "http://example.org/custom" };
+        final UUID uuid = UUID.randomUUID();
+        final Config config = exportWithCustomPredicates(predicates, uuid);
+
+        // Verify
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertTrue(new File(baseDir, "/res1" + DEFAULT_RDF_EXT).exists());
+        assertFalse(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res3" + DEFAULT_RDF_EXT).exists());
+        assertFalse(new File(baseDir, "/res3/res4" + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportMultiplePredicates() throws Exception {
+        final String[] predicates = new String[]{ CONTAINS.toString(), "http://example.org/custom" };
+        final UUID uuid = UUID.randomUUID();
+        final Config config = exportWithCustomPredicates(predicates, uuid);
+
+        // Verify
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertTrue(new File(baseDir, "/res1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res3" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res3/res4" + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportDefaultPredicate() throws Exception {
+        final String[] predicates = new String[]{ CONTAINS.toString() };
+        final UUID uuid = UUID.randomUUID();
+        final Config config = exportWithCustomPredicates(predicates, uuid);
+
+        // Verify
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertFalse(new File(baseDir, "/res1" + DEFAULT_RDF_EXT).exists());
+        assertFalse(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res3" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res3/res4" + DEFAULT_RDF_EXT).exists());
+    }
+
+    private Config exportWithCustomPredicates(final String[] predicates, final UUID uuid)
+            throws FcrepoOperationFailedException {
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI res2 = URI.create(baseURI + "/res1/res2");
+        final URI res3 = URI.create(baseURI + "/res3");
+        final URI res4 = URI.create(baseURI + "/res3/res4");
+
+        create(res1);
+        create(res2);
+        createTurtle(res3, "<> <http://example.org/custom> <" + res1.toString() + "> .");
+        create(res4);
+
+        // export with custom predicates
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(res3);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(predicates);
+
+        new Exporter(config, clientBuilder).run();
+        return config;
     }
 
     protected Logger logger() {

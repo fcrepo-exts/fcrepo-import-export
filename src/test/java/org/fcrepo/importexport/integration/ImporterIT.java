@@ -40,6 +40,7 @@ import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -51,6 +52,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class ImporterIT extends AbstractResourceIT {
 
     private FcrepoClient client;
+    private String[] predicates = new String[]{ CONTAINS.toString() };
 
     public ImporterIT() {
         super();
@@ -79,6 +81,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMode("export");
         config.setBaseDirectory(exportPath);
         config.setIncludeBinaries(true);
+        config.setPredicates(predicates);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(parent.toString());
@@ -119,6 +122,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMode("import");
         config.setIncludeBinaries(true);
         config.setBaseDirectory(referencePath);
+        config.setPredicates(predicates);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
@@ -149,6 +153,7 @@ public class ImporterIT extends AbstractResourceIT {
         final Config config = new Config();
         config.setMode("import");
         config.setBaseDirectory(indirectPath);
+        config.setPredicates(predicates);
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
