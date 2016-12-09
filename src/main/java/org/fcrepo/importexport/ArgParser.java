@@ -312,7 +312,9 @@ public class ArgParser {
         // Write config to file
         try {
             final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
+            logger.debug("YAML output is ({})", getMap(config).toString());
             writer.write(getMap(config));
+            writer.close();
             logger.info("Saved configuration to: {}", configFile.getPath());
 
         } catch (final IOException e) {
