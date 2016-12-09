@@ -17,8 +17,14 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
+import static org.slf4j.LoggerFactory.getLogger;
+import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
+
 import java.io.File;
 import java.net.URI;
+
+import org.slf4j.Logger;
 
 /**
  * @author awoods
@@ -37,6 +43,8 @@ public class Config {
     private String rdfLanguage;
     private String username;
     private String password;
+
+    private boolean auditLog = false;
 
     /**
      * This method returns true if the configuration is set for 'import'
@@ -256,5 +264,26 @@ public class Config {
      */
     public String getPassword() {
         return this.password;
+    }
+
+    /**
+     * Turn on/off audit logging
+     *
+     * @param auditLevel the state of audit logging.
+     */
+    public void setAuditLog(final boolean auditLevel) {
+        this.auditLog = auditLevel;
+    }
+
+    /**
+     * Check whether the audit log is enabled.
+     *
+     * @return whether audit logging is enabled.
+     */
+    public Logger getAuditLog() {
+        if (this.auditLog) {
+            return getLogger(IMPORT_EXPORT_LOG_PREFIX);
+        }
+        return NOP_LOGGER;
     }
 }

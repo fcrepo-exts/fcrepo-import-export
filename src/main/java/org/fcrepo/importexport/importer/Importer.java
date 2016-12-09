@@ -20,19 +20,19 @@ package org.fcrepo.importexport.importer;
 import static java.util.Arrays.stream;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.slf4j.LoggerFactory.getLogger;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,21 +44,25 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RiotException;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.ResIterator;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RiotException;
 import org.slf4j.Logger;
+
 
 /**
  * Fedora Import Utility
@@ -72,6 +76,9 @@ public class Importer implements TransferProcess {
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
+
+    private Logger importLogger;
+    private AtomicLong successCount = new AtomicLong(); // set to zero at start
 
     /**
      * A directory within the metadata directory that serves as the
@@ -90,6 +97,7 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
+        this.importLogger = config.getAuditLog();
     }
 
     private FcrepoClient client() {
@@ -121,6 +129,7 @@ public class Importer implements TransferProcess {
         importDirectory(importContainerDirectory);
 
         importMembershipResources();
+        importLogger.info("Finished import... {} resources imported", successCount.get());
     }
 
     private void discoverMembershipResources(final File dir) {
@@ -162,16 +171,25 @@ public class Importer implements TransferProcess {
             final Model repoModel = parseStream(client().get(uri).perform().getBody());
             final FcrepoResponse response = importContainer(uri, sanitize(diskModel.difference(repoModel)));
             if (response.getStatusCode() == 401) {
+                importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(), uri);
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), uri,
+                    response.getStatusCode());
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
                         + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
             } else {
                 logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
+                importLogger.info("import {} to {}", f.getAbsolutePath(), uri);
+                successCount.incrementAndGet();
             }
         } catch (FcrepoOperationFailedException ex) {
+            importLogger.error(
+                String.format("Error importing: {} to {}, Message: {}", f.getAbsolutePath(), uri, ex.getMessage()), ex);
             throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (IOException ex) {
+            importLogger.error(
+                String.format("Error reading/parsing file: {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException(
                     "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
@@ -238,22 +256,35 @@ public class Importer implements TransferProcess {
 
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
+
                 }
 
                 if (response.getStatusCode() == 401) {
+                    importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
+                        destinationUri);
                     throw new AuthenticationRequiredRuntimeException();
                 } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                    importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
+                        response.getStatusCode());
                     throw new RuntimeException("Error while importing " + f.getAbsolutePath()
                             + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
                 } else {
                     logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
+                    importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
+                    successCount.incrementAndGet();
                 }
             } catch (FcrepoOperationFailedException ex) {
+                importLogger.error(String.format("Error importing {} to {}, Message: {}", f.getAbsolutePath(),
+                    destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (IOException ex) {
+                importLogger.error(String.format("Error reading/parsing {} to {}, Message: {}", f.getAbsolutePath(),
+                    destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException(
                         "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (URISyntaxException ex) {
+                importLogger.error(
+                    String.format("Error building URI for {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
                 throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
         }
@@ -278,6 +309,8 @@ public class Importer implements TransferProcess {
                                                       .perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
+            importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
+            successCount.incrementAndGet();
         }
 
         final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);

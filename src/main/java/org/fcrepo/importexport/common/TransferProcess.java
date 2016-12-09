@@ -31,6 +31,9 @@ import java.net.URLEncoder;
  * @since 2016-08-31
  */
 public interface TransferProcess {
+
+    final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
+
     /**
      * This method does the import or export
      */
@@ -115,5 +118,4 @@ public interface TransferProcess {
     public static File directoryForContainer(final URI uri, final File baseDir) {
         return new File(baseDir, TransferProcess.encodePath(uri.getPath()));
     }
-
 }
