@@ -24,6 +24,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -108,7 +109,6 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
-    @Test(expected = FcrepoOperationFailedException.class)
     public void testCorruptedBinary() throws Exception {
         final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
         final URI binaryURI = URI.create("http://localhost:8080/fcrepo/rest/bin1");
@@ -119,7 +119,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMode("import");
         config.setIncludeBinaries(true);
         config.setBaseDirectory(referencePath);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
         config.setSource(sourceURI.toString());
@@ -130,8 +129,8 @@ public class ImporterIT extends AbstractResourceIT {
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
-        // this throws a FcrepoOperationFailedException when the binary has failed to load
-        resourceExists(binaryURI);
+        // verify that the corrupted binary failed to load
+        assertFalse(resourceExists(binaryURI));
     }
 
     @Test

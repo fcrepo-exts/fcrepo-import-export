@@ -261,15 +261,18 @@ public class Importer implements TransferProcess {
 
                 }
 
-                if (response.getStatusCode() == 401) {
+                if (response == null) {
+                    logger.warn("Failed to import {}", f.getAbsolutePath());
+                } else if (response.getStatusCode() == 401) {
                     importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
                         destinationUri);
                     throw new AuthenticationRequiredRuntimeException();
                 } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                    final String message = "Error while importing " + f.getAbsolutePath() + " ("
+                            + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
+                    logger.error(message);
                     importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                         response.getStatusCode());
-                    throw new RuntimeException("Error while importing " + f.getAbsolutePath()
-                            + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
                 } else {
                     logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
                     importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
@@ -318,11 +321,15 @@ public class Importer implements TransferProcess {
             logger.info("Imported binary: {}", binaryURI);
             importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
             successCount.incrementAndGet();
-        }
 
-        final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
-        return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
-            .preferLenient().perform();
+            final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
+            return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                .preferLenient().perform();
+        } else {
+            logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
+            return null;
+        }
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
