@@ -54,7 +54,7 @@ The list of RDF languages supported:
 - application/rdf+xml
 - text/n3 (or text/rdf+n3)
 - text/plain
-- text/turtle (or application/x-turtle)
+- text/turtle (or application/x-turtle)    (**default**)
 
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
 
