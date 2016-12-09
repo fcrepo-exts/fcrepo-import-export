@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.exporter;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
@@ -172,7 +173,7 @@ public class ExporterTest {
     }
 
     @Test
-    public void textExternalContent() throws Exception {
+    public void testExternalContent() throws Exception {
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
@@ -180,7 +181,9 @@ public class ExporterTest {
         when(headResponse.getContentType())
             .thenReturn("message/external-body;access-type=URL;url=\"http://www.example.com/file\"");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
+        final File externalResourceFile = new File(exportDirectory + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION);
+        Assert.assertTrue(exporter.wroteFile(externalResourceFile));
+        Assert.assertTrue(externalResourceFile.exists());
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
     }
 

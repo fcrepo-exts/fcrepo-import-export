@@ -33,6 +33,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 public abstract class FcrepoConstants {
 
     public static final String BINARY_EXTENSION = ".binary";
+    public static final String EXTERNAL_RESOURCE_EXTENSION = ".external";
 
     public static final String EBUCORE_NAMESPACE = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";
     public static final Property HAS_MIME_TYPE = createProperty(EBUCORE_NAMESPACE + "hasMimeType");

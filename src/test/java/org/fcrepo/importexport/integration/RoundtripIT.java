@@ -294,7 +294,7 @@ public class RoundtripIT extends AbstractResourceIT {
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
         final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.binary");
+        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.external");
         final File descFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1/fcr%3Ametadata"
                 + config.getRdfExtension());
 
@@ -359,6 +359,7 @@ public class RoundtripIT extends AbstractResourceIT {
         return config;
     }
 
+    @Override
     protected Logger logger() {
         return getLogger(RoundtripIT.class);
     }
