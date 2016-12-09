@@ -72,10 +72,10 @@ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resourc
 
 You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=/some/directory`.
 
-To export using a predicate other than `ldp:contains`, use the `p` or `--predicates` option with a coma-separated list of predicates:
+To export using a predicate other than `ldp:contains`, use the `-p` or `--predicates` option with a coma-separated list of predicates:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contain
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
 ```
 
 Running the import/export utility with a configuration file
