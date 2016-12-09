@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RiotException;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
@@ -129,6 +130,11 @@ public class Importer implements TransferProcess {
     }
 
     private void parseMembershipResources(final File f) {
+        // skip files that aren't RDF
+        if (!f.getName().endsWith(config.getRdfExtension())) {
+            return;
+        }
+
         try {
             final Model model = parseStream(new FileInputStream(f));
             if (model.contains(null, MEMBERSHIP_RESOURCE, (RDFNode)null)) {
@@ -137,8 +143,10 @@ public class Importer implements TransferProcess {
                         membershipResources.add(URI.create(node.toString()));
                     });
             }
-        } catch (final Exception e) {
-            logger.warn("Error discovering membership resource: {}", e.toString());
+        } catch (final IOException e) {
+            throw new RuntimeException("Error reading file: " + f.getAbsolutePath() + ": " + e.toString());
+        } catch (final RiotException e) {
+            throw new RuntimeException("Error parsing RDF: " + f.getAbsolutePath() + ": " + e.toString());
         }
     }
 
