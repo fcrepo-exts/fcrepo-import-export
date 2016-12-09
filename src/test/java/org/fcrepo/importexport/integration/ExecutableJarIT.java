@@ -17,10 +17,12 @@
  */
 package org.fcrepo.importexport.integration;
 
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
+import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
+
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
-import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -37,13 +39,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.ArgParser;
 import org.fcrepo.importexport.common.TransferProcess;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -70,6 +73,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         client = clientBuilder.build();
     }
 
+    @Override
     @Before
     public void before() {
         super.before();
@@ -106,7 +110,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, url.getPath() + ArgParser.DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
     }
 
     @Test
@@ -119,12 +123,9 @@ public class ExecutableJarIT extends AbstractResourceIT {
         // Create test config file
         final File configFile = File.createTempFile("config-test", ".txt");
         final FileWriter writer = new FileWriter(configFile);
-        writer.append("-d\n");
-        writer.append(TARGET_DIR);
-        writer.append("\n");
-        writer.append("-m\n");
-        writer.append("export\n");
-        writer.append("-r\n");
+        writer.append("dir: " + TARGET_DIR + "\n");
+        writer.append("mode: export\n");
+        writer.append("resource: ");
         writer.append(url.toString());
         writer.append("\n");
         writer.flush();
@@ -136,7 +137,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertEquals("Did not exit with success status!", 0, process.exitValue());
 
-        assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + ArgParser.DEFAULT_RDF_EXT))
+        assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + DEFAULT_RDF_EXT))
                 .exists());
         assertTrue(new File(System.getProperty("java.io.tmpdir"), ArgParser.CONFIG_FILE_NAME).exists());
     }
@@ -167,7 +168,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         assertFalse("Fedora should have given us at least one describedby header!", describedByHeaders.isEmpty());
         describedByHeaders.forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
                         new File(TARGET_DIR, TransferProcess.encodePath(uri.getPath())
-                                + ArgParser.DEFAULT_RDF_EXT).exists()));
+                + DEFAULT_RDF_EXT).exists()));
         final File exportedBinary
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
@@ -249,6 +250,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
         return client.put(url).body(new FileInputStream(f), "text/plain").perform();
     }
 
+    @Override
     protected Logger logger() {
         return getLogger(ExecutableJarIT.class);
     }

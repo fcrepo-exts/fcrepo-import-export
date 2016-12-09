@@ -17,17 +17,6 @@
  */
 package org.fcrepo.importexport.integration;
 
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.junit.Test;
-import org.slf4j.Logger;
-
-import java.io.File;
-import java.net.URI;
-import java.util.UUID;
-
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
@@ -36,6 +25,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.File;
+import java.net.URI;
+import java.util.UUID;
+
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.exporter.Exporter;
+
+import org.junit.Test;
+import org.slf4j.Logger;
 
 /**
  * @author awoods
@@ -62,7 +63,6 @@ public class ExporterIT extends AbstractResourceIT {
         config.setMode("export");
         config.setBaseDirectory(TARGET_DIR);
         config.setResource(url);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
@@ -145,6 +145,7 @@ public class ExporterIT extends AbstractResourceIT {
         return config;
     }
 
+    @Override
     protected Logger logger() {
         return getLogger(ExporterIT.class);
     }

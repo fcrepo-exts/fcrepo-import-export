@@ -17,9 +17,22 @@
  */
 package org.fcrepo.importexport;
 
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -27,22 +40,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.jena.riot.Lang;
-
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
 import org.slf4j.Logger;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
@@ -60,6 +58,7 @@ public class ArgParser {
     public static final String DEFAULT_RDF_LANG = "text/turtle";
     public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
     public static final String[] DEFAULT_PREDICATES = new String[]{ CONTAINS.toString() };
+
     public static final String CONFIG_FILE_NAME = "importexport.yml";
 
     private final Options configOptions;
@@ -122,7 +121,7 @@ public class ArgParser {
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
                 .hasArg(true).numberOfArgs(1).argName("rdfLang")
-                .desc("RDF language (default: " + DEFAULT_RDF_LANG + ")")
+                .desc("RDF language (default: " + Config.DEFAULT_RDF_LANG + ")")
                 .required(false).build());
 
         // containment predicates
@@ -164,7 +163,7 @@ public class ArgParser {
             c = parseConfigFileCommandLineArgs(args);
             config = parseConfigFileOptions(c);
             addSharedOptions(c, config);
-        } catch (ParseException ignore) {
+        } catch (final ParseException ignore) {
             logger.debug("Command line argments weren't valid for specifying a config file.");
         }
         if (config == null) {
@@ -175,17 +174,14 @@ public class ArgParser {
 
             try {
                 c = parseConfigArgs(args);
-                config = this.parseConfigurationArgs(c);
+                config = parseConfigurationArgs(c);
                 addSharedOptions(c, config);
-            } catch (ParseException e) {
+            } catch (final ParseException e) {
                 printHelp("Error parsing args: " + e.getMessage());
             }
+            // Write command line options to disk
+            saveConfig(config);
         }
-
-        // Write command line options to disk
-        saveConfig(c);
-
-
 
         return config;
     }
@@ -195,7 +191,7 @@ public class ArgParser {
      * @return
      */
     private boolean helpFlagged(final String[] args) {
-        for (String arg : args) {
+        for (final String arg : args) {
             if (arg.equals("-h") || arg.equals("--help")) {
                 return true;
             }
@@ -219,15 +215,9 @@ public class ArgParser {
      * @return Config or null if no config file option was provided
      */
     private Config parseConfigFileOptions(final CommandLine cmd) {
-        final String[] fileArgs = retrieveConfig(new File(cmd.getOptionValue('c')));
-        try {
-            final Config config = parseConfigurationArgs(parseConfigArgs(fileArgs));
-            addSharedOptions(cmd, config);
-            return config;
-        } catch (ParseException e) {
-            printHelp("Unable to parse config file: " + e.getMessage());
-            return null;
-        }
+        final Config config = retrieveConfig(new File(cmd.getOptionValue('c')));
+        addSharedOptions(cmd, config);
+        return config;
     }
 
     /**
@@ -236,22 +226,18 @@ public class ArgParser {
      * @param configFile containing config args
      * @return Array of args
      */
-    private String[] retrieveConfig(final File configFile) {
+    private Config retrieveConfig(final File configFile) {
         if (!configFile.exists()) {
             printHelp("Configuration file does not exist: " + configFile);
         }
 
-        final ArrayList<String> args = new ArrayList<>();
         try {
             final YamlReader reader = new YamlReader(new FileReader(configFile));
-            String line = reader.readLine();
-            while (line != null) {
-              args.add(line);
-              line = reader.readLine();
-            }
-            return args.toArray(new String[args.size()]);
+            @SuppressWarnings("unchecked")
+            final Map<String, String> configVars = (HashMap<String, String>) reader.read();
+            return Config.fromFile(configVars);
 
-        } catch (IOException e) {
+        } catch (final IOException | java.text.ParseException e) {
             throw new RuntimeException("Unable to read configuration file due to: " + e.getMessage(), e);
         }
     }
@@ -276,9 +262,10 @@ public class ArgParser {
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
 
-        final String rdfLanguage = cmd.getOptionValue('l', DEFAULT_RDF_LANG);
-        config.setRdfLanguage(rdfLanguage);
-        config.setRdfExtension(getRDFExtension(rdfLanguage));
+        final String rdfLanguage = cmd.getOptionValue('l');
+        if (rdfLanguage != null) {
+            config.setRdfLanguage(rdfLanguage);
+        }
         config.setSource(cmd.getOptionValue('s'));
         config.setPredicates((cmd.getOptionValues('p') == null) ? DEFAULT_PREDICATES : cmd.getOptionValues('p'));
         config.setAuditLog(cmd.hasOption('a'));
@@ -286,14 +273,7 @@ public class ArgParser {
         return config;
     }
 
-    private static String getRDFExtension(final String language) {
-        final Lang lang = contentTypeToLang(language);
-        if (lang == null) {
-            throw new RuntimeException(language + " is not a recognized RDF language");
-        }
 
-        return "." + lang.getFileExtensions().get(0);
-    }
 
     /**
      * This method add/updates the values of any options that may be
@@ -319,7 +299,7 @@ public class ArgParser {
      * implementation omits the user/password information.
      * @param args to be persisted
      */
-    private void saveConfig(final CommandLine cmd) {
+    private void saveConfig(final Config config) {
         final File configFile = new File(System.getProperty("java.io.tmpdir"), CONFIG_FILE_NAME);
 
         // Leave existing config file alone
@@ -331,20 +311,11 @@ public class ArgParser {
         // Write config to file
         try {
             final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
-            for (Option option : cmd.getOptions()) {
-                // write out all but the username/password
-                if (!option.getOpt().equals("u")) {
-                    writer.write("-" + option.getOpt());
-                    if (option.getValue() != null) {
-                        writer.write(option.getValue());
-                        writer.close();
-                    }
-                }
-            }
+            writer.write(config.getMap());
 
             logger.info("Saved configuration to: {}", configFile.getPath());
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Unable to write configuration file due to: " + e.getMessage(), e);
         }
     }

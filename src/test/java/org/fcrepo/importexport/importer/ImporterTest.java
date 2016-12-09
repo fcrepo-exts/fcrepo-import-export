@@ -36,6 +36,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -79,7 +80,6 @@ public class ImporterTest {
         binaryArgs.setMode("import");
         binaryArgs.setBaseDirectory("src/test/resources/sample/binary");
         binaryArgs.setIncludeBinaries(true);
-        binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
         binaryArgs.setSource(new URI("http://localhost:8080/rest"));
@@ -88,7 +88,6 @@ public class ImporterTest {
         noBinaryArgs.setMode("import");
         noBinaryArgs.setBaseDirectory("src/test/resources/sample/binary");
         noBinaryArgs.setIncludeBinaries(false);
-        noBinaryArgs.setRdfExtension(".jsonld");
         noBinaryArgs.setRdfLanguage("application/ld+json");
         noBinaryArgs.setResource(new URI("http://example.org:9999/rest"));
         noBinaryArgs.setSource(new URI("http://localhost:8080/rest"));
@@ -106,7 +105,6 @@ public class ImporterTest {
         containerArgs = new Config();
         containerArgs.setMode("import");
         containerArgs.setBaseDirectory("src/test/resources/sample/container");
-        containerArgs.setRdfExtension(".jsonld");
         containerArgs.setRdfLanguage("application/ld+json");
         containerArgs.setResource(new URI("http://example.org:9999/rest"));
         containerArgs.setSource(new URI("http://localhost:8080/rest"));
@@ -114,7 +112,6 @@ public class ImporterTest {
         pairtreeArgs = new Config();
         pairtreeArgs.setMode("import");
         pairtreeArgs.setBaseDirectory("src/test/resources/sample/pairtree");
-        pairtreeArgs.setRdfExtension(".jsonld");
         pairtreeArgs.setRdfLanguage("application/ld+json");
         pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));
         pairtreeArgs.setSource(new URI("http://localhost:8080/rest"));
