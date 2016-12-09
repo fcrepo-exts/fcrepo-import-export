@@ -42,6 +42,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -58,6 +59,7 @@ public class ArgParser {
     public static final String DEFAULT_RDF_LANG = "text/turtle";
     public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
     public static final String CONFIG_FILE_NAME = "importexport.config";
+    public static final String[] DEFAULT_PREDICATES = new String[]{ CONTAINS.toString() };
 
     private final Options configOptions;
     private final Options configFileOptions;
@@ -121,6 +123,15 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("rdfLang")
                 .desc("RDF language (default: " + DEFAULT_RDF_LANG + ")")
                 .required(false).build());
+
+        // containment predicates
+        configOptions.addOption(Option.builder("p")
+                .longOpt("predicates").argName("predicates")
+                .hasArgs()
+                .valueSeparator(',')
+                .required(false)
+                .desc("Comma-separated list of predicates to define resource containment")
+                .build());
 
         // username option
         final Option userOption = Option.builder("u")
@@ -263,6 +274,7 @@ public class ArgParser {
         config.setRdfLanguage(rdfLanguage);
         config.setRdfExtension(getRDFExtension(rdfLanguage));
         config.setSource(cmd.getOptionValue('s'));
+        config.setPredicates((cmd.getOptionValues('p') == null) ? DEFAULT_PREDICATES : cmd.getOptionValues('p'));
 
         return config;
     }

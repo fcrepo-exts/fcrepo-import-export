@@ -32,6 +32,7 @@ public class Config {
     private URI source;
     private File baseDirectory;
     private boolean includeBinaries;
+    private String[] predicates;
     private String rdfExtension;
     private String rdfLanguage;
     private String username;
@@ -167,6 +168,22 @@ public class Config {
         } else {
             return resource;
         }
+    }
+
+    /**
+     * Get the predicates that define resource containment
+     * @return An array of predicates
+     */
+    public String[] getPredicates() {
+        return predicates;
+    }
+
+    /**
+     * Set the predicates that define resource containment
+     * @param predicates An array of predicates
+     */
+    public void setPredicates(final String[] predicates) {
+        this.predicates = predicates;
     }
 
     /**

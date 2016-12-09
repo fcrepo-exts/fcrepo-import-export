@@ -46,6 +46,7 @@ import static org.apache.jena.riot.RDFDataMgr.loadModel;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.junit.Assert.assertEquals;
@@ -341,6 +342,7 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setBaseDirectory(TARGET_DIR + File.separator + UUID.randomUUID());
         config.setIncludeBinaries(true);
         config.setResource(uri);
+        config.setPredicates(new String[]{ CONTAINS.toString() });
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
