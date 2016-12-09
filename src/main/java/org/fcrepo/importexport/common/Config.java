@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.common;
 
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 /**
  * @author awoods
  * @author escowles
+ * @author whikloj
  * @since 2016-08-29
  */
 public class Config {
@@ -42,8 +44,8 @@ public class Config {
     private final static Logger logger = getLogger(Config.class);
 
     public static final String DEFAULT_RDF_LANG = "text/turtle";
-
     public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
+    public static final String[] DEFAULT_PREDICATES = new String[] { CONTAINS.toString() };
 
     private String mode;
     private URI resource;
@@ -51,7 +53,8 @@ public class Config {
     private File baseDirectory;
 
     private boolean includeBinaries = false;
-    private String[] predicates;
+
+    private String[] predicates = DEFAULT_PREDICATES;
     private String rdfExtension = DEFAULT_RDF_EXT;
     private String rdfLanguage = DEFAULT_RDF_LANG;
     private String username;
@@ -192,7 +195,6 @@ public class Config {
     }
 
     /**
-<<<<<<< HEAD
      * Get the predicates that define resource containment
      * @return An array of predicates
      */
@@ -218,8 +220,6 @@ public class Config {
     }
 
     /**
-=======
->>>>>>> Use Yaml
      * Gets the RDF filename extension
      *
      * @return rdfExtension

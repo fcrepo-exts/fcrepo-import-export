@@ -94,6 +94,7 @@ public class ArgParserTest {
         writer.append("mode: export\n");
         writer.append("resource: http://localhost:8080/rest/test\n");
         writer.append("dir: /tmp/import-export-dir\n");
+        writer.append("predicates: http://www.w3.org/ns/ldp#contains,http://example.org/custom\n");
         writer.flush();
 
         final String[] args = new String[]{"-c", configFile.getAbsolutePath()};

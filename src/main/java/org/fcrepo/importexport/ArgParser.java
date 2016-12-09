@@ -17,7 +17,6 @@
  */
 package org.fcrepo.importexport;
 
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -45,20 +44,18 @@ import org.slf4j.Logger;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
+
 /**
  * Command-line arguments parser.
  *
  * @author awoods
  * @author escowles
+ * @author whikloj
  * @since 2016-08-29
  */
 public class ArgParser {
 
     private static final Logger logger = getLogger(ArgParser.class);
-
-    public static final String DEFAULT_RDF_LANG = "text/turtle";
-    public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
-    public static final String[] DEFAULT_PREDICATES = new String[]{ CONTAINS.toString() };
 
     public static final String CONFIG_FILE_NAME = "importexport.yml";
 
@@ -268,7 +265,9 @@ public class ArgParser {
             config.setRdfLanguage(rdfLanguage);
         }
         config.setSource(cmd.getOptionValue('s'));
-        config.setPredicates((cmd.getOptionValues('p') == null) ? DEFAULT_PREDICATES : cmd.getOptionValues('p'));
+        if (cmd.getOptionValues('p') != null) {
+            config.setPredicates(cmd.getOptionValues('p'));
+        }
         config.setAuditLog(cmd.hasOption('a'));
 
         return config;
@@ -410,6 +409,8 @@ public class ArgParser {
                         "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
                         entry.getValue()), lineNumber);
                 }
+            } else if (entry.getKey().equalsIgnoreCase("predicates")) {
+                c.setPredicates(entry.getValue().split(","));
             } else {
                 throw new java.text.ParseException(String.format("Unknown configuration key: {}", entry.getKey()),
                     lineNumber);

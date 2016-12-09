@@ -18,8 +18,8 @@
 package org.fcrepo.importexport.integration;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
-import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
