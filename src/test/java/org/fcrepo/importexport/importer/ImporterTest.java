@@ -132,6 +132,7 @@ public class ImporterTest {
         final FcrepoResponse binResponse = mock(FcrepoResponse.class);
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(File.class), isA(String.class))).thenReturn(binBuilder);
+        when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -166,6 +167,7 @@ public class ImporterTest {
         final Importer importer = new Importer(binaryArgs, clientBuilder);
         importer.run();
         verify(client).put(binaryURI);
+        verify(binBuilder).digest(eq("2a6d6229e30f667c60d406f7bf44d834e52d11b7"));
         verify(binBuilder).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
                                 eq("application/x-www-form-urlencoded"));
         verify(client).put(binaryDescriptionURI);
