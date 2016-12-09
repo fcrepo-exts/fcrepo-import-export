@@ -48,6 +48,7 @@ public class ImporterTest {
     private FcrepoClient client;
     private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private Config binaryArgs;
+    private Config noBinaryArgs;
     private Config externalResourceArgs;
     private Config containerArgs;
     private Config pairtreeArgs;
@@ -82,6 +83,15 @@ public class ImporterTest {
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
         binaryArgs.setSource(new URI("http://localhost:8080/rest"));
+
+        noBinaryArgs = new Config();
+        noBinaryArgs.setMode("import");
+        noBinaryArgs.setBaseDirectory("src/test/resources/sample/binary");
+        noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setRdfExtension(".jsonld");
+        noBinaryArgs.setRdfLanguage("application/ld+json");
+        noBinaryArgs.setResource(new URI("http://example.org:9999/rest"));
+        noBinaryArgs.setSource(new URI("http://localhost:8080/rest"));
 
         externalFilesDir = new File("src/test/resources/sample/external");
         externalResourceArgs = new Config();
@@ -176,8 +186,7 @@ public class ImporterTest {
 
     @Test
     public void testImportWithoutBinaries() throws Exception {
-        binaryArgs.setIncludeBinaries(false);
-        final Importer importer = new Importer(binaryArgs, clientBuilder);
+        final Importer importer = new Importer(noBinaryArgs, clientBuilder);
         importer.run();
         verify(client, never()).put(binaryURI);
         verify(binBuilder, never()).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
