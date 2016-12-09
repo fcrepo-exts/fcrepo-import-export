@@ -45,7 +45,7 @@ $ java -jar target/fcrepo-import-export-<version>.jar --mode [import|export] [op
 To control the format of the exported RDF, the extension and RDF language/serialization format can also be specified by adding, e.g.:
 
 ```sh
---rdfExt .jsonld --rdfLang application/ld+json
+--rdfLang application/ld+json
 ```
 
 The list of RDF languages supported:
@@ -63,6 +63,20 @@ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resourc
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
+
+To enable the audit log, use the `-a` or `--auditLog`:
+
+```sh
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --auditLog
+```
+
+You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=/some/directory`.
+
+To export using a predicate other than `ldp:contains`, use the `p` or `--predicates` option with a coma-separated list of predicates:
+
+```sh
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contain
+```
 
 Running the import/export utility with a configuration file
 -----------------------------------------------------------
