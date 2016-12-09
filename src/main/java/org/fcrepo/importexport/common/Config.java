@@ -17,8 +17,14 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
+import static org.slf4j.LoggerFactory.getLogger;
+import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
+
 import java.io.File;
 import java.net.URI;
+
+import org.slf4j.Logger;
 
 /**
  * @author awoods
@@ -274,7 +280,10 @@ public class Config {
      *
      * @return whether audit logging is enabled.
      */
-    public boolean getAuditLog() {
-        return this.auditLog;
+    public Logger getAuditLog() {
+        if (this.auditLog) {
+            return getLogger(IMPORT_EXPORT_LOG_PREFIX);
+        }
+        return NOP_LOGGER;
     }
 }

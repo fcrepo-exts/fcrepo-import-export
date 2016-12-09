@@ -41,7 +41,6 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.NullLogger;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
@@ -78,11 +77,7 @@ public class Exporter implements TransferProcess {
         this.clientBuilder = clientBuilder;
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
-        if (config.getAuditLog()) {
-            exportLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
-        } else {
-            exportLogger = new NullLogger();
-        }
+        this.exportLogger = config.getAuditLog();
     }
 
     private FcrepoClient client() {

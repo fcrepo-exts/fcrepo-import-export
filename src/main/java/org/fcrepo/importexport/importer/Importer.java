@@ -51,7 +51,6 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.NullLogger;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
@@ -63,6 +62,7 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RiotException;
 import org.slf4j.Logger;
+
 
 /**
  * Fedora Import Utility
@@ -97,11 +97,7 @@ public class Importer implements TransferProcess {
     public Importer(final Config config, final FcrepoClient.FcrepoClientBuilder clientBuilder) {
         this.config = config;
         this.clientBuilder = clientBuilder;
-        if (config.getAuditLog()) {
-            importLogger = getLogger(IMPORT_EXPORT_LOG_PREFIX);
-        } else {
-            importLogger = new NullLogger();
-        }
+        this.importLogger = config.getAuditLog();
     }
 
     private FcrepoClient client() {
