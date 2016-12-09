@@ -177,9 +177,10 @@ public class ArgParser {
             } catch (final ParseException e) {
                 printHelp("Error parsing args: " + e.getMessage());
             }
-            // Write command line options to disk
-            saveConfig(config);
         }
+
+        // Write command line options to disk
+        saveConfig(config);
 
         return config;
     }
