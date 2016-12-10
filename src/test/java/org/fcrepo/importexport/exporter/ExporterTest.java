@@ -42,6 +42,7 @@ import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,7 +89,6 @@ public class ExporterTest {
         args.setBaseDirectory(exportDirectory);
         args.setIncludeBinaries(true);
         args.setPredicates(predicates);
-        args.setRdfExtension(".jsonld");
         args.setRdfLanguage("application/ld+json");
         args.setResource(resource);
 
@@ -97,7 +97,6 @@ public class ExporterTest {
         binaryArgs.setBaseDirectory(exportDirectory);
         binaryArgs.setIncludeBinaries(true);
         binaryArgs.setPredicates(predicates);
-        binaryArgs.setRdfExtension(".jsonld");
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(resource3);
 
@@ -106,7 +105,6 @@ public class ExporterTest {
         noBinaryArgs.setBaseDirectory(exportDirectory);
         noBinaryArgs.setIncludeBinaries(false);
         noBinaryArgs.setPredicates(predicates);
-        noBinaryArgs.setRdfExtension(".jsonld");
         noBinaryArgs.setRdfLanguage("application/ld+json");
         noBinaryArgs.setResource(resource3);
 
@@ -114,7 +112,6 @@ public class ExporterTest {
         metadataArgs.setMode("export");
         metadataArgs.setBaseDirectory(exportDirectory);
         metadataArgs.setPredicates(predicates);
-        metadataArgs.setRdfExtension(".jsonld");
         metadataArgs.setRdfLanguage("application/ld+json");
         metadataArgs.setResource(resource);
 

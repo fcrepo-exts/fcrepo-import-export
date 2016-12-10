@@ -17,33 +17,32 @@
  */
 package org.fcrepo.importexport.integration;
 
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
-import org.junit.Test;
-import org.slf4j.Logger;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
-import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.apache.http.HttpStatus.SC_NO_CONTENT;
-import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_EXT;
-import static org.fcrepo.importexport.ArgParser.DEFAULT_RDF_LANG;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.jena.rdf.model.Model;
+import org.junit.Test;
+import org.slf4j.Logger;
 
 /**
  * @author awoods
@@ -82,7 +81,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setBaseDirectory(exportPath);
         config.setIncludeBinaries(true);
         config.setPredicates(predicates);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(parent.toString());
         config.setUsername(USERNAME);
@@ -123,7 +121,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setIncludeBinaries(true);
         config.setBaseDirectory(referencePath);
         config.setPredicates(predicates);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
         config.setSource(sourceURI.toString());
@@ -154,7 +151,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMode("import");
         config.setBaseDirectory(indirectPath);
         config.setPredicates(predicates);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
         config.setSource(sourceURI.toString());
@@ -197,6 +193,7 @@ public class ImporterIT extends AbstractResourceIT {
         return model.contains(createResource(linkFrom.toString()), null, createResource(linkTo.toString()));
     }
 
+    @Override
     protected Logger logger() {
         return getLogger(ImporterIT.class);
     }

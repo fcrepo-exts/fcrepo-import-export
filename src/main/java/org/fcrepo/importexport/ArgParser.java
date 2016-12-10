@@ -17,9 +17,22 @@
  */
 package org.fcrepo.importexport;
 
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -27,51 +40,30 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.jena.riot.Lang;
-
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
 import org.slf4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
+import com.esotericsoftware.yamlbeans.YamlReader;
+import com.esotericsoftware.yamlbeans.YamlWriter;
 
 /**
  * Command-line arguments parser.
  *
  * @author awoods
  * @author escowles
+ * @author whikloj
  * @since 2016-08-29
  */
 public class ArgParser {
 
     private static final Logger logger = getLogger(ArgParser.class);
 
-    public static final String DEFAULT_RDF_LANG = "text/turtle";
-    public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
-    public static final String CONFIG_FILE_NAME = "importexport.config";
-    public static final String[] DEFAULT_PREDICATES = new String[]{ CONTAINS.toString() };
+    public static final String CONFIG_FILE_NAME = "importexport.yml";
 
-    private final Options configOptions;
-    private final Options configFileOptions;
+    private static final Options configOptions = new Options();
 
-    /**
-     * Constructor that creates the command line options
-     */
-    public ArgParser() {
-        // Command Line Options
-        configOptions = new Options();
-        configFileOptions = new Options();
+    private static final Options configFileOptions = new Options();
 
+    static {
         // Help option
         configOptions.addOption(Option.builder("h")
                 .longOpt("help")
@@ -121,7 +113,7 @@ public class ArgParser {
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
                 .hasArg(true).numberOfArgs(1).argName("rdfLang")
-                .desc("RDF language (default: " + DEFAULT_RDF_LANG + ")")
+                .desc("RDF language (default: " + Config.DEFAULT_RDF_LANG + ")")
                 .required(false).build());
 
         // containment predicates
@@ -155,59 +147,63 @@ public class ArgParser {
 
     }
 
+    /**
+     * Parse command line arguments into a Config object
+     *
+     * @param args command line arguments
+     * @return the parsed config file or command line args.
+     */
     protected Config parseConfiguration(final String[] args) {
         // first see if they've specified a config file
         CommandLine c = null;
         Config config = null;
         try {
-            c = parseConfigFileCommandLineArgs(args);
+            c = parseConfigArgs(configFileOptions, args);
             config = parseConfigFileOptions(c);
             addSharedOptions(c, config);
-        } catch (ParseException ignore) {
+        } catch (final ParseException ignore) {
             logger.debug("Command line argments weren't valid for specifying a config file.");
         }
         if (config == null) {
             // check for presence of the help flag
             if (helpFlagged(args)) {
-                printHelpWithoutHeaderMessage();
+                printHelp(null);
             }
 
             try {
-                c = parseConfigArgs(args);
-                config = this.parseConfigurationArgs(c);
+                c = parseConfigArgs(configOptions, args);
+                config = parseConfigurationArgs(c);
                 addSharedOptions(c, config);
-            } catch (ParseException e) {
+            } catch (final ParseException e) {
                 printHelp("Error parsing args: " + e.getMessage());
             }
         }
 
         // Write command line options to disk
-        saveConfig(c);
-
-
+        saveConfig(config);
 
         return config;
     }
 
     /**
-     * @param args
-     * @return
+     * Check for a help flag
+     *
+     * @param args command line arguments
+     * @return whether the help flag was found.
      */
     private boolean helpFlagged(final String[] args) {
-        for (String arg : args) {
-            if (arg.equals("-h") || arg.equals("--help")) {
-                return true;
-            }
-        }
-
-        return false;
+        return Stream.of(args).anyMatch(x -> x.equals("-h") || x.equals("--help"));
     }
 
-    private CommandLine parseConfigFileCommandLineArgs(final String[] args) throws ParseException {
-        return new DefaultParser().parse(configFileOptions, args);
-    }
-
-    private CommandLine parseConfigArgs(final String[] args) throws ParseException {
+    /**
+     * Parse command line options based on the provide Options
+     *
+     * @param configOptions valid set of Options
+     * @param args command line arguments
+     * @return the list of option and values
+     * @throws ParseException if invalid/missing option is found
+     */
+    private static CommandLine parseConfigArgs(final Options configOptions, final String[] args) throws ParseException {
         return new DefaultParser().parse(configOptions, args);
     }
 
@@ -218,15 +214,9 @@ public class ArgParser {
      * @return Config or null if no config file option was provided
      */
     private Config parseConfigFileOptions(final CommandLine cmd) {
-        final String[] fileArgs = retrieveConfig(new File(cmd.getOptionValue('c')));
-        try {
-            final Config config = parseConfigurationArgs(parseConfigArgs(fileArgs));
-            addSharedOptions(cmd, config);
-            return config;
-        } catch (ParseException e) {
-            printHelp("Unable to parse config file: " + e.getMessage());
-            return null;
-        }
+        final Config config = retrieveConfig(new File(cmd.getOptionValue('c')));
+        addSharedOptions(cmd, config);
+        return config;
     }
 
     /**
@@ -235,23 +225,18 @@ public class ArgParser {
      * @param configFile containing config args
      * @return Array of args
      */
-    private String[] retrieveConfig(final File configFile) {
+    private Config retrieveConfig(final File configFile) {
         if (!configFile.exists()) {
             printHelp("Configuration file does not exist: " + configFile);
         }
 
-        final ArrayList<String> args = new ArrayList<>();
         try {
-            try (final BufferedReader configReader = new BufferedReader(new FileReader(configFile))) {
-                String line = configReader.readLine();
-                while (line != null) {
-                    args.add(line);
-                    line = configReader.readLine();
-                }
-            }
-            return args.toArray(new String[args.size()]);
+            final YamlReader reader = new YamlReader(new FileReader(configFile));
+            @SuppressWarnings("unchecked")
+            final Map<String, String> configVars = (HashMap<String, String>) reader.read();
+            return configFromFile(configVars);
 
-        } catch (IOException e) {
+        } catch (final IOException | java.text.ParseException e) {
             throw new RuntimeException("Unable to read configuration file due to: " + e.getMessage(), e);
         }
     }
@@ -276,24 +261,20 @@ public class ArgParser {
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
 
-        final String rdfLanguage = cmd.getOptionValue('l', DEFAULT_RDF_LANG);
-        config.setRdfLanguage(rdfLanguage);
-        config.setRdfExtension(getRDFExtension(rdfLanguage));
+        final String rdfLanguage = cmd.getOptionValue('l');
+        if (rdfLanguage != null) {
+            config.setRdfLanguage(rdfLanguage);
+        }
         config.setSource(cmd.getOptionValue('s'));
-        config.setPredicates((cmd.getOptionValues('p') == null) ? DEFAULT_PREDICATES : cmd.getOptionValues('p'));
+        if (cmd.getOptionValues('p') != null) {
+            config.setPredicates(cmd.getOptionValues('p'));
+        }
         config.setAuditLog(cmd.hasOption('a'));
 
         return config;
     }
 
-    private static String getRDFExtension(final String language) {
-        final Lang lang = contentTypeToLang(language);
-        if (lang == null) {
-            throw new RuntimeException(language + " is not a recognized RDF language");
-        }
 
-        return "." + lang.getFileExtensions().get(0);
-    }
 
     /**
      * This method add/updates the values of any options that may be
@@ -319,7 +300,7 @@ public class ArgParser {
      * implementation omits the user/password information.
      * @param args to be persisted
      */
-    private void saveConfig(final CommandLine cmd) {
+    private void saveConfig(final Config config) {
         final File configFile = new File(System.getProperty("java.io.tmpdir"), CONFIG_FILE_NAME);
 
         // Leave existing config file alone
@@ -329,22 +310,14 @@ public class ArgParser {
         }
 
         // Write config to file
-        try (final BufferedWriter configWriter = new BufferedWriter(new FileWriter(configFile));) {
-            for (Option option : cmd.getOptions()) {
-                // write out all but the username/password
-                if (!option.getOpt().equals("u")) {
-                    configWriter.write("-" + option.getOpt());
-                    configWriter.newLine();
-                    if (option.getValue() != null) {
-                        configWriter.write(option.getValue());
-                        configWriter.newLine();
-                    }
-                }
-            }
-
+        try {
+            final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
+            logger.debug("YAML output is ({})", getMap(config).toString());
+            writer.write(getMap(config));
+            writer.close();
             logger.info("Saved configuration to: {}", configFile.getPath());
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Unable to write configuration file due to: " + e.getMessage(), e);
         }
     }
@@ -364,14 +337,20 @@ public class ArgParser {
         throw new IllegalArgumentException("Invalid mode parameter");
     }
 
+    /**
+     * Get a new client
+     *
+     * @return
+     */
     private FcrepoClient.FcrepoClientBuilder clientBuilder() {
         return FcrepoClient.client();
     }
 
-    private void printHelpWithoutHeaderMessage() {
-        printHelp(null);
-    }
-
+    /**
+     * Print help/usage information
+     *
+     * @param message the message or null for none
+     */
     private void printHelp(final String message) {
         final HelpFormatter formatter = new HelpFormatter();
         final PrintWriter writer = new PrintWriter(System.out);
@@ -390,7 +369,78 @@ public class ArgParser {
         writer.println("\n");
         writer.flush();
 
-        throw new RuntimeException(message);
+        if (message != null) {
+            throw new RuntimeException(message);
+        } else {
+            throw new RuntimeException();
+        }
+    }
+
+    /**
+     * Static constructor using Yaml hashmap
+     *
+     * @param configVars config vars from Yaml file
+     * @return Config object with values from Yaml
+     * @throws java.text.ParseException If the Yaml does not parse correctly.
+     */
+    public static Config configFromFile(final Map<String, String> configVars) throws java.text.ParseException {
+        final Config c = new Config();
+        int lineNumber = 0;
+        for (Map.Entry<String, String> entry : configVars.entrySet()) {
+            logger.debug("config map entry is ({}) and value ({})", entry.getKey(), entry.getValue());
+            lineNumber += 1;
+            if (entry.getKey().equalsIgnoreCase("mode")) {
+                if (entry.getValue().equalsIgnoreCase("import") || entry.getValue().equalsIgnoreCase("export")) {
+                    c.setMode(entry.getValue());
+                } else {
+                    throw new java.text.ParseException(
+                        String.format("Invalid value for \"mode\": {}", entry.getValue()), lineNumber);
+                }
+            } else if (entry.getKey().equalsIgnoreCase("resource")) {
+                c.setResource(entry.getValue());
+            } else if (entry.getKey().equalsIgnoreCase("source")) {
+                c.setSource(entry.getValue());
+            } else if (entry.getKey().equalsIgnoreCase("dir")) {
+                c.setBaseDirectory(entry.getValue());
+            } else if (entry.getKey().equalsIgnoreCase("rdfLang")) {
+                c.setRdfLanguage(entry.getValue());
+            } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
+                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
+                    c.setIncludeBinaries(Boolean.parseBoolean(entry.getValue()));
+                } else {
+                    throw new java.text.ParseException(String.format(
+                        "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
+                        entry.getValue()), lineNumber);
+                }
+            } else if (entry.getKey().equalsIgnoreCase("predicates")) {
+                c.setPredicates(entry.getValue().split(","));
+            } else {
+                throw new java.text.ParseException(String.format("Unknown configuration key: {}", entry.getKey()),
+                    lineNumber);
+            }
+        }
+        return c;
+    }
+
+    /**
+     * Generate a HashMap suitable for serializing to Yaml from a Config
+     *
+     * @param config the config to turn into a Hashmap
+     * @return Map key value pairs of configuration
+     */
+    public static Map<String, String> getMap(final Config config) {
+        final Map<String, String> map = new HashMap<String, String>();
+        map.put("mode", (config.isImport() ? "import" : "export"));
+        map.put("resource", config.getResource().toString());
+        if (!config.getSource().toString().isEmpty()) {
+            map.put("source", config.getSource().toString());
+        }
+        map.put("dir", config.getBaseDirectory().getAbsolutePath());
+        if (!config.getRdfLanguage().isEmpty()) {
+            map.put("rdfLang", config.getRdfLanguage());
+        }
+        map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
+        return map;
     }
 
 }

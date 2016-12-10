@@ -17,20 +17,22 @@
  */
 package org.fcrepo.importexport;
 
+import static java.lang.System.getProperty;
+import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.fcrepo.importexport.common.Config;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.lang.System.getProperty;
-import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 
 /**
  * @author awoods
@@ -88,15 +90,11 @@ public class ArgParserTest {
         // Create test config file
         final File configFile = File.createTempFile("config-test", ".txt");
         final FileWriter writer = new FileWriter(configFile);
-        writer.append("-b\n");
-        writer.append("-m\n");
-        writer.append("export\n");
-        writer.append("-r\n");
-        writer.append("http://localhost:8080/rest/test\n");
-        writer.append("-d\n");
-        writer.append("/tmp/import-export-dir\n");
-        writer.append("-p\n");
-        writer.append("http://www.w3.org/ns/ldp#contains,http://example.org/custom\n");
+        writer.append("binaries: true\n");
+        writer.append("mode: export\n");
+        writer.append("resource: http://localhost:8080/rest/test\n");
+        writer.append("dir: /tmp/import-export-dir\n");
+        writer.append("predicates: http://www.w3.org/ns/ldp#contains,http://example.org/custom\n");
         writer.flush();
 
         final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
@@ -115,6 +113,38 @@ public class ArgParserTest {
     }
 
     @Test (expected = RuntimeException.class)
+    public void parseConfigBadKey() throws IOException {
+        // Create test config file
+        final File configFile = File.createTempFile("config-test", ".txt");
+        final FileWriter writer = new FileWriter(configFile);
+        writer.append("binaries: true\n");
+        writer.append("mode: export\n");
+        writer.append("resource: http://localhost:8080/rest/test\n");
+        writer.append("baditem: oops\n");
+        writer.append("dir: /tmp/import-export-dir\n");
+        writer.flush();
+
+        final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
+        final Config config = parser.parseConfiguration(args);
+    }
+
+    @Test (expected = RuntimeException.class)
+    public void parseConfigBadValue() throws IOException {
+        // Create test config file
+        final File configFile = File.createTempFile("config-test", ".txt");
+        final FileWriter writer = new FileWriter(configFile);
+        writer.append("binaries: yep\n");
+        writer.append("mode: export\n");
+        writer.append("resource: http://localhost:8080/rest/test\n");
+        writer.append("dir: /tmp/import-export-dir\n");
+        writer.flush();
+
+        final String[] args = new String[] { "-c", configFile.getAbsolutePath() };
+        final Config config = parser.parseConfiguration(args);
+
+    }
+
+    @Test(expected = RuntimeException.class)
     public void parseDescriptionDirectoryRequired() throws Exception {
         final String[] args = new String[]{"-m", "export", "-r", "http://localhost:8080/rest/1"};
         parser.parse(args);

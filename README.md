@@ -42,7 +42,7 @@ Running the import/export utility with command-line arguments
 $ java -jar target/fcrepo-import-export-<version>.jar --mode [import|export] [options]
 ```
 
-To control the format of the exported RDF, the extension and RDF language/serialization format can also be specified by adding, e.g.:
+To control the format of the exported RDF, the RDF language/serialization format can also be specified by adding, e.g.:
 
 ```sh
 --rdfLang application/ld+json
@@ -86,15 +86,22 @@ $ java -jar target/fcrepo-import-export-<version>.jar -c /path/to/config/file
 ```
 
 The easiest way to see an example of the configuration file is to run the utility with command-line arguments and inspect the configuration file created.
-That configuration file will look something like the following:
+
+That configuration file is [Yaml](http://yaml.org) and allows for the following options:
+
+* mode: [import|export] # which mode to operate in
+* dir: Directory to import from/export to
+* binaries: [true|false] # whether is import/export binary resources
+* source: Source hostname, used if the files were exported from a different hostname. Only for import mode.
+* resource: The resource to export/import
+* rdfLang: The RDF language to export into or import from
+
+and will look something like the following:
 
 ```
--m
-export
--d
-/tmp/test
--r
-http://localhost:8080/rest/1
+mode: export
+dir: /tmp/test
+resource: http://localhost:8080/rest/1
 ```
 
 Maintainers
