@@ -125,6 +125,14 @@ public class ArgParser {
                 .desc("Comma-separated list of predicates to define resource containment")
                 .build());
 
+        // bagit creation
+        configOptions.addOption(Option.builder("g")
+                .longOpt("bag").argName("bag")
+                .hasArg(true).numberOfArgs(1).argName("bag")
+                .required(false)
+                .desc("Export and import BagIt bags using profile [default]")
+                .build());
+
         // username option
         final Option userOption = Option.builder("u")
                 .longOpt("user")
@@ -269,6 +277,7 @@ public class ArgParser {
         if (cmd.getOptionValues('p') != null) {
             config.setPredicates(cmd.getOptionValues('p'));
         }
+        config.setBagProfile(cmd.getOptionValue('g'));
         config.setAuditLog(cmd.hasOption('a'));
 
         return config;
@@ -412,6 +421,8 @@ public class ArgParser {
                         "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
                         entry.getValue()), lineNumber);
                 }
+            } else if (entry.getKey().equalsIgnoreCase("bag")) {
+                c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
             } else {

@@ -68,6 +68,7 @@ public class ExporterTest {
     private Config binaryArgs;
     private Config noBinaryArgs;
     private Config metadataArgs;
+    private Config bagArgs;
     private String exportDirectory = "target/export";
     private String[] predicates = new String[]{ CONTAINS.toString() };
 
@@ -115,6 +116,15 @@ public class ExporterTest {
         metadataArgs.setRdfLanguage("application/ld+json");
         metadataArgs.setResource(resource);
 
+        bagArgs = new Config();
+        bagArgs.setMode("export");
+        bagArgs.setBaseDirectory(exportDirectory);
+        bagArgs.setIncludeBinaries(true);
+        bagArgs.setPredicates(predicates);
+        bagArgs.setRdfLanguage("application/ld+json");
+        bagArgs.setResource(resource3);
+        bagArgs.setBagProfile("default");
+
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
@@ -156,6 +166,17 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
+    }
+
+    @Test
+    public void testExportBag() throws Exception, FcrepoOperationFailedException {
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
     }
 
     @Test
