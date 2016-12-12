@@ -17,7 +17,10 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import static org.apache.commons.io.IOUtils.copy;
+import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA1;
+
+import static javax.xml.bind.DatatypeConverter.printHexBinary;
+
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
@@ -29,11 +32,22 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.domain.Version;
+import gov.loc.repository.bagit.writer.BagWriter;
 
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -62,6 +76,9 @@ public class Exporter implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private URI binaryURI;
     private URI containerURI;
+    private Bag bag;
+    private MessageDigest sha1;
+    private HashMap<File, String> sha1FileMap;
 
     private Logger exportLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -78,6 +95,25 @@ public class Exporter implements TransferProcess {
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
         this.exportLogger = config.getAuditLog();
+
+        if (config.getBagProfile() == null) {
+            this.bag = null;
+            this.sha1 = null;
+            this.sha1FileMap = null;
+        } else {
+
+            try {
+                final File bagdir = config.getBaseDirectory().getParentFile();
+                bagdir.mkdirs();
+                this.bag = new Bag(new Version(0, 97));
+                this.bag.setRootDir(bagdir);
+
+                this.sha1FileMap = new HashMap<>();
+                sha1 = MessageDigest.getInstance("SHA-1");
+            } catch (NoSuchAlgorithmException e) {
+                // never happens with known algorithm names
+            }
+        }
     }
 
     private FcrepoClient client() {
@@ -94,6 +130,22 @@ public class Exporter implements TransferProcess {
     public void run() {
         logger.info("Running exporter...");
         export(config.getResource());
+        if (bag != null) {
+            try {
+                logger.info("Finishing bag manifests...");
+                final Manifest manifest = new Manifest(SHA1);
+                manifest.setFileToChecksumMap(sha1FileMap);
+                final Set<Manifest> manifests = new HashSet<>();
+                manifests.add(manifest);
+                bag.setPayLoadManifests(manifests);
+                BagWriter.writeBagitFile(bag.getVersion(), bag.getFileEncoding(), bag.getRootDir());
+                BagWriter.writePayloadManifests(bag.getPayLoadManifests(), bag.getRootDir(), bag.getFileEncoding());
+            } catch (IOException e) {
+                throw new RuntimeException("Error finishing Bag: " + e.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         exportLogger.info("Finished export... {} resources exported", successCount.get());
     }
 
@@ -185,6 +237,10 @@ public class Exporter implements TransferProcess {
         try (OutputStream out = new FileOutputStream(file)) {
             copy(response.getBody(), out);
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
+
+            if (sha1FileMap != null) {
+                sha1FileMap.put(file, printHexBinary(sha1.digest()));
+            }
         }
 
         final List<URI> describedby = response.getLinkHeaders("describedby");
@@ -193,6 +249,22 @@ public class Exporter implements TransferProcess {
         }
     }
 
+    /**
+     * Copy bytes and generate checksums
+     * @param in Source data
+     * @param out Data destination
+     * @throws IOException If an I/O error occurs
+     */
+    private void copy(final InputStream in, final OutputStream out) throws IOException {
+        int read = 0;
+        final byte[] buf = new byte[8192];
+        while ((read = in.read(buf)) != -1) {
+            if (sha1 != null) {
+              sha1.update(buf, 0, read);
+            }
+            out.write(buf, 0, read);
+        }
+    }
 
     /**
      * Checks the response code and throws a RuntimeException with a helpful

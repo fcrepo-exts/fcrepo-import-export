@@ -53,6 +53,7 @@ public class Config {
     private File baseDirectory;
 
     private boolean includeBinaries = false;
+    private String bagProfile = null;
 
     private String[] predicates = DEFAULT_PREDICATES;
     private String rdfExtension = DEFAULT_RDF_EXT;
@@ -104,7 +105,7 @@ public class Config {
      * @return binaryDirectory
      */
     public File getBaseDirectory() {
-        return baseDirectory;
+        return (bagProfile == null) ? baseDirectory : new File(baseDirectory, "data");
     }
 
     /**
@@ -208,6 +209,22 @@ public class Config {
      */
     public void setPredicates(final String[] predicates) {
         this.predicates = predicates;
+    }
+
+    /**
+     * Get the BagIt profile
+     * @return BagIt profile name, or null for not using BagIt
+     */
+    public String getBagProfile() {
+        return bagProfile;
+    }
+
+    /**
+     * Set the BagIt profile
+     * @param bagProfile The name of the BagIt profile, or null for not using BagIt
+     */
+    public void setBagProfile(final String bagProfile) {
+        this.bagProfile = bagProfile;
     }
 
     /**

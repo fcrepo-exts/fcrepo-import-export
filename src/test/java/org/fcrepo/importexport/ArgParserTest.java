@@ -77,12 +77,21 @@ public class ArgParserTest {
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+        Assert.assertNull(config.getBagProfile());
     }
 
     @Test(expected = RuntimeException.class)
     public void parseInvalidRdfLanguage() throws Exception {
         parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, new String[] {
             "-l", "invalid/language" }));
+    }
+
+    @Test
+    public void parseBagProfile() throws Exception {
+        final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
+            new String[] {"-g", "default" }));
+        Assert.assertEquals("default", config.getBagProfile());
+        Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
     }
 
     @Test
