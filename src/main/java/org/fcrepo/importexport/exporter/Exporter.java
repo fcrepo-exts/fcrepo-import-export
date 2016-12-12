@@ -19,8 +19,10 @@ package org.fcrepo.importexport.exporter;
 
 import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA1;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
@@ -37,9 +39,12 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -81,7 +86,9 @@ public class Exporter implements TransferProcess {
     private HashMap<File, String> sha1FileMap;
 
     private Logger exportLogger;
+    private SimpleDateFormat dateFormat;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
+    private AtomicLong successBytes = new AtomicLong();
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -95,6 +102,7 @@ public class Exporter implements TransferProcess {
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
         this.exportLogger = config.getAuditLog();
+        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         if (config.getBagProfile() == null) {
             this.bag = null;
@@ -139,6 +147,8 @@ public class Exporter implements TransferProcess {
                 manifests.add(manifest);
                 bag.setPayLoadManifests(manifests);
                 BagWriter.writeBagitFile(bag.getVersion(), bag.getFileEncoding(), bag.getRootDir());
+                BagWriter.writeBagitInfoFile(bagMetadata(), bag.getRootDir(), UTF_8.name());
+
                 BagWriter.writePayloadManifests(bag.getPayLoadManifests(), bag.getRootDir(), bag.getFileEncoding());
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
@@ -146,7 +156,16 @@ public class Exporter implements TransferProcess {
                 e.printStackTrace();
             }
         }
-        exportLogger.info("Finished export... {} resources exported", successCount.get());
+        exportLogger.info("Finished export... {} bytes/{} resources exported", successBytes.get(),
+                successCount.get());
+    }
+
+    private LinkedHashMap<String, String> bagMetadata() {
+        final LinkedHashMap<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("Bag-Size", byteCountToDisplaySize(successBytes.longValue()));
+        metadata.put("Payload-Oxum", successBytes.toString() + "." + successCount.toString());
+        metadata.put("Bagging-Date", dateFormat.format(new Date()));
+        return metadata;
     }
 
     private void export(final URI uri) {
@@ -263,6 +282,7 @@ public class Exporter implements TransferProcess {
               sha1.update(buf, 0, read);
             }
             out.write(buf, 0, read);
+            successBytes.addAndGet((int)read);
         }
     }
 
