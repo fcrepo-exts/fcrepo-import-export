@@ -24,8 +24,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fcrepo.client.FcrepoClient;
@@ -237,7 +239,7 @@ public class ArgParser {
         if (!configFile.exists()) {
             printHelp("Configuration file does not exist: " + configFile);
         }
-
+        logger.debug("Loading configuration file: {}", configFile);
         try {
             final YamlReader reader = new YamlReader(new FileReader(configFile));
             @SuppressWarnings("unchecked")
@@ -451,6 +453,11 @@ public class ArgParser {
             map.put("rdfLang", config.getRdfLanguage());
         }
         map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
+        if (config.getBagProfile() != null) {
+            map.put("bag", config.getBagProfile());
+        }
+        final String predicates = Arrays.stream(config.getPredicates()).collect(Collectors.joining(","));
+        map.put("predicates", predicates);
         return map;
     }
 
