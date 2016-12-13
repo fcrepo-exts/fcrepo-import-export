@@ -33,7 +33,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class BagProfile {
 
-    private Set<String> digestAlgorithms;
+    private Set<String> payloadDigestAlgorithms;
+    private Set<String> tagDigestAlgorithms;
     private Map<String, Set<String>> metadataFields;
     private Map<String, Set<String>> aptrustFields;
 
@@ -43,12 +44,15 @@ public class BagProfile {
      * @throws IOException when there is an I/O error reading JSON
      */
     public BagProfile(final InputStream in) throws IOException {
-        digestAlgorithms = new HashSet<>();
-
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
 
-        digestAlgorithms = arrayValues(json, "Manifests-Required");
+        payloadDigestAlgorithms = arrayValues(json, "Manifests-Required");
+        tagDigestAlgorithms = arrayValues(json, "Tag-Manifests-Required");
+        if (tagDigestAlgorithms == null) {
+            tagDigestAlgorithms = payloadDigestAlgorithms;
+        }
+
         metadataFields = metadataFields(json, "Bag-Info");
         aptrustFields = metadataFields(json, "APTrust-Info");
     }
@@ -87,11 +91,19 @@ public class BagProfile {
     }
 
     /**
-     * Get the required digest algorithms.
+     * Get the required digest algorithms for payload manifests.
      * @return Set of digest algorithm names
      */
-    public Set<String> getDigestAlgorithms() {
-        return digestAlgorithms;
+    public Set<String> getPayloadDigestAlgorithms() {
+        return payloadDigestAlgorithms;
+    }
+
+    /**
+     * Get the required digest algorithms for tag manifests.
+     * @return Set of digest algorithm names
+     */
+    public Set<String> getTagDigestAlgorithms() {
+        return tagDigestAlgorithms;
     }
 
     /**

@@ -1,11 +1,11 @@
 {
    "BagIt-Profile-Info":{
-      "BagIt-Profile-Identifier":"http://fedora.info/aptrust.json",
+      "BagIt-Profile-Identifier":"http://fedora.info/bagprofile/aptrust.json",
       "Source-Organization":"Duraspace",
       "Contact-Name":"Esmé Cowles",
       "Contact-Email":"escowles@ticklefish.org",
-      "External-Description":"APTrust Bag Profile for Fedora.",
-      "Version":"0.1"
+      "External-Description":"Bag Profile for Fedora and APTrust.",
+      "Version":"1.2"
    },
    "Bag-Info":{
       "Source-Organization":{
@@ -65,6 +65,9 @@
    ],
    "Allow-Fetch.txt":false,
    "Serialization":"optional",
+   "Tag-Files-Required":[
+     "aptrust-info.txt"
+   ],
    "Tag-Manifests-Required":[
      "sha1"
    ],

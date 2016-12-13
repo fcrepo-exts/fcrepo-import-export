@@ -1,6 +1,6 @@
 {
    "BagIt-Profile-Info":{
-      "BagIt-Profile-Identifier":"http://fedora.info/fcrepoBagProfile.json",
+      "BagIt-Profile-Identifier":"http://fedora.info/bagprofile/default.json",
       "Source-Organization":"Duraspace",
       "Contact-Name":"Nick Ruest",
       "Contact-Email":"ruestn@yorku.ca",

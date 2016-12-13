@@ -36,9 +36,13 @@ public class BagProfileTest {
         final File testFile = new File("src/test/resources/profiles/test.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
-        assertTrue(profile.getDigestAlgorithms().contains("md5"));
-        assertTrue(profile.getDigestAlgorithms().contains("sha1"));
-        assertTrue(profile.getDigestAlgorithms().contains("sha256"));
+        assertTrue(profile.getPayloadDigestAlgorithms().contains("md5"));
+        assertTrue(profile.getPayloadDigestAlgorithms().contains("sha1"));
+        assertTrue(profile.getPayloadDigestAlgorithms().contains("sha256"));
+
+        assertFalse(profile.getTagDigestAlgorithms().contains("md5"));
+        assertTrue(profile.getTagDigestAlgorithms().contains("sha1"));
+        assertFalse(profile.getTagDigestAlgorithms().contains("sha256"));
 
         assertTrue(profile.getMetadataFields().keySet().contains("Source-Organization"));
         assertTrue(profile.getMetadataFields().keySet().contains("Organization-Address"));

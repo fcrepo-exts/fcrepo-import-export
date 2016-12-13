@@ -135,16 +135,26 @@ public class Exporter implements TransferProcess {
                 // always do sha1, do md5/sha256 if the profile asks for it
                 this.sha1FileMap = new HashMap<>();
                 this.sha1TagManifest = new Manifest(SHA1);
-                sha1 = MessageDigest.getInstance("SHA-1");
-                if (bagProfile.getDigestAlgorithms().contains("md5")) {
+                this.sha1 = MessageDigest.getInstance("SHA-1");
+                if (bagProfile.getPayloadDigestAlgorithms().contains("md5")) {
                     this.md5FileMap = new HashMap<>();
-                    this.md5TagManifest = new Manifest(MD5);
-                    md5 = MessageDigest.getInstance("MD5");
                 }
-                if (bagProfile.getDigestAlgorithms().contains("sha256")) {
+                if (bagProfile.getTagDigestAlgorithms().contains("md5")) {
+                    this.md5TagManifest = new Manifest(MD5);
+                }
+                if (bagProfile.getPayloadDigestAlgorithms().contains("md5") ||
+                        bagProfile.getTagDigestAlgorithms().contains("md5")) {
+                    this.md5 = MessageDigest.getInstance("MD5");
+                }
+                if (bagProfile.getPayloadDigestAlgorithms().contains("sha256")) {
                     this.sha256FileMap = new HashMap<>();
+                }
+                if (bagProfile.getTagDigestAlgorithms().contains("sha256")) {
                     this.sha256TagManifest = new Manifest(SHA256);
-                    sha256 = MessageDigest.getInstance("SHA-256");
+                }
+                if (bagProfile.getPayloadDigestAlgorithms().contains("sha256") ||
+                        bagProfile.getTagDigestAlgorithms().contains("sha256")) {
+                    this.sha256 = MessageDigest.getInstance("SHA-256");
                 }
 
                 enforceProfile(bagProfile.getMetadataFields());
@@ -223,10 +233,10 @@ public class Exporter implements TransferProcess {
             if (f.getName().startsWith("manifest-")) {
                 copy(new FileInputStream(f), null);
                 sha1TagManifest.getFileToChecksumMap().put(f, printHexBinary(sha1.digest()));
-                if (sha256 != null) {
+                if (sha256TagManifest != null) {
                     sha256TagManifest.getFileToChecksumMap().put(f, printHexBinary(sha256.digest()));
                 }
-                if (md5 != null) {
+                if (md5TagManifest != null) {
                     md5TagManifest.getFileToChecksumMap().put(f, printHexBinary(md5.digest()));
                 }
             }
@@ -365,6 +375,16 @@ public class Exporter implements TransferProcess {
      * @throws IOException If an I/O error occurs
      */
     private void copy(final InputStream in, final OutputStream out) throws IOException {
+        if (md5 != null) {
+            md5.reset();
+        }
+        if (sha1 != null) {
+            sha1.reset();
+        }
+        if (sha256 != null) {
+            sha256.reset();
+        }
+
         int read = 0;
         final byte[] buf = new byte[8192];
         while ((read = in.read(buf)) != -1) {

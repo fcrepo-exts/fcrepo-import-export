@@ -1,11 +1,11 @@
 {
    "BagIt-Profile-Info":{
-      "BagIt-Profile-Identifier":"http://fedora.info/metaarchive.json",
+      "BagIt-Profile-Identifier":"http://fedora.info/bagprofile/metaarchive.json",
       "Source-Organization":"Duraspace",
-      "Contact-Name":"Esmé Cowles",
-      "Contact-Email":"escowles@ticklefish.org",
-      "External-Description":"MetaArchive Bag Profile for Fedora.",
-      "Version":"0.1"
+      "Contact-Name":"Nick Ruest",
+      "Contact-Email":"ruestn@yorku.ca",
+      "External-Description":"Default Bag Profile for Fedora and MetaArchive.",
+      "Version":"1.2"
    },
    "Bag-Info":{
       "Source-Organization":{
