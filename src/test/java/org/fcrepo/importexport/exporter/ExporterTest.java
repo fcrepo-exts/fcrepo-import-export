@@ -185,6 +185,7 @@ public class ExporterTest {
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
         Assert.assertTrue(baginfoLines.contains("Bag-Size : 113 bytes"));
         Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
+        Assert.assertTrue(new File(exportDirectory + "/tagmanifest-SHA1.txt").exists());
     }
 
     @Test

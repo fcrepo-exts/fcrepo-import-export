@@ -17,7 +17,7 @@
  */
 package org.fcrepo.importexport.integration;
 
-import static javax.xml.bind.DatatypeConverter.printHexBinary;
+import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
@@ -89,7 +89,7 @@ public class BagItIT extends AbstractResourceIT {
             sha1.update(buf, 0, read);
         }
 
-        final String checksum = printHexBinary(sha1.digest());
+        final String checksum = new String(encodeHex(sha1.digest()));
         final BufferedReader reader = new BufferedReader(new FileReader(target.resolve("manifest-SHA1.txt").toFile()));
         final String checksumLine = reader.readLine();
         reader.close();
