@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -57,6 +58,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
@@ -241,7 +243,7 @@ public class Importer implements TransferProcess {
                     }
                     destinationUri = new URI(binaryResources.nextResource().getURI());
                     logger.info("Importing binary {}", sourceRelativePath);
-                    response = importBinary(destinationUri, sanitize(model));
+                    response = importBinary(destinationUri, model);
                 } else {
                     destinationUri = new URI(config.getResource().toString() + "/"
                             + uriPathForFile(f, importContainerDirectory));
@@ -259,15 +261,18 @@ public class Importer implements TransferProcess {
 
                 }
 
-                if (response.getStatusCode() == 401) {
+                if (response == null) {
+                    logger.warn("Failed to import {}", f.getAbsolutePath());
+                } else if (response.getStatusCode() == 401) {
                     importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
                         destinationUri);
                     throw new AuthenticationRequiredRuntimeException();
                 } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                    final String message = "Error while importing " + f.getAbsolutePath() + " ("
+                            + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
+                    logger.error(message);
                     importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                         response.getStatusCode());
-                    throw new RuntimeException("Error while importing " + f.getAbsolutePath()
-                            + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
                 } else {
                     logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
                     importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
@@ -301,21 +306,30 @@ public class Importer implements TransferProcess {
 
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
-        final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
+        final Resource binaryRes = createResource(binaryURI.toString());
+        final String contentType = model.getProperty(binaryRes, HAS_MIME_TYPE).getString();
         final boolean external = contentType.contains("message/external-body");
         final File binaryFile =  fileForBinaryURI(binaryURI, external);
-        final FcrepoResponse binaryResponse = client().put(binaryURI)
-                                                      .body(binaryFile, contentType)
-                                                      .perform();
+        PutBuilder builder = client().put(binaryURI).body(binaryFile, contentType);
+        if (!external) {
+            builder = builder.digest(model.getProperty(binaryRes, HAS_MESSAGE_DIGEST)
+                                          .getObject().toString().replaceAll(".*:",""));
+        }
+        final FcrepoResponse binaryResponse = builder.perform();
+
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
             importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
             successCount.incrementAndGet();
-        }
 
-        final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
-        return client().put(descriptionURI).body(modelToStream(model), config.getRdfLanguage())
-            .preferLenient().perform();
+            final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
+            return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                .preferLenient().perform();
+        } else {
+            logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
+            return null;
+        }
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
