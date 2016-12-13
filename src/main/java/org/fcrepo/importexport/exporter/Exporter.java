@@ -24,7 +24,8 @@ import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA256;
 import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.MD5;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static javax.xml.bind.DatatypeConverter.printHexBinary;
+
+import static org.apache.commons.codec.binary.Hex.encodeHex;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
@@ -232,12 +233,12 @@ public class Exporter implements TransferProcess {
         try {
             if (f.getName().startsWith("manifest-")) {
                 copy(new FileInputStream(f), null);
-                sha1TagManifest.getFileToChecksumMap().put(f, printHexBinary(sha1.digest()));
+                sha1TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(sha1.digest())));
                 if (sha256TagManifest != null) {
-                    sha256TagManifest.getFileToChecksumMap().put(f, printHexBinary(sha256.digest()));
+                    sha256TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(sha256.digest())));
                 }
                 if (md5TagManifest != null) {
-                    md5TagManifest.getFileToChecksumMap().put(f, printHexBinary(md5.digest()));
+                    md5TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(md5.digest())));
                 }
             }
         } catch (IOException e) {
@@ -352,13 +353,13 @@ public class Exporter implements TransferProcess {
             logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
 
             if (md5FileMap != null) {
-                md5FileMap.put(file, printHexBinary(md5.digest()));
+                md5FileMap.put(file, new String(encodeHex(md5.digest())));
             }
             if (sha1FileMap != null) {
-                sha1FileMap.put(file, printHexBinary(sha1.digest()));
+                sha1FileMap.put(file, new String(encodeHex(sha1.digest())));
             }
             if (sha256FileMap != null) {
-                sha256FileMap.put(file, printHexBinary(sha256.digest()));
+                sha256FileMap.put(file, new String(encodeHex(sha256.digest())));
             }
         }
 
