@@ -17,6 +17,8 @@
  */
 package org.fcrepo.importexport.exporter;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.FileUtils.readLines;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
@@ -177,6 +179,12 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+
+        final File baginfo = new File(exportDirectory + "/bag-info.txt");
+        Assert.assertTrue(baginfo.exists());
+        final List<String> baginfoLines = readLines(baginfo, UTF_8);
+        Assert.assertTrue(baginfoLines.contains("Bag-Size : 113 bytes"));
+        Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
     }
 
     @Test
