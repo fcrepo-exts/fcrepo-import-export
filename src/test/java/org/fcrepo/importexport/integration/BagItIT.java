@@ -38,6 +38,7 @@ import java.util.UUID;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -67,7 +68,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile("default");
+        config.setBagProfile(DEFAULT_BAG_PROFILE);
         new Exporter(config, clientBuilder).run();
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
@@ -94,6 +95,32 @@ public class BagItIT extends AbstractResourceIT {
         final String checksumLine = reader.readLine();
         reader.close();
         assertEquals(checksum, checksumLine.split(" ")[0]);
+    }
+
+    @Test
+    public void testImportBag() throws Exception {
+        final URI resourceURI = URI.create("http://localhost:8080/rest/testBagImport");
+        final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(DEFAULT_BAG_PROFILE);
+
+        // Resource doesn't exist
+        assertEquals(404, clientBuilder.build().get(resourceURI).perform().getStatusCode());
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // Resource does exist.
+        final FcrepoResponse response = clientBuilder.build().get(resourceURI).perform();
+        assertEquals(200, response.getStatusCode());
     }
 
 

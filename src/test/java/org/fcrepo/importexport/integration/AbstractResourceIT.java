@@ -86,6 +86,8 @@ abstract class AbstractResourceIT {
 
     static final String TARGET_DIR = System.getProperty("project.build.directory");
 
+    static final String DEFAULT_BAG_PROFILE = "default";
+
     static FcrepoClient.FcrepoClientBuilder clientBuilder;
 
     AbstractResourceIT() {

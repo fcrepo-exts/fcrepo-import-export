@@ -21,10 +21,17 @@ import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * @author barmintor
@@ -117,5 +124,25 @@ public interface TransferProcess {
      */
     public static File directoryForContainer(final URI uri, final File baseDir) {
         return new File(baseDir, TransferProcess.encodePath(uri.getPath()));
+    }
+
+    /**
+     * Gets a Map of files and sha1 checksums from the BagIt manifest file.
+     *
+     * @param manifestFile the manifest file
+     * @return the map
+     */
+    public static Map<File, String> getSha1FileMap(final Path manifestFile) {
+        final Map<File, String> sha1FileMap = new HashMap<File, String>();
+        try (final Stream<String> stream = Files.lines(manifestFile)) {
+            stream.forEach(l -> {
+                final File file = Paths.get(l.split(" ")[1]).toFile();
+                final String checksum = l.split(" ")[0].trim();
+                sha1FileMap.put(file, checksum);
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Error reading manifest: {}", manifestFile.toString()), e);
+        }
+        return sha1FileMap;
     }
 }

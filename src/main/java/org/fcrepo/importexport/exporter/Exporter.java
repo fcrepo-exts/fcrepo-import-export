@@ -62,6 +62,7 @@ import gov.loc.repository.bagit.domain.Version;
 import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 import gov.loc.repository.bagit.writer.BagWriter;
 
+
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -75,6 +76,12 @@ import org.fcrepo.importexport.common.TransferProcess;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.slf4j.Logger;
+
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.domain.Version;
+import gov.loc.repository.bagit.verify.BagVerifier;
+import gov.loc.repository.bagit.writer.BagWriter;
 
 /**
  * Fedora Export Utility
@@ -219,6 +226,8 @@ public class Exporter implements TransferProcess {
                     tags.add(md5TagManifest);
                 }
                 BagWriter.writeTagManifests(tags, bag.getRootDir(), UTF_8.name());
+                BagVerifier.isValid(bag, true);
+
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
             } catch (Exception e) {
