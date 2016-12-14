@@ -42,8 +42,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.fcrepo.client.FcrepoClient;
@@ -65,6 +70,9 @@ import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RiotException;
 import org.slf4j.Logger;
 
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.reader.BagReader;
+import gov.loc.repository.bagit.verify.BagVerifier;
 
 /**
  * Fedora Import Utility
@@ -78,6 +86,12 @@ public class Importer implements TransferProcess {
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
+
+    private Bag bag;
+
+    private MessageDigest sha1;
+
+    private Map<File, String> sha1FileMap;
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -100,6 +114,24 @@ public class Importer implements TransferProcess {
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
+        if (config.getBagProfile() == null) {
+            this.bag = null;
+            this.sha1 = null;
+            this.sha1FileMap = null;
+        } else {
+
+            try {
+                final File bagdir = config.getBaseDirectory().getParentFile();
+                // TODO: Maybe use this once we get an updated release of bagit-java library
+                //if (verifyBag(bagdir)) {
+                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-SHA1.txt");
+                this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
+                this.sha1 = MessageDigest.getInstance("SHA-1");
+                // }
+            } catch (NoSuchAlgorithmException e) {
+                // never happens with known algorithm names
+            }
+        }
     }
 
     private FcrepoClient client() {
@@ -312,8 +344,15 @@ public class Importer implements TransferProcess {
         final File binaryFile =  fileForBinaryURI(binaryURI, external);
         PutBuilder builder = client().put(binaryURI).body(binaryFile, contentType);
         if (!external) {
-            builder = builder.digest(model.getProperty(binaryRes, HAS_MESSAGE_DIGEST)
+            if (sha1FileMap != null) {
+                // Use the bagIt checksum
+                final String checksum = sha1FileMap.get(binaryFile);
+                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getPath());
+                builder = builder.digest(checksum);
+            } else {
+                builder = builder.digest(model.getProperty(binaryRes, HAS_MESSAGE_DIGEST)
                                           .getObject().toString().replaceAll(".*:",""));
+            }
         }
         final FcrepoResponse binaryResponse = builder.perform();
 
@@ -333,7 +372,16 @@ public class Importer implements TransferProcess {
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
-        return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
+        PutBuilder builder = client().put(uri).body(modelToStream(model), config.getRdfLanguage());
+        if (sha1FileMap != null && config.getBagProfile() != null) {
+            // Use the bagIt checksum
+            final File baseDir = config.getBaseDirectory();
+            final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
+            final String checksum = sha1FileMap.get(containerFile);
+            logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
+            builder = builder.digest(checksum);
+        }
+        return builder.preferLenient().perform();
     }
 
     private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
@@ -425,5 +473,21 @@ public class Importer implements TransferProcess {
 
     private File fileForContainerURI(final URI uri) {
         return TransferProcess.fileForURI(uri, config.getBaseDirectory(), config.getRdfExtension());
+    }
+
+    /**
+     * Verify the bag we are going to import
+     *
+     * @param bagDir root directory of the bag
+     * @return true if valid
+     */
+    public static boolean verifyBag(final File bagDir) {
+        try {
+            final Bag bag = BagReader.read(bagDir);
+            BagVerifier.isValid(bag, true);
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
+        }
     }
 }
