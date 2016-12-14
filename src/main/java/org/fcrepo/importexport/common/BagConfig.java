@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
@@ -34,6 +35,10 @@ import com.esotericsoftware.yamlbeans.YamlReader;
  * @since Dec 14, 2016
  */
 public class BagConfig {
+
+    public enum AccessTypes {
+        RESTRICTED, INSTITUTION, CONSORTIA;
+    }
 
     private static final String BAG_INFO_KEY = "bag-info.txt";
 
@@ -81,6 +86,8 @@ public class BagConfig {
             if (getBagInfo() == null) {
                 throw new RuntimeException("The " + BAG_INFO_KEY + " key is not present in the " + bagConfigFilePath);
             }
+
+            validateAPTrust(getAPTrustInfo());
         } catch (FileNotFoundException e) {
             throw new RuntimeException("The specified bag config file does not exist: " + bagConfigFile
                     .getAbsolutePath());
@@ -96,22 +103,34 @@ public class BagConfig {
         }
     }
 
+    private void validateAPTrust(final Map<String, String> apTrustInfo) {
+        final String access = apTrustInfo.get(ACCESS_KEY);
+        if (access != null) {
+            try {
+                AccessTypes.valueOf(access.toUpperCase());
+            } catch (Exception ex) {
+                throw new RuntimeException(ACCESS_KEY + " must be one of the following values: " + (AccessTypes
+                        .values()));
+            }
+        }
+    }
+
     /**
-     * Returns a map of bag info properties.
+     * Returns an immutable map of bag info properties.
      *
      * @return a map of bag info properties
      */
     public Map<String, String> getBagInfo() {
-        return this.map.get(BAG_INFO_KEY);
+        return Collections.unmodifiableMap(this.map.get(BAG_INFO_KEY));
     }
 
     /**
-     * Returns a map of aptrust info properties.
+     * Returns an immutable map of aptrust info properties.
      *
      * @return a map of aptrust info properties
      */
     public Map<String, String> getAPTrustInfo() {
-        return this.map.get(APTRUST_INFO_KEY);
+        return Collections.unmodifiableMap(this.map.get(APTRUST_INFO_KEY));
     }
 
 }

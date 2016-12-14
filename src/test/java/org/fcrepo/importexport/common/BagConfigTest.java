@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.importexport.common;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import java.io.File;
 import java.util.Map;
@@ -24,7 +26,6 @@ import java.util.Map;
 import org.junit.Test;
 
 /**
- *
  * @author dbernstein
  * @since Dec 14, 2016
  */
@@ -35,13 +36,20 @@ public class BagConfigTest {
         final File testFile = new File("src/test/resources/configs/bagit-config.yml");
         final BagConfig config = new BagConfig(testFile);
 
-        final Map<String,String> bagInfo = config.getBagInfo();
+        final Map<String, String> bagInfo = config.getBagInfo();
         assertNotNull(bagInfo);
         assertNotNull(bagInfo.get(BagConfig.SOURCE_ORGANIZATION_KEY));
 
-        final Map<String,String> aptrustInfo = config.getAPTrustInfo();
+        final Map<String, String> aptrustInfo = config.getAPTrustInfo();
         assertNotNull(aptrustInfo);
-        assertNotNull(aptrustInfo.get(BagConfig.ACCESS_KEY));
+        assertEquals(aptrustInfo.get(BagConfig.ACCESS_KEY).toUpperCase(), BagConfig.AccessTypes.RESTRICTED.name());
 
     }
+
+    @Test(expected = RuntimeException.class)
+    public void testBadAccessValue() throws Exception {
+        final File testFile = new File("src/test/resources/configs/bagit-config-bad-access.yml");
+        new BagConfig(testFile);
+    }
+
 }
