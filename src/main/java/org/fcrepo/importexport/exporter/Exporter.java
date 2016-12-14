@@ -57,6 +57,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
+import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
@@ -121,6 +122,11 @@ public class Exporter implements TransferProcess {
             try {
                 // parse profile
                 final URL url = this.getClass().getResource("/profiles/" + config.getBagProfile() + ".json");
+
+
+                final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
+
+
                 final InputStream in = (url == null) ? new FileInputStream(config.getBagProfile()) : url.openStream();
                 final BagProfile bagProfile = new BagProfile(in);
 
@@ -129,6 +135,8 @@ public class Exporter implements TransferProcess {
                 bagdir.mkdirs();
                 this.bag = new Bag(new Version(0, 97));
                 this.bag.setRootDir(bagdir);
+                this.bag.getMetadata().putAll(bagConfig.getBagInfo());
+                //TODO where to add aptrust bag info from the bagConfig?
 
                 // always do sha1, do md5/sha256 if the profile asks for it
                 this.sha1FileMap = new HashMap<>();
@@ -155,8 +163,11 @@ public class Exporter implements TransferProcess {
                     this.sha256 = MessageDigest.getInstance("SHA-256");
                 }
 
-                enforceProfile(bagProfile.getMetadataFields());
-                enforceProfile(bagProfile.getAPTrustFields());
+                //enforce metadata
+                enforceProfile(bagProfile.getMetadataFields(), bag.getMetadata());
+                //enforce aptrust
+                //TODO not sure where aptrust fields will come from
+                enforceProfile(bagProfile.getAPTrustFields(), null);
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
             } catch (IOException e) {
@@ -165,7 +176,21 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private void enforceProfile(final Map<String, Set<String>> requiredFields) {
+    /**
+     * Loads a bag config from path
+     * @param bagConfigPath The path to the bag config yaml.
+     * @return
+     */
+    private BagConfig loadBagConfig(final String bagConfigPath) {
+        if (bagConfigPath == null) {
+            throw new RuntimeException("The bag config path must not be null.");
+        }
+        final File bagConfigFile = new File(bagConfigPath);
+        return new BagConfig(bagConfigFile);
+    }
+
+    private void enforceProfile(final Map<String, Set<String>> requiredFields,
+            final LinkedHashMap<String, String> fields) {
         if (requiredFields != null) {
             for (String field : requiredFields.keySet()) {
                 // TODO: enforce field presence and/or values

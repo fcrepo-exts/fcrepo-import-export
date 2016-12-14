@@ -54,6 +54,7 @@ public class Config {
 
     private boolean includeBinaries = false;
     private String bagProfile = null;
+    private String bagConfigPath = null;
 
     private String[] predicates = DEFAULT_PREDICATES;
     private String rdfExtension = DEFAULT_RDF_EXT;
@@ -217,6 +218,22 @@ public class Config {
      */
     public String getBagProfile() {
         return bagProfile;
+    }
+
+    /**
+     * Set the BagIt config yaml file path
+     * @param bagConfigPath The path to the BagIt config yaml file, or null for not using BagIt
+     */
+    public void setBagConfigPath(final String bagConfigPath) {
+        this.bagConfigPath = bagConfigPath;
+    }
+
+    /**
+     * Get the BagIt config yaml file path
+     * @return BagIt config yaml file path or null if not using BagIt
+     */
+    public String getBagConfigPath() {
+        return bagConfigPath;
     }
 
     /**

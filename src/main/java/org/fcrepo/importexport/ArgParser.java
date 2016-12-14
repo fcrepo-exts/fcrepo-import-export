@@ -57,6 +57,16 @@ import com.esotericsoftware.yamlbeans.YamlWriter;
  */
 public class ArgParser {
 
+    /**
+     *
+     */
+    private static final String BAG_CONFIG_OPTION_KEY = "bag-config";
+
+    /**
+     *
+     */
+    private static final String BAG_PROFILE_OPTION_KEY = "bag-profile";
+
     private static final Logger logger = getLogger(ArgParser.class);
 
     public static final String CONFIG_FILE_NAME = "importexport.yml";
@@ -129,10 +139,17 @@ public class ArgParser {
 
         // bagit creation
         configOptions.addOption(Option.builder("g")
-                .longOpt("bag").argName("bag")
-                .hasArg(true).numberOfArgs(1).argName("bag")
+                .longOpt(BAG_PROFILE_OPTION_KEY).argName("profile")
+                .hasArg(true).numberOfArgs(1).argName("profile")
                 .required(false)
-                .desc("Export and import BagIt bags using profile [default]")
+                .desc("Export and import BagIt bags using profile [default|aptrust]")
+                .build());
+
+        configOptions.addOption(Option.builder("G")
+                .longOpt(BAG_CONFIG_OPTION_KEY).argName("path")
+                .hasArg(true).numberOfArgs(1).argName("path")
+                .required(false)
+                .desc("Path to the bag config file")
                 .build());
 
         // username option
@@ -189,10 +206,30 @@ public class ArgParser {
             }
         }
 
+        validateConfig(config);
+
         // Write command line options to disk
         saveConfig(config);
 
         return config;
+    }
+
+    /**
+     * Validation routines for checking interdependent configuration parameters.
+     * @param config
+     */
+    private void validateConfig(final Config config) {
+        // verify bagit config
+        if (config.getBagProfile() != null &&
+                config.getBagConfigPath() == null) {
+            throw new RuntimeException("A bagit config path must be set when using a bagit profile.");
+        }
+
+        if (config.getBagProfile() == null &&
+                config.getBagConfigPath() != null) {
+            throw new RuntimeException("A bagit profile must be set when you set a bagit config.");
+        }
+
     }
 
     /**
@@ -279,7 +316,10 @@ public class ArgParser {
         if (cmd.getOptionValues('p') != null) {
             config.setPredicates(cmd.getOptionValues('p'));
         }
+
         config.setBagProfile(cmd.getOptionValue('g'));
+        config.setBagConfigPath(cmd.getOptionValue('G'));
+
         config.setAuditLog(cmd.hasOption('a'));
 
         return config;
@@ -423,8 +463,10 @@ public class ArgParser {
                         "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
                         entry.getValue()), lineNumber);
                 }
-            } else if (entry.getKey().equalsIgnoreCase("bag")) {
+            } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
+            } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
+                c.setBagConfigPath(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
             } else {
@@ -454,7 +496,10 @@ public class ArgParser {
         }
         map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
         if (config.getBagProfile() != null) {
-            map.put("bag", config.getBagProfile());
+            map.put(BAG_PROFILE_OPTION_KEY, config.getBagProfile());
+        }
+        if (config.getBagConfigPath() != null) {
+            map.put(BAG_CONFIG_OPTION_KEY, config.getBagConfigPath());
         }
         final String predicates = Arrays.stream(config.getPredicates()).collect(Collectors.joining(","));
         map.put("predicates", predicates);

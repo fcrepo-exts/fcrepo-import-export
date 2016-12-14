@@ -126,7 +126,7 @@ public class ExporterTest {
         bagArgs.setRdfLanguage("application/ld+json");
         bagArgs.setResource(resource3);
         bagArgs.setBagProfile("default");
-
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
