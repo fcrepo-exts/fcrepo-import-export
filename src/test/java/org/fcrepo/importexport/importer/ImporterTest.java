@@ -82,7 +82,7 @@ public class ImporterTest {
         binaryArgs.setIncludeBinaries(true);
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
-        binaryArgs.setSource(new URI("http://localhost:8080/rest"));
+        binaryArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         noBinaryArgs = new Config();
         noBinaryArgs.setMode("import");
@@ -90,7 +90,7 @@ public class ImporterTest {
         noBinaryArgs.setIncludeBinaries(false);
         noBinaryArgs.setRdfLanguage("application/ld+json");
         noBinaryArgs.setResource(new URI("http://example.org:9999/rest"));
-        noBinaryArgs.setSource(new URI("http://localhost:8080/rest"));
+        noBinaryArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         externalFilesDir = new File("src/test/resources/sample/external");
         externalResourceArgs = new Config();
@@ -100,21 +100,21 @@ public class ImporterTest {
         externalResourceArgs.setRdfExtension(".jsonld");
         externalResourceArgs.setRdfLanguage("application/ld+json");
         externalResourceArgs.setResource(new URI("http://example.org:9999/rest"));
-        externalResourceArgs.setSource(new URI("http://localhost:8080/rest"));
+        externalResourceArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         containerArgs = new Config();
         containerArgs.setMode("import");
         containerArgs.setBaseDirectory("src/test/resources/sample/container");
         containerArgs.setRdfLanguage("application/ld+json");
-        containerArgs.setResource(new URI("http://example.org:9999/rest"));
-        containerArgs.setSource(new URI("http://localhost:8080/rest"));
+        containerArgs.setResource(new URI("http://example.org:9999/rest/con1"));
+        containerArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         pairtreeArgs = new Config();
         pairtreeArgs.setMode("import");
         pairtreeArgs.setBaseDirectory("src/test/resources/sample/pairtree");
         pairtreeArgs.setRdfLanguage("application/ld+json");
         pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));
-        pairtreeArgs.setSource(new URI("http://localhost:8080/rest"));
+        pairtreeArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         pairtreeURI = new URI("http://example.org:9999/rest/ab");
         finalContainerURI = new URI("http://example.org:9999/rest/ab/abc123");

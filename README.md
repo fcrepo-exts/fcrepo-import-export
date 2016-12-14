@@ -83,6 +83,14 @@ To export using a predicate other than `ldp:contains`, use the `-p` or `--predic
 java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
 ```
 
+To map URIs when importing into a Fedora repository running at a different URI, use the `-M` or `--map` option
+to translate the URIs.  For example, if you exported from `http://localhost:8984/rest/dev/` and are importing
+into `http://example.org:8080/fedora/rest/`:
+
+```sh
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --map http://localhost:8984/rest/dev/,http://example.org:8080/fedora/rest/
+```
+
 Running the import/export utility with a BagIt support
 ------------------------------------------------------
 
@@ -151,7 +159,7 @@ That configuration file is [Yaml](http://yaml.org) and allows for the following 
 * dir: Directory to import from/export to
 * binaries: [true|false] # whether is import/export binary resources
 * overwriteTombstones: [true|false] # whether to replace tombstones of previously deleted resources
-* source: Source hostname, used if the files were exported from a different hostname. Only for import mode.
+* map: Old and new base URIs, separated by comma, to map URIs when importing.
 * resource: The resource to export/import
 * rdfLang: The RDF language to export into or import from
 

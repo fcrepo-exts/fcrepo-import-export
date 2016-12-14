@@ -34,6 +34,9 @@ import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
+import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
+import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -150,8 +153,7 @@ public class Importer implements TransferProcess {
     public void run() {
         logger.info("Running importer...");
         final File importContainerMetadataFile = fileForContainerURI(config.getResource());
-        importContainerDirectory = TransferProcess.directoryForContainer(config.getResource(),
-                config.getBaseDirectory());
+        importContainerDirectory = directoryForContainer(config.getResource());
 
         discoverMembershipResources(importContainerDirectory);
 
@@ -279,8 +281,7 @@ public class Importer implements TransferProcess {
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, model);
                 } else {
-                    destinationUri = new URI(config.getResource().toString() + "/"
-                            + uriPathForFile(f, importContainerDirectory));
+                    destinationUri = uriForFile(f);
                     if (membershipResources.contains(destinationUri)) {
                         logger.warn("Skipping Membership Resource: {}", destinationUri);
                         return;
@@ -292,7 +293,6 @@ public class Importer implements TransferProcess {
 
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
-
                 }
 
                 if (response == null) {
@@ -330,8 +330,8 @@ public class Importer implements TransferProcess {
     }
 
     private Model parseStream(final InputStream in) throws IOException {
-        final URI source = config.getSource();
-        final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(source, config.getResource());
+        final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(config.getSource(),
+                                                                           config.getDestination());
         try (final InputStream in2 = in) {
             RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
         }
@@ -501,25 +501,49 @@ public class Importer implements TransferProcess {
         return new ByteArrayInputStream(buf.toByteArray());
     }
 
-    private String uriPathForFile(final File f, final File baseDir) throws URISyntaxException {
-        String relative = baseDir.toPath().relativize(f.toPath()).toString();
+    private URI uriForFile(final File f) {
+        // get path of file relative to the data directory
+        String relative = config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
         relative = TransferProcess.decodePath(relative);
+
+        // rebase the path on the destination uri (translating source/destination if needed)
+        if ( config.getSource() != null && config.getDestination() != null ) {
+            relative = baseURI(config.getSource()) + relative;
+            relative = relative.replaceFirst(config.getSource().toString(), config.getDestination().toString());
+        } else {
+            relative = baseURI(config.getResource()) + relative;
+        }
 
         // for exported RDF, just remove the ".extension" and you have the encoded path
         if (relative.endsWith(config.getRdfExtension())) {
             relative = relative.substring(0, relative.length() - config.getRdfExtension().length());
         }
+        return URI.create(relative);
+    }
 
-        return relative;
+    private static String baseURI(final URI uri) {
+        final String base = uri.toString().replaceFirst(uri.getPath() + "$", "");
+        return (base.endsWith("/")) ? base : base + "/";
     }
 
     private File fileForBinaryURI(final URI uri, final boolean external) {
-        return new File(config.getBaseDirectory() + TransferProcess.decodePath(uri.getPath()) +
-                    (external ? EXTERNAL_RESOURCE_EXTENSION : BINARY_EXTENSION));
+        if (external) {
+            return fileForExternalResources(uri, config.getSourcePath(), config.getDestinationPath(),
+                    config.getBaseDirectory());
+        } else {
+            return fileForBinary(uri, config.getSourcePath(), config.getDestinationPath(),
+                    config.getBaseDirectory());
+        }
     }
 
     private File fileForContainerURI(final URI uri) {
-        return TransferProcess.fileForURI(uri, config.getBaseDirectory(), config.getRdfExtension());
+        return fileForURI(uri, config.getSourcePath(), config.getDestinationPath(), config.getBaseDirectory(),
+                config.getRdfExtension());
+    }
+
+    private File directoryForContainer(final URI uri) {
+        return TransferProcess.directoryForContainer(uri, config.getSourcePath(), config.getDestinationPath(),
+                config.getBaseDirectory());
     }
 
     /**

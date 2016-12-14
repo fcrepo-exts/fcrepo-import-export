@@ -216,7 +216,6 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final Process importProcess = startJarProcess("-m", "import",
                 "-d", exportPath,
                 "-b", exportPath,
-                "-s", parent.toString(),
                 "-r", parent.toString(),
                 "-u", "fedoraAdmin:password");
 

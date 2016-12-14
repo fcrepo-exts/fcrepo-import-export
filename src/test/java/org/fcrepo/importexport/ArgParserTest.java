@@ -240,14 +240,17 @@ public class ArgParserTest {
     }
 
     @Test
-    public void testImportSource() {
-        final String source = "http://localhost:8080/rest/2";
+    public void testImportMap() {
+        final String map = "http://localhost:7777/rest,http://localhost:8888/fcrepo/rest";
         final String[] args = new String[]{"-m", "import",
                                            "-d", "/tmp/rdf",
-                                           "-r", "http://localhost:8080/rest/1",
-                                           "-s", source};
+                                           "-r", "http://localhost:8888/fcrepo/rest/1",
+                                           "-M", map};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals(source, config.getSource().toString());
+        Assert.assertEquals("http://localhost:7777/rest", config.getSource().toString());
+        Assert.assertEquals("/rest", config.getSourcePath());
+        Assert.assertEquals("http://localhost:8888/fcrepo/rest", config.getDestination().toString());
+        Assert.assertEquals("/fcrepo/rest", config.getDestinationPath());
     }
 
     @Test
@@ -257,7 +260,8 @@ public class ArgParserTest {
                                            "-d", "/tmp/rdf",
                                            "-r", resource};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals(resource, config.getSource().toString());
+        Assert.assertEquals(null, config.getSource());
+        Assert.assertEquals(null, config.getDestination());
     }
 
     @Test

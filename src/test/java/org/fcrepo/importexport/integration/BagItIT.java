@@ -109,7 +109,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setBaseDirectory(bagPath);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(resourceURI);
-        config.setSource("http://localhost:8080/fcrepo/rest/testBagImport");
+        config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);

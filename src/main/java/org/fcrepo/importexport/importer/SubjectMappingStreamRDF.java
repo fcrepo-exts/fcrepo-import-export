@@ -35,7 +35,7 @@ import org.apache.jena.riot.lang.SinkTriplesToGraph;
 import org.apache.jena.riot.system.StreamRDFBase;
 
 /**
- * StreamRDF implementation that maps URIs to a specified base URI.
+ * StreamRDF implementation that maps URIs to a specified destination URI.
  *
  * @author escowles
  * @since 2016-09-08
@@ -44,18 +44,18 @@ public class SubjectMappingStreamRDF extends StreamRDFBase {
     private static final Logger logger = getLogger(SubjectMappingStreamRDF.class);
 
     private final String sourceURI;
-    private final String baseURI;
+    private final String destinationURI;
     private final Graph graph;
     private final Sink<Triple> sink;
 
     /**
      * Create a subject-mapping RDF stream
      * @param sourceURI the source URI to map triples from
-     * @param baseURI the base URI to map triples to
+     * @param destinationURI the destination URI to map triples to
      */
-    public SubjectMappingStreamRDF(final URI sourceURI, final URI baseURI) {
-        this.sourceURI = sourceURI.toString();
-        this.baseURI = baseURI.toString();
+    public SubjectMappingStreamRDF(final URI sourceURI, final URI destinationURI) {
+        this.sourceURI = (sourceURI == null) ? null : sourceURI.toString();
+        this.destinationURI = (destinationURI == null) ? null : destinationURI.toString();
         this.graph = createDefaultGraph();
         this.sink = new SinkTriplesToGraph(true, graph);
     }
@@ -66,8 +66,9 @@ public class SubjectMappingStreamRDF extends StreamRDFBase {
     }
 
     private Node rebase(final Node node) {
-        if (node.isURI() && node.getURI().startsWith(sourceURI)) {
-            return createURI(node.getURI().replaceFirst(sourceURI, baseURI));
+        if (node.isURI() && sourceURI != null && destinationURI != null
+                && node.getURI().startsWith(sourceURI)) {
+            return createURI(node.getURI().replaceFirst(sourceURI, destinationURI));
         }
 
         return node;
