@@ -122,11 +122,12 @@ public class Importer implements TransferProcess {
 
             try {
                 final File bagdir = config.getBaseDirectory().getParentFile();
-                if (verifyBag(bagdir)) {
-                    final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-SHA1.txt");
-                    this.sha1FileMap = TransferProcess.getSha1FileMap(manifestPath);
-                    this.sha1 = MessageDigest.getInstance("SHA-1");
-                }
+                // TODO: Maybe use this once we get an updated release of bagit-java library
+                //if (verifyBag(bagdir)) {
+                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-SHA1.txt");
+                this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
+                this.sha1 = MessageDigest.getInstance("SHA-1");
+                // }
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
             }
@@ -345,8 +346,8 @@ public class Importer implements TransferProcess {
         if (!external) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
-                final String checksum = sha1FileMap.get(Paths.get(binaryFile.getAbsolutePath()));
-                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getAbsolutePath());
+                final String checksum = sha1FileMap.get(binaryFile);
+                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getPath());
                 builder = builder.digest(checksum);
             } else {
                 builder = builder.digest(model.getProperty(binaryRes, HAS_MESSAGE_DIGEST)
@@ -371,7 +372,16 @@ public class Importer implements TransferProcess {
     }
 
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
-        return client().put(uri).body(modelToStream(model), config.getRdfLanguage()).preferLenient().perform();
+        PutBuilder builder = client().put(uri).body(modelToStream(model), config.getRdfLanguage());
+        if (sha1FileMap != null && config.getBagProfile() != null) {
+            // Use the bagIt checksum
+            final File baseDir = config.getBaseDirectory();
+            final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
+            final String checksum = sha1FileMap.get(containerFile);
+            logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
+            builder = builder.digest(checksum);
+        }
+        return builder.preferLenient().perform();
     }
 
     private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
@@ -466,8 +476,10 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * @param bagDir
-     * @return
+     * Verify the bag we are going to import
+     *
+     * @param bagDir root directory of the bag
+     * @return true if valid
      */
     public static boolean verifyBag(final File bagDir) {
         try {

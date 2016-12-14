@@ -17,16 +17,12 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import static java.util.Arrays.stream;
-
+import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.MD5;
 import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA1;
 import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA256;
-import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.MD5;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
-
+import static java.util.Arrays.stream;
 import static org.apache.commons.codec.binary.Hex.encodeHex;
-
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
@@ -56,13 +52,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import gov.loc.repository.bagit.domain.Bag;
-import gov.loc.repository.bagit.domain.Manifest;
-import gov.loc.repository.bagit.domain.Version;
-import gov.loc.repository.bagit.hash.SupportedAlgorithm;
-import gov.loc.repository.bagit.writer.BagWriter;
-
-
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -80,6 +69,7 @@ import org.slf4j.Logger;
 import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.domain.Version;
+import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import gov.loc.repository.bagit.writer.BagWriter;
 
@@ -226,8 +216,9 @@ public class Exporter implements TransferProcess {
                     tags.add(md5TagManifest);
                 }
                 BagWriter.writeTagManifests(tags, bag.getRootDir(), UTF_8.name());
-                BagVerifier.isValid(bag, true);
 
+                // TODO: maybe use this once we get an updated release of the bagit-java library.
+                // verifyBag(bag);
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
             } catch (Exception e) {
@@ -409,7 +400,7 @@ public class Exporter implements TransferProcess {
             }
             if (out != null) {
                 out.write(buf, 0, read);
-                successBytes.addAndGet((int)read);
+                successBytes.addAndGet(read);
             }
         }
     }
@@ -433,6 +424,21 @@ public class Exporter implements TransferProcess {
                     throw new RuntimeException("Export operation failed: unexpected status "
                             + response.getStatusCode() + " for " + uri);
                 }
+        }
+    }
+
+    /**
+     * Validate the bag we are exporting
+     *
+     * @param bag the export bag
+     * @return true if the bag is valid
+     */
+    private static boolean verifyBag(final Bag bag) {
+        try {
+            BagVerifier.isComplete(bag, true);
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
     }
 }

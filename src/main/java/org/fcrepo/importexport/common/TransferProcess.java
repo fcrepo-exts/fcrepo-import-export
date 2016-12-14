@@ -132,11 +132,11 @@ public interface TransferProcess {
      * @param manifestFile the manifest file
      * @return the map
      */
-    public static Map<File, String> getSha1FileMap(final Path manifestFile) {
+    public static Map<File, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
         final Map<File, String> sha1FileMap = new HashMap<File, String>();
         try (final Stream<String> stream = Files.lines(manifestFile)) {
             stream.forEach(l -> {
-                final File file = Paths.get(l.split(" ")[1]).toFile();
+                final File file = Paths.get(baseDir.toURI()).resolve(Paths.get(l.split(" ")[1])).toFile();
                 final String checksum = l.split(" ")[0].trim();
                 sha1FileMap.put(file, checksum);
             });
