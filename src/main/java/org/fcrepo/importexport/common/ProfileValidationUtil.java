@@ -18,11 +18,16 @@
 
 package org.fcrepo.importexport.common;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 /**
  * Utility methods for validating profiles.
@@ -31,6 +36,16 @@ import org.apache.commons.lang3.StringUtils;
  * @since Dec 14, 2016
  */
 public class ProfileValidationUtil {
+
+    private static final Logger logger = getLogger(ProfileValidationUtil.class);
+
+    /*
+     * System generated Bag Info that should be ignored by validator.
+     */
+    protected static final Set<String> SYSTEM_GENERATED_FIELD_NAMES =
+            new HashSet<>(Arrays.asList("Bagging-Date",
+                                        "Bag-Size",
+                                        "Payload-Oxum"));
 
     private ProfileValidationUtil() {
     }
@@ -50,6 +65,12 @@ public class ProfileValidationUtil {
             final StringBuilder errors = new StringBuilder();
 
             for (String fieldName : requiredFields.keySet()) {
+                // ignore validation on system generated fields
+                if (SYSTEM_GENERATED_FIELD_NAMES.contains(fieldName)) {
+                    logger.debug("skipping system generated field {}...", fieldName);
+                    continue;
+                }
+
                 if (fields.containsKey(fieldName)) {
                     final String value = fields.get(fieldName);
                     final Set<String> validValues = requiredFields.get(fieldName);

@@ -88,4 +88,15 @@ public class ProfileValidationUtilTest {
         }
     }
 
+    @Test
+    public void testIgnoreSystemGeneratedFields() throws Exception {
+        fields.put(FIELD1, "value1");
+
+        for (String fieldName : ProfileValidationUtil.SYSTEM_GENERATED_FIELD_NAMES) {
+            rules.put(fieldName, null);
+        }
+
+        ProfileValidationUtil.validate("profile-section", rules, fields);
+
+    }
 }
