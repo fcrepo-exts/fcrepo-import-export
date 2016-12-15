@@ -218,7 +218,8 @@ public class Exporter implements TransferProcess {
 
                 // write basic metadata
                 BagWriter.writeBagitFile(bag.getVersion(), bag.getFileEncoding(), bag.getRootDir());
-                BagWriter.writeBagitInfoFile(bagMetadata(), bag.getRootDir(), UTF_8.name());
+                bag.getMetadata().putAll(bagMetadata());
+                BagWriter.writeBagitInfoFile(bag.getMetadata(), bag.getRootDir(), UTF_8.name());
 
                 // generate payload manifests
                 final Manifest manifest = new Manifest(SHA1);
