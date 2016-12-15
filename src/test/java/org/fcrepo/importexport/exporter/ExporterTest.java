@@ -126,7 +126,7 @@ public class ExporterTest {
         bagArgs.setRdfLanguage("application/ld+json");
         bagArgs.setResource(resource3);
         bagArgs.setBagProfile("default");
-
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
@@ -185,6 +185,7 @@ public class ExporterTest {
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
         Assert.assertTrue(baginfoLines.contains("Bag-Size : 113 bytes"));
         Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
+        Assert.assertTrue(baginfoLines.contains("Source-Organization : My University"));
         Assert.assertTrue(new File(exportDirectory + "/tagmanifest-SHA1.txt").exists());
     }
 

@@ -70,6 +70,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);
+        config.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
         new Exporter(config, clientBuilder).run();
 
         final Path target = Paths.get(TARGET_DIR, exampleID);

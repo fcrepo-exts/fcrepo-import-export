@@ -89,9 +89,22 @@ public class ArgParserTest {
     @Test
     public void parseBagProfile() throws Exception {
         final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-            new String[] {"-g", "default" }));
+            new String[] {"-g", "default", "-G", "path/config.yaml" }));
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
+        Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseBagProfileWithNoConfigSpecified() throws Exception {
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
+            new String[] {"-g", "default"}));
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseBagConfigWithNoProfileSpecified() throws Exception {
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
+            new String[] {"-G", "/path/to/bag-config.yaml"}));
     }
 
     @Test
