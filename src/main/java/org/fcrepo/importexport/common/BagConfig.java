@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.esotericsoftware.yamlbeans.YamlReader;
 
 /**
@@ -109,8 +111,9 @@ public class BagConfig {
             try {
                 AccessTypes.valueOf(access.toUpperCase());
             } catch (Exception ex) {
-                throw new RuntimeException(ACCESS_KEY + " must be one of the following values: " + (AccessTypes
-                        .values()));
+                throw new RuntimeException(ACCESS_KEY + " must be one of the following values: " + StringUtils.join(
+                        AccessTypes
+                                .values(), ","));
             }
         }
     }

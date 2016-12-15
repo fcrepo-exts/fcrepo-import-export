@@ -20,9 +20,9 @@ package org.fcrepo.importexport.exporter;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.readLines;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
@@ -36,7 +36,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -45,6 +44,8 @@ import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -127,6 +128,7 @@ public class ExporterTest {
         bagArgs.setResource(resource3);
         bagArgs.setBagProfile("default");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
@@ -143,6 +145,15 @@ public class ExporterTest {
         when(headBuilder.disableRedirects()).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
         when(headResponse.getStatusCode()).thenReturn(200);
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            FileUtils.deleteDirectory(new File(exportDirectory));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void mockResponse(final URI uri, final List<URI> describedbyLinks, final String body)
@@ -187,6 +198,50 @@ public class ExporterTest {
         Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
         Assert.assertTrue(baginfoLines.contains("Source-Organization : My University"));
         Assert.assertTrue(new File(exportDirectory + "/tagmanifest-SHA1.txt").exists());
+    }
+
+    @Test
+    public void testExportApTrustBag() throws Exception, FcrepoOperationFailedException {
+        final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+
+        final File baginfo = new File(exportDirectory + "/aptrust-info.txt");
+        Assert.assertTrue(baginfo.exists());
+        final List<String> baginfoLines = readLines(baginfo, UTF_8);
+        Assert.assertTrue(baginfoLines.contains("Access : Restricted"));
+        Assert.assertTrue(baginfoLines.contains("Title : My Title"));
+    }
+
+    @Test(expected = Exception.class)
+    public void testExportApTrustBagValidationError() throws Exception, FcrepoOperationFailedException {
+        final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-missing-access.yml");
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+        exporter.run();
+    }
+
+
+    /**
+     * @return
+     */
+    private Config createAptrustBagConfig() {
+        final Config bagArgs = new Config();
+        bagArgs.setMode("export");
+        bagArgs.setBaseDirectory(exportDirectory);
+        bagArgs.setIncludeBinaries(true);
+        bagArgs.setPredicates(predicates);
+        bagArgs.setRdfLanguage("application/ld+json");
+        bagArgs.setResource(resource3);
+        bagArgs.setBagProfile("aptrust");
+        return bagArgs;
     }
 
     @Test
