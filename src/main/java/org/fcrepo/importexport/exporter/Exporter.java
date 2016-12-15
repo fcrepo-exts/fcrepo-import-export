@@ -17,11 +17,6 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.MD5;
-import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA1;
-import static gov.loc.repository.bagit.hash.StandardSupportedAlgorithms.SHA256;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.stream;
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
@@ -46,7 +41,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +53,7 @@ import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
+import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -66,13 +61,6 @@ import org.fcrepo.importexport.common.TransferProcess;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.slf4j.Logger;
-
-import gov.loc.repository.bagit.domain.Bag;
-import gov.loc.repository.bagit.domain.Manifest;
-import gov.loc.repository.bagit.domain.Version;
-import gov.loc.repository.bagit.hash.SupportedAlgorithm;
-import gov.loc.repository.bagit.verify.BagVerifier;
-import gov.loc.repository.bagit.writer.BagWriter;
 
 /**
  * Fedora Export Utility
@@ -88,16 +76,13 @@ public class Exporter implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private URI binaryURI;
     private URI containerURI;
-    private Bag bag;
+    private BagWriter bag;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
     private MessageDigest md5 = null;
     private HashMap<File, String> sha1FileMap = null;
     private HashMap<File, String> sha256FileMap = null;
     private HashMap<File, String> md5FileMap = null;
-    private Manifest md5TagManifest = null;
-    private Manifest sha1TagManifest = null;
-    private Manifest sha256TagManifest = null;
 
     private Logger exportLogger;
     private SimpleDateFormat dateFormat;
@@ -122,52 +107,35 @@ public class Exporter implements TransferProcess {
             try {
                 // parse profile
                 final URL url = this.getClass().getResource("/profiles/" + config.getBagProfile() + ".json");
-
-
                 final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
-
-
                 final InputStream in = (url == null) ? new FileInputStream(config.getBagProfile()) : url.openStream();
                 final BagProfile bagProfile = new BagProfile(in);
 
-                // setup bag
-                final File bagdir = config.getBaseDirectory().getParentFile();
-                bagdir.mkdirs();
-                this.bag = new Bag(new Version(0, 97));
-                this.bag.setRootDir(bagdir);
-                this.bag.getMetadata().putAll(bagConfig.getBagInfo());
-                //TODO where to add aptrust bag info from the bagConfig?
-
                 // always do sha1, do md5/sha256 if the profile asks for it
+                final HashSet<String> algorithms = new HashSet<>();
                 this.sha1FileMap = new HashMap<>();
-                this.sha1TagManifest = new Manifest(SHA1);
                 this.sha1 = MessageDigest.getInstance("SHA-1");
+                algorithms.add("sha1");
                 if (bagProfile.getPayloadDigestAlgorithms().contains("md5")) {
                     this.md5FileMap = new HashMap<>();
-                }
-                if (bagProfile.getTagDigestAlgorithms().contains("md5")) {
-                    this.md5TagManifest = new Manifest(MD5);
-                }
-                if (bagProfile.getPayloadDigestAlgorithms().contains("md5") ||
-                        bagProfile.getTagDigestAlgorithms().contains("md5")) {
                     this.md5 = MessageDigest.getInstance("MD5");
+                    algorithms.add("md5");
                 }
                 if (bagProfile.getPayloadDigestAlgorithms().contains("sha256")) {
                     this.sha256FileMap = new HashMap<>();
-                }
-                if (bagProfile.getTagDigestAlgorithms().contains("sha256")) {
-                    this.sha256TagManifest = new Manifest(SHA256);
-                }
-                if (bagProfile.getPayloadDigestAlgorithms().contains("sha256") ||
-                        bagProfile.getTagDigestAlgorithms().contains("sha256")) {
                     this.sha256 = MessageDigest.getInstance("SHA-256");
+                    algorithms.add("sha256");
                 }
 
                 //enforce metadata
-                enforceProfile(bagProfile.getMetadataFields(), bag.getMetadata());
-                //enforce aptrust
-                //TODO not sure where aptrust fields will come from
+                enforceProfile(bagProfile.getMetadataFields(), bagConfig.getBagInfo());
                 enforceProfile(bagProfile.getAPTrustFields(), null);
+
+                // setup bag
+                final File bagdir = config.getBaseDirectory().getParentFile();
+                this.bag = new BagWriter(bagdir, algorithms);
+                this.bag.addTags("bag-info.txt", bagConfig.getBagInfo());
+                this.bag.addTags("aptrust-info.txt", bagConfig.getAPTrustInfo());
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
             } catch (IOException e) {
@@ -190,7 +158,7 @@ public class Exporter implements TransferProcess {
     }
 
     private void enforceProfile(final Map<String, Set<String>> requiredFields,
-            final LinkedHashMap<String, String> fields) {
+            final Map<String, String> fields) {
         if (requiredFields != null) {
             for (String field : requiredFields.keySet()) {
                 // TODO: enforce field presence and/or values
@@ -215,36 +183,18 @@ public class Exporter implements TransferProcess {
         if (bag != null) {
             try {
                 logger.info("Finishing bag manifests...");
-
-                // write basic metadata
-                BagWriter.writeBagitFile(bag.getVersion(), bag.getFileEncoding(), bag.getRootDir());
-                bag.getMetadata().putAll(bagMetadata());
-                BagWriter.writeBagitInfoFile(bag.getMetadata(), bag.getRootDir(), UTF_8.name());
-
-                // generate payload manifests
-                final Manifest manifest = new Manifest(SHA1);
-                manifest.setFileToChecksumMap(sha1FileMap);
-                final Set<Manifest> manifests = new HashSet<>();
-                manifests.add(manifest);
-                optionalManifest(sha256FileMap, SHA256, manifests);
-                optionalManifest(md5FileMap, MD5, manifests);
-                bag.setPayLoadManifests(manifests);
-                BagWriter.writePayloadManifests(bag.getPayLoadManifests(), bag.getRootDir(), bag.getFileEncoding());
-
-                // checksum payload manifests and generate tag manifests
-                stream(bag.getRootDir().listFiles()).filter(File::isFile).forEach(f -> tagManifest(f));;
-                final Set<Manifest> tags = new HashSet<>();
-                tags.add(sha1TagManifest);
-                if (sha256TagManifest != null) {
-                    tags.add(sha256TagManifest);
+                final Map<String, String> bagMetadata = new HashMap<>();
+                bagMetadata.putAll(bag.getTags("bag-info.txt"));
+                bagMetadata.putAll(bagTechMetadata());
+                bag.addTags("bag-info.txt", bagMetadata);
+                bag.registerChecksums("sha1", sha1FileMap);
+                if (sha256 != null) {
+                    bag.registerChecksums("sha256", sha256FileMap);
                 }
-                if (md5TagManifest != null) {
-                    tags.add(md5TagManifest);
+                if (md5 != null) {
+                    bag.registerChecksums("md5", md5FileMap);
                 }
-                BagWriter.writeTagManifests(tags, bag.getRootDir(), UTF_8.name());
-
-                // TODO: maybe use this once we get an updated release of the bagit-java library.
-                // verifyBag(bag);
+                bag.write();
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
             } catch (Exception e) {
@@ -255,34 +205,8 @@ public class Exporter implements TransferProcess {
                 successCount.get());
     }
 
-    private void tagManifest(final File f) {
-        try {
-            if (f.getName().startsWith("manifest-")) {
-                copy(new FileInputStream(f), null);
-                sha1TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(sha1.digest())));
-                if (sha256TagManifest != null) {
-                    sha256TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(sha256.digest())));
-                }
-                if (md5TagManifest != null) {
-                    md5TagManifest.getFileToChecksumMap().put(f, new String(encodeHex(md5.digest())));
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Error checksumming payload manifests: " + e.toString());
-        }
-    }
-
-    private void optionalManifest(final HashMap<File, String> map, final SupportedAlgorithm digest,
-            final Set<Manifest> manifests) {
-        if (map != null) {
-            final Manifest manifest = new Manifest(digest);
-            manifest.setFileToChecksumMap(map);
-            manifests.add(manifest);
-        }
-    }
-
-    private LinkedHashMap<String, String> bagMetadata() {
-        final LinkedHashMap<String, String> metadata = new LinkedHashMap<>();
+    private Map<String, String> bagTechMetadata() {
+        final Map<String, String> metadata = new HashMap<>();
         metadata.put("Bag-Size", byteCountToDisplaySize(successBytes.longValue()));
         metadata.put("Payload-Oxum", successBytes.toString() + "." + successCount.toString());
         metadata.put("Bagging-Date", dateFormat.format(new Date()));
@@ -450,21 +374,6 @@ public class Exporter implements TransferProcess {
                     throw new RuntimeException("Export operation failed: unexpected status "
                             + response.getStatusCode() + " for " + uri);
                 }
-        }
-    }
-
-    /**
-     * Validate the bag we are exporting
-     *
-     * @param bag the export bag
-     * @return true if the bag is valid
-     */
-    private static boolean verifyBag(final Bag bag) {
-        try {
-            BagVerifier.isComplete(bag, true);
-            return true;
-        } catch (Exception e) {
-            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
     }
 }
