@@ -22,7 +22,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,7 +59,7 @@ public class ProfileValidationUtil {
      *         description of all validation errors found.
      */
     public static void validate(final String profileSection, final Map<String, Set<String>> requiredFields,
-            final LinkedHashMap<String, String> fields) throws ProfileValidationException {
+            final Map<String, String> fields) throws ProfileValidationException {
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
 

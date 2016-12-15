@@ -67,11 +67,6 @@ public class ExporterTest {
     private URI resource3;
     private URI resource4;
     private URI resource5;
-    private Config args;
-    private Config binaryArgs;
-    private Config noBinaryArgs;
-    private Config metadataArgs;
-    private Config bagArgs;
     private String exportDirectory = "target/export";
     private String[] predicates = new String[]{ CONTAINS.toString() };
 
@@ -87,47 +82,6 @@ public class ExporterTest {
         resource3 = new URI("http://localhost:8080/rest/file1");
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
         resource5 = new URI("http://localhost:8080/rest/alt_description");
-
-        args = new Config();
-        args.setMode("export");
-        args.setBaseDirectory(exportDirectory);
-        args.setIncludeBinaries(true);
-        args.setPredicates(predicates);
-        args.setRdfLanguage("application/ld+json");
-        args.setResource(resource);
-
-        binaryArgs = new Config();
-        binaryArgs.setMode("export");
-        binaryArgs.setBaseDirectory(exportDirectory);
-        binaryArgs.setIncludeBinaries(true);
-        binaryArgs.setPredicates(predicates);
-        binaryArgs.setRdfLanguage("application/ld+json");
-        binaryArgs.setResource(resource3);
-
-        noBinaryArgs = new Config();
-        noBinaryArgs.setMode("export");
-        noBinaryArgs.setBaseDirectory(exportDirectory);
-        noBinaryArgs.setIncludeBinaries(false);
-        noBinaryArgs.setPredicates(predicates);
-        noBinaryArgs.setRdfLanguage("application/ld+json");
-        noBinaryArgs.setResource(resource3);
-
-        metadataArgs = new Config();
-        metadataArgs.setMode("export");
-        metadataArgs.setBaseDirectory(exportDirectory);
-        metadataArgs.setPredicates(predicates);
-        metadataArgs.setRdfLanguage("application/ld+json");
-        metadataArgs.setResource(resource);
-
-        bagArgs = new Config();
-        bagArgs.setMode("export");
-        bagArgs.setBaseDirectory(exportDirectory);
-        bagArgs.setIncludeBinaries(true);
-        bagArgs.setPredicates(predicates);
-        bagArgs.setRdfLanguage("application/ld+json");
-        bagArgs.setResource(resource3);
-        bagArgs.setBagProfile("default");
-        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
@@ -172,32 +126,52 @@ public class ExporterTest {
 
     @Test
     public void testExportBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+        final String basedir = exportDirectory + "/1";
+        final Config binaryArgs = new Config();
+        binaryArgs.setMode("export");
+        binaryArgs.setBaseDirectory(basedir);
+        binaryArgs.setIncludeBinaries(true);
+        binaryArgs.setPredicates(predicates);
+        binaryArgs.setRdfLanguage("application/ld+json");
+        binaryArgs.setResource(resource3);
+
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
     }
 
     @Test
     public void testExportBag() throws Exception, FcrepoOperationFailedException {
+        final String basedir = exportDirectory + "/2";
+        final Config bagArgs = new Config();
+        bagArgs.setMode("export");
+        bagArgs.setBaseDirectory(basedir);
+        bagArgs.setIncludeBinaries(true);
+        bagArgs.setPredicates(predicates);
+        bagArgs.setRdfLanguage("application/ld+json");
+        bagArgs.setResource(resource3);
+        bagArgs.setBagProfile("default");
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/alt_description.jsonld")));
 
-        final File baginfo = new File(exportDirectory + "/bag-info.txt");
+        final File baginfo = new File(basedir + "/bag-info.txt");
         Assert.assertTrue(baginfo.exists());
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
         Assert.assertTrue(baginfoLines.contains("Bag-Size : 113 bytes"));
         Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
         Assert.assertTrue(baginfoLines.contains("Source-Organization : My University"));
-        Assert.assertTrue(new File(exportDirectory + "/tagmanifest-SHA1.txt").exists());
+        Assert.assertTrue(new File(basedir + "/tagmanifest-sha1.txt").exists());
     }
 
     @Test
@@ -246,17 +220,35 @@ public class ExporterTest {
 
     @Test
     public void testExportNoBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
+        final String basedir = exportDirectory + "/3";
+        final Config noBinaryArgs = new Config();
+        noBinaryArgs.setMode("export");
+        noBinaryArgs.setBaseDirectory(basedir);
+        noBinaryArgs.setIncludeBinaries(false);
+        noBinaryArgs.setPredicates(predicates);
+        noBinaryArgs.setRdfLanguage("application/ld+json");
+        noBinaryArgs.setResource(resource3);
+
         final ExporterWrapper exporter = new ExporterWrapper(noBinaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/alt_description.jsonld")));
+        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
     }
 
     @Test
     public void testExternalContent() throws Exception {
+        final String basedir = exportDirectory + "/4";
+        final Config binaryArgs = new Config();
+        binaryArgs.setMode("export");
+        binaryArgs.setBaseDirectory(basedir);
+        binaryArgs.setIncludeBinaries(true);
+        binaryArgs.setPredicates(predicates);
+        binaryArgs.setRdfLanguage("application/ld+json");
+        binaryArgs.setResource(resource3);
+
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
@@ -264,23 +256,40 @@ public class ExporterTest {
         when(headResponse.getContentType())
             .thenReturn("message/external-body;access-type=URL;url=\"http://www.example.com/file\"");
         exporter.run();
-        final File externalResourceFile = new File(exportDirectory + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION);
+        final File externalResourceFile = new File(basedir + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION);
         Assert.assertTrue(exporter.wroteFile(externalResourceFile));
         Assert.assertTrue(externalResourceFile.exists());
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
     }
 
 
     @Test
     public void testExportContainer() throws Exception {
+        final String basedir = exportDirectory + "/5";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(true);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)
     public void testUnauthenticatedExportWhenAuthorizationIsRequired() {
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(exportDirectory + "/6");
+        args.setIncludeBinaries(true);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
         when(headResponse.getStatusCode()).thenReturn(401);
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         exporter.run();
@@ -288,27 +297,52 @@ public class ExporterTest {
 
     @Test
     public void testMetadataOnlyDoesNotExportBinaries() throws Exception {
+        final String basedir = exportDirectory + "/7";
+        final Config metadataArgs = new Config();
+        metadataArgs.setMode("export");
+        metadataArgs.setBaseDirectory(basedir);
+        metadataArgs.setPredicates(predicates);
+        metadataArgs.setRdfLanguage("application/ld+json");
+        metadataArgs.setResource(resource);
+
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
-        Assert.assertFalse(exporter.wroteFile(new File(exportDirectory + "/rest/1")));
+        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/1")));
     }
 
     @Test
     public void testMetadataOnlyExportsContainers() throws Exception {
+        final String basedir = exportDirectory + "/8";
+        final Config metadataArgs = new Config();
+        metadataArgs.setMode("export");
+        metadataArgs.setBaseDirectory(basedir);
+        metadataArgs.setPredicates(predicates);
+        metadataArgs.setRdfLanguage("application/ld+json");
+        metadataArgs.setResource(resource);
+
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
     }
 
     @Test
     public void testRecursive() throws Exception {
+        final String basedir = exportDirectory + "/9";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(true);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/rest/1/2.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
     }
 }
 
