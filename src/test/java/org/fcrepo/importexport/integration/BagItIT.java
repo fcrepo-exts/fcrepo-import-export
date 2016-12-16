@@ -75,7 +75,7 @@ public class BagItIT extends AbstractResourceIT {
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         assertTrue(target.resolve("bagit.txt").toFile().exists());
-        assertTrue(target.resolve("manifest-SHA1.txt").toFile().exists());
+        assertTrue(target.resolve("manifest-sha1.txt").toFile().exists());
 
         final Path dataDir = target.resolve("data");
         assertTrue(dataDir.toFile().exists());
@@ -93,7 +93,7 @@ public class BagItIT extends AbstractResourceIT {
         }
 
         final String checksum = new String(encodeHex(sha1.digest()));
-        final BufferedReader reader = new BufferedReader(new FileReader(target.resolve("manifest-SHA1.txt").toFile()));
+        final BufferedReader reader = new BufferedReader(new FileReader(target.resolve("manifest-sha1.txt").toFile()));
         final String checksumLine = reader.readLine();
         reader.close();
         assertEquals(checksum, checksumLine.split(" ")[0]);
