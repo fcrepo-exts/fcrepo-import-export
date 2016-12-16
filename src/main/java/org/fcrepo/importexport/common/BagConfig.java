@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -136,4 +137,13 @@ public class BagConfig {
         return Collections.unmodifiableMap(this.map.get(APTRUST_INFO_KEY));
     }
 
+    /**
+     * Returns an immutable map of custom tags.
+     * @return a map of filenames to key-value property maps
+     */
+    public Map<String, Map<String, String>> getCustomTags() {
+        final Map<String, Map<String, String>> clone = new HashMap(map);
+        clone.remove(BAG_INFO_KEY);
+        return Collections.unmodifiableMap(clone);
+    }
 }
