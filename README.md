@@ -29,10 +29,9 @@ The standalone import/export utility can be run in either of two ways:
 The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
 
 ```sh
-$ java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
+$ java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
 INFO 15:15:10.048 (ArgParser) Saved configuration to: /tmp/importexport.config
 INFO 15:15:10.091 (Exporter) Running exporter...
-...
 ```
 
 Running the import/export utility with command-line arguments
@@ -59,7 +58,7 @@ The list of RDF languages supported:
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
@@ -67,7 +66,7 @@ To then load that data into an empty Fedora repository at the same URL, run the 
 To enable the audit log, use the `-a` or `--auditLog`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --auditLog
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --auditLog
 ```
 
 You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=/some/directory`.
@@ -75,7 +74,7 @@ You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=
 To export using a predicate other than `ldp:contains`, use the `-p` or `--predicates` option with a coma-separated list of predicates:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
 ```
 
 Running the import/export utility with a BagIt support
@@ -86,7 +85,7 @@ You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag f
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
 ```
 
 Where `bagit-config.yml` looks like:
@@ -108,7 +107,7 @@ bag-info.txt:
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the APTrust profile and user supplied metadata for tag files:
 
 ```sh
-java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
 ```
 
 Where `bagit-config-aptrust.yml` looks like:
