@@ -145,7 +145,11 @@ public class Exporter implements TransferProcess {
                 final File bagdir = config.getBaseDirectory().getParentFile();
                 this.bag = new BagWriter(bagdir, algorithms);
                 this.bag.addTags("bag-info.txt", bagConfig.getBagInfo());
-                this.bag.addTags("aptrust-info.txt", bagConfig.getAPTrustInfo());
+
+                final Map<String, Map<String, String>> customTags = bagConfig.getCustomTags();
+                for (final String tagfile : customTags.keySet()) {
+                    this.bag.addTags(tagfile, customTags.get(tagfile));
+                }
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
             } catch (Exception e) {

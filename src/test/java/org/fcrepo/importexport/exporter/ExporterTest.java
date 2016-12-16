@@ -344,6 +344,31 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
     }
+
+    @Test
+    public void testExportBagCustomTags() throws Exception, FcrepoOperationFailedException {
+        final String basedir = exportDirectory + "/10";
+        final Config bagArgs = new Config();
+        bagArgs.setMode("export");
+        bagArgs.setBaseDirectory(basedir);
+        bagArgs.setIncludeBinaries(true);
+        bagArgs.setPredicates(predicates);
+        bagArgs.setRdfLanguage("application/ld+json");
+        bagArgs.setResource(resource3);
+        bagArgs.setBagProfile("default");
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-custom-tagfile.yml");
+
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+
+        final File customTags = new File(basedir + "/foo-info.txt");
+        Assert.assertTrue(customTags.exists());
+        final List<String> customLines = readLines(customTags, UTF_8);
+        Assert.assertTrue(customLines.contains("Foo : Bar"));
+        Assert.assertTrue(customLines.contains("Baz : Quux"));
+    }
 }
 
 class ExporterWrapper extends Exporter {
