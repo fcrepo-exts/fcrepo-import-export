@@ -30,10 +30,12 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -60,6 +62,8 @@ import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.ProfileValidationException;
+import org.fcrepo.importexport.common.ProfileValidationUtil;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
@@ -82,7 +86,9 @@ import gov.loc.repository.bagit.writer.BagWriter;
  * @since 2016-08-29
  */
 public class Exporter implements TransferProcess {
+
     private static final Logger logger = getLogger(Exporter.class);
+    private static final String APTRUST_INFO_TXT = "aptrust-info.txt";
 
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
@@ -163,15 +169,29 @@ public class Exporter implements TransferProcess {
                     this.sha256 = MessageDigest.getInstance("SHA-256");
                 }
 
-                //enforce metadata
-                enforceProfile(bagProfile.getMetadataFields(), bag.getMetadata());
-                //enforce aptrust
-                //TODO not sure where aptrust fields will come from
-                enforceProfile(bagProfile.getAPTrustFields(), null);
+                //enforce default metadata
+                validateProfile("default", bagProfile.getMetadataFields(), bag.getMetadata());
+                //enforce aptrust if applicable
+                final Map<String,String> aptrustInfo = bagConfig.getAPTrustInfo();
+                if (aptrustInfo != null && !aptrustInfo.isEmpty() && bagProfile.getAPTrustFields() != null) {
+                    final LinkedHashMap<String, String> orderedFields = new LinkedHashMap<>(aptrustInfo);
+                    validateProfile("aptrust", bagProfile.getAPTrustFields(), orderedFields);
+                    writeAPTrustInfoFile(orderedFields);
+                }
+
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException("Error loading Bag profile: " + e.toString());
+            }
+        }
+    }
+
+    private void writeAPTrustInfoFile(final LinkedHashMap<String, String> orderedFields) throws IOException {
+        final File aptrustBagInfo = new File(this.bag.getRootDir() + "/" + APTRUST_INFO_TXT);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(aptrustBagInfo))) {
+            for (String key : orderedFields.keySet()) {
+                writer.write(key + " : " + orderedFields.get(key) + "\n");
             }
         }
     }
@@ -189,13 +209,9 @@ public class Exporter implements TransferProcess {
         return new BagConfig(bagConfigFile);
     }
 
-    private void enforceProfile(final Map<String, Set<String>> requiredFields,
-            final LinkedHashMap<String, String> fields) {
-        if (requiredFields != null) {
-            for (String field : requiredFields.keySet()) {
-                // TODO: enforce field presence and/or values
-            }
-        }
+    protected void validateProfile(final String profileSection, final Map<String, Set<String>> requiredFields,
+            final LinkedHashMap<String, String> fields) throws ProfileValidationException {
+        ProfileValidationUtil.validate(profileSection, requiredFields, fields);
     }
 
     private FcrepoClient client() {

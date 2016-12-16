@@ -10,5 +10,4 @@ bag-info.txt:
   Internal-Sender-Identifier: ???
   Internal-Sender-Description: ???
 aptrust-info.txt:
-  Access: Restricted
-  Title: My Title
+  Title: Sample APTrust bag
