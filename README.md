@@ -78,6 +78,59 @@ To export using a predicate other than `ldp:contains`, use the `-p` or `--predic
 java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
 ```
 
+Running the import/export utility with a BagIt support
+------------------------------------------------------
+
+You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag from a Fedora repository based on a [BagIt Profile](https://github.com/ruebot/bagit-profiles/), and user supplied metadata for tag files can be provided with a Yaml file.
+
+For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
+
+```sh
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
+```
+
+Where `bagit-config.yml` looks like:
+
+```yaml
+bag-info.txt:
+  Source-Organization: York University Libraries
+  Organization-Address: 4700 Keele Street Toronto, Ontario M3J 1P3 Canada
+  Contact-Name: Nick Ruest
+  Contact-Phone: +14167362100
+  Contact-Email: ruestn@yorku.ca
+  External-Description: Sample bag exported from fcrepo
+  External-Identifier: SAMPLE_001
+  Bag-Group-Identifier: SAMPLE
+  Internal-Sender-Identifier: SAMPLE_001
+  Internal-Sender-Description: Sample bag exported from fcrepo
+```
+
+For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the APTrust profile and user supplied metadata for tag files:
+
+```sh
+java -jar target/fcrepo-import-export-0.0.1-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+```
+
+Where `bagit-config-aptrust.yml` looks like:
+```yaml             
+bag-info.txt:
+  Source-Organization: York University Libraries
+  Organization-Address: 4700 Keele Street Toronto, Ontario M3J 1P3 Canada
+  Contact-Name: Nick Ruest
+  Contact-Phone: +14167362100
+  Contact-Email: ruestn@yorku.ca
+  External-Description: Sample bag exported from fcrepo
+  External-Identifier: SAMPLE_001
+  Bag-Group-Identifier: SAMPLE
+  Internal-Sender-Identifier: SAMPLE_001
+  Internal-Sender-Description: Sample bag exported from fcrepo
+aptrust-info.txt:
+  Access: Restricted
+  Title: Sample fcrepo bag
+```
+
+Additional tag files can be created by the utility by adding top-level classes in user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
+
 Running the import/export utility with a configuration file
 -----------------------------------------------------------
 
