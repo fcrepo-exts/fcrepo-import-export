@@ -1,6 +1,6 @@
 {
    "BagIt-Profile-Info":{
-      "BagIt-Profile-Identifier":"http://fedora.info/testProfile.json",
+      "BagIt-Profile-Identifier":"http://fedora.info/profile.json",
       "Source-Organization":"Duraspace",
       "Contact-Name":"Fedo Radmin",
       "Contact-Email":"fedo@example.org",
@@ -49,15 +49,6 @@
       },
       "Payload-Oxum":{
          "required":true
-      }
-   },
-   "APTrust-Info":{
-      "Title":{
-         "required":true
-      },
-      "Access":{
-         "required":true,
-         "values":["Consortia","Institution","Restricted"]
       }
    },
    "Manifests-Required":[

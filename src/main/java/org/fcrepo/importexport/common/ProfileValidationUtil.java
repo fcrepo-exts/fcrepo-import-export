@@ -61,9 +61,12 @@ public class ProfileValidationUtil {
     public static void validate(final String profileSection, final Map<String, Set<String>> requiredFields,
             final Map<String, String> fields) throws ProfileValidationException {
         if (requiredFields != null) {
+            logger.debug("required ({})", requiredFields);
+            logger.debug("fields ({})", fields);
             final StringBuilder errors = new StringBuilder();
 
             for (String fieldName : requiredFields.keySet()) {
+                logger.debug("field is {}", fieldName);
                 // ignore validation on system generated fields
                 if (SYSTEM_GENERATED_FIELD_NAMES.contains(fieldName)) {
                     logger.debug("skipping system generated field {}...", fieldName);

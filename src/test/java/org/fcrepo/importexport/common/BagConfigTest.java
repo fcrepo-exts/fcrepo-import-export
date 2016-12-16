@@ -20,6 +20,8 @@ package org.fcrepo.importexport.common;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Map;
 
@@ -40,16 +42,12 @@ public class BagConfigTest {
         assertNotNull(bagInfo);
         assertNotNull(bagInfo.get(BagConfig.SOURCE_ORGANIZATION_KEY));
 
-        final Map<String, String> aptrustInfo = config.getAPTrustInfo();
-        assertNotNull(aptrustInfo);
-        assertEquals(aptrustInfo.get(BagConfig.ACCESS_KEY).toUpperCase(), BagConfig.AccessTypes.RESTRICTED.name());
+        assertTrue(config.hasTagFile("aptrust-info.txt"));
+        final Map<String, String> customTags = config.getFieldsForTagFile("aptrust-info.txt");
+        assertNotNull(customTags);
+        assertEquals(customTags.get(BagConfig.ACCESS_KEY).toUpperCase(),
+            BagConfig.AccessTypes.RESTRICTED.name());
 
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testBadAccessValue() throws Exception {
-        final File testFile = new File("src/test/resources/configs/bagit-config-bad-access.yml");
-        new BagConfig(testFile);
     }
 
 }

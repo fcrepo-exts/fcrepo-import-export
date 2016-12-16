@@ -17,12 +17,18 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
+import static org.slf4j.LoggerFactory.getLogger;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,10 +39,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class BagProfile {
 
+    private static final Logger logger = getLogger(BagProfile.class);
+
     private Set<String> payloadDigestAlgorithms;
     private Set<String> tagDigestAlgorithms;
-    private Map<String, Set<String>> metadataFields;
-    private Map<String, Set<String>> aptrustFields;
+
+    private Set<String> sections = new HashSet<String>();
+
+    private Map<String, Map<String, Set<String>>> metadataFields = new HashMap<String, Map<String, Set<String>>>();
 
     /**
      * Default constructor.
@@ -53,8 +63,30 @@ public class BagProfile {
             tagDigestAlgorithms = payloadDigestAlgorithms;
         }
 
-        metadataFields = metadataFields(json, "Bag-Info");
-        aptrustFields = metadataFields(json, "APTrust-Info");
+        metadataFields.put(BAG_INFO_FIELDNAME, metadataFields(json, BAG_INFO_FIELDNAME));
+        sections.add(BAG_INFO_FIELDNAME);
+
+        if (json.get("Other-Info") != null) {
+            loadOtherTags(json);
+        }
+    }
+
+    private void loadOtherTags(final JsonNode json) {
+        final JsonNode arrayTags = json.get("Other-Info");
+        if (arrayTags != null && arrayTags.isArray()) {
+            arrayTags.forEach(tag -> tag.fieldNames().forEachRemaining(sections::add));
+            final Iterator<JsonNode> arrayEntries = arrayTags.elements();
+            while (arrayEntries.hasNext()) {
+                final JsonNode entries = arrayEntries.next();
+                final Iterator<String> tagNames = entries.fieldNames();
+                while (tagNames.hasNext()) {
+                    final String tagName = tagNames.next();
+                    metadataFields.put(tagName, metadataFields(entries, tagName));
+                }
+            }
+        }
+        logger.debug("tagFiles is {}", sections);
+        logger.debug("metadataFields is {}", metadataFields);
     }
 
     private static Set<String> arrayValues(final JsonNode json, final String key) {
@@ -71,6 +103,13 @@ public class BagProfile {
         return results;
     }
 
+    /**
+     * Loads required tags and allowed values
+     *
+     * @param json json to parse
+     * @param key key in json to load tags from
+     * @return map of tags => set of allowed values
+     */
     private static Map<String, Set<String>> metadataFields(final JsonNode json, final String key) {
         final JsonNode fields = json.get(key);
 
@@ -82,7 +121,8 @@ public class BagProfile {
         for (final java.util.Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
             final String name = it.next();
             final JsonNode field = fields.get(name);
-            if (field.get("required").asBoolean()) {
+
+            if (field.get("required") != null && field.get("required").asBoolean()) {
                 results.put(name, arrayValues(field, "values"));
             }
         }
@@ -111,15 +151,67 @@ public class BagProfile {
      * @return A map of field names to a Set of acceptable values (or null when the values are restricted).
      */
     public Map<String, Set<String>> getMetadataFields() {
-        return metadataFields;
+        return getMetadataFields(BAG_INFO_FIELDNAME);
     }
 
     /**
-     * Get the required APTrust-Info metadata fields.
-     * @return A map of field names to a Set of acceptable values (or null when the values are restricted),
-     *    or null when no APTrust-Info fields are required.
+     * Get the required tags for the extra tag file
+     *
+     * @param tagFile the tag file to get tags for
+     * @return map of tag = set of acceptable values, or null if tagFile doesn't exist
      */
-    public Map<String, Set<String>> getAPTrustFields() {
-        return aptrustFields;
+    public Map<String, Set<String>> getMetadataFields(final String tagFile) {
+        if (sections.contains(tagFile)) {
+            return metadataFields.get(tagFile);
+        }
+        return null;
+    }
+
+    /**
+     * Does a specific tag section exist in Other-Info
+     *
+     * @param section section to look for
+     * @return true if tagFile exists
+     */
+    public boolean hasSection(final String section) {
+        return (!sections.isEmpty() && sections.contains(section));
+    }
+
+    /**
+     * Does the profile have other tag files in Other-Info
+     *
+     * @return true if any extra tag files exist
+     */
+    public boolean hasExtraSections() {
+        return (sections.stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+    }
+
+    /**
+     * Get all the section names in this profile, which can be used with getMetadataFields().
+     *
+     * @return set of section names
+     */
+    public Set<String> getSectionNames() {
+        return sections;
+    }
+
+    /**
+     * Validate a given BagConfig against the current profile
+     *
+     * @param config the BagConfig
+     */
+    public void validateConfig(final BagConfig config) {
+        for (final String section : sections) {
+            if (config.hasTagFile(section.toLowerCase() + ".txt")) {
+                try {
+                    ProfileValidationUtil.validate(section, getMetadataFields(section),
+                        config.getFieldsForTagFile(section.toLowerCase() + ".txt"));
+                } catch (ProfileValidationException e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                }
+            } else {
+                throw new RuntimeException(String.format("Error missing section %s from bag config", section));
+            }
+        }
     }
 }

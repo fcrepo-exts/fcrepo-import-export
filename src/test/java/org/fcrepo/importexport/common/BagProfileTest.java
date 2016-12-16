@@ -32,8 +32,8 @@ import org.junit.Test;
 public class BagProfileTest {
 
     @Test
-    public void testFromFile() throws Exception {
-        final File testFile = new File("src/test/resources/profiles/test.json");
+    public void testBasicProfileFromFile() throws Exception {
+        final File testFile = new File("src/test/resources/profiles/profile.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
         assertTrue(profile.getPayloadDigestAlgorithms().contains("md5"));
@@ -53,11 +53,50 @@ public class BagProfileTest {
         assertTrue(profile.getMetadataFields().keySet().contains("Payload-Oxum"));
         assertFalse(profile.getMetadataFields().keySet().contains("Contact-Email"));
 
-        assertTrue(profile.getAPTrustFields().keySet().contains("Title"));
-        assertTrue(profile.getAPTrustFields().keySet().contains("Access"));
-        assertTrue(profile.getAPTrustFields().get("Access").contains("Consortia"));
-        assertTrue(profile.getAPTrustFields().get("Access").contains("Institution"));
-        assertTrue(profile.getAPTrustFields().get("Access").contains("Restricted"));
+        assertFalse(profile.hasExtraSections());
+    }
+
+    @Test
+    public void testExtendedProfile() throws Exception {
+        final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(testFile));
+
+        assertTrue(profile.hasExtraSections());
+        assertTrue(profile.hasSection("APTrust-Info"));
+        assertFalse(profile.hasSection("Wrong-Tags"));
+        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Title"));
+        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Access"));
+        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Consortia"));
+        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Institution"));
+        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Restricted"));
+
+    }
+
+    @Test
+    public void testGoodConfig() throws Exception {
+        final File configFile = new File("src/test/resources/configs/bagit-config.yml");
+        final BagConfig config = new BagConfig(configFile);
+        final File profileFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateConfig(config);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testBadAccessValue() throws Exception {
+        final File configFile = new File("src/test/resources/configs/bagit-config-bad-access.yml");
+        final BagConfig config = new BagConfig(configFile);
+        final File profileFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateConfig(config);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testMissingAccessValue() throws Exception {
+        final File configFile = new File("src/test/resources/configs/bagit-config-missing-access.yml");
+        final BagConfig config = new BagConfig(configFile);
+        final File profileFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateConfig(config);
     }
 
     public void testexport() {

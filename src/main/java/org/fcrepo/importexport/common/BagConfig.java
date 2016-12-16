@@ -23,10 +23,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
+import java.util.Set;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 
@@ -90,7 +88,7 @@ public class BagConfig {
                 throw new RuntimeException("The " + BAG_INFO_KEY + " key is not present in the " + bagConfigFilePath);
             }
 
-            validateAPTrust(getAPTrustInfo());
+
         } catch (FileNotFoundException e) {
             throw new RuntimeException("The specified bag config file does not exist: " + bagConfigFile
                     .getAbsolutePath());
@@ -102,19 +100,6 @@ public class BagConfig {
                     reader.close();
                 } catch (IOException e) {
                 }
-            }
-        }
-    }
-
-    private void validateAPTrust(final Map<String, String> apTrustInfo) {
-        final String access = apTrustInfo.get(ACCESS_KEY);
-        if (access != null) {
-            try {
-                AccessTypes.valueOf(access.toUpperCase());
-            } catch (Exception ex) {
-                throw new RuntimeException(ACCESS_KEY + " must be one of the following values: " + StringUtils.join(
-                        AccessTypes
-                                .values(), ","));
             }
         }
     }
@@ -138,12 +123,34 @@ public class BagConfig {
     }
 
     /**
-     * Returns an immutable map of custom tags.
+     * Returns all the tag files from the config
+     *
+     * @return set of tag filenames
+     */
+    public Set<String> getTagFiles() {
+        return map.keySet();
+    }
+
+    /**
+     * Check if a tag file is listed in bag config
+     *
+     * @param tagFile the tag filename
+     * @return true if it is list, false if not
+     */
+    public boolean hasTagFile(final String tagFile) {
+        return map.containsKey(tagFile);
+    }
+
+    /**
+     * Returns an immutable map of custom tags for a tag file
+     *
+     * @param tagFile name of the tag file to get fields for
      * @return a map of filenames to key-value property maps
      */
-    public Map<String, Map<String, String>> getCustomTags() {
-        final Map<String, Map<String, String>> clone = new HashMap(map);
-        clone.remove(BAG_INFO_KEY);
-        return Collections.unmodifiableMap(clone);
+    public Map<String, String> getFieldsForTagFile(final String tagFile) {
+        if (map.get(tagFile) != null) {
+            return map.get(tagFile);
+        }
+        return null;
     }
 }
