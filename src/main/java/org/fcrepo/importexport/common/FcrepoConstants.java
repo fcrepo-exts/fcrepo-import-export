@@ -18,11 +18,11 @@
 package org.fcrepo.importexport.common;
 
 
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Resource;
-
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.Resource;
 
 /**
  * @author awoods
@@ -56,4 +56,6 @@ public abstract class FcrepoConstants {
 
     public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
+
+    public static final String BAG_INFO_FIELDNAME = "Bag-Info";
 }

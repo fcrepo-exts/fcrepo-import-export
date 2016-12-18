@@ -131,29 +131,22 @@ public class Exporter implements TransferProcess {
                     algorithms.add("sha256");
                 }
 
-
                 //enforce default metadata
-                validateProfile("default", bagProfile.getMetadataFields(), bagConfig.getBagInfo());
-                //enforce aptrust if applicable
-                final Map<String,String> aptrustInfo = bagConfig.getAPTrustInfo();
-                if (aptrustInfo != null && !aptrustInfo.isEmpty() && bagProfile.getAPTrustFields() != null) {
-                    final Map<String, String> orderedFields = new HashMap<>(aptrustInfo);
-                    validateProfile("aptrust", bagProfile.getAPTrustFields(), orderedFields);
-                }
+                bagProfile.validateConfig(bagConfig);
 
                 // setup bag
                 final File bagdir = config.getBaseDirectory().getParentFile();
                 this.bag = new BagWriter(bagdir, algorithms);
-                this.bag.addTags("bag-info.txt", bagConfig.getBagInfo());
-
-                final Map<String, Map<String, String>> customTags = bagConfig.getCustomTags();
-                for (final String tagfile : customTags.keySet()) {
-                    this.bag.addTags(tagfile, customTags.get(tagfile));
+                for (final String tagFile : bagConfig.getTagFiles()) {
+                    this.bag.addTags(tagFile, bagConfig.getFieldsForTagFile(tagFile));
                 }
+
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
-            } catch (Exception e) {
-                throw new RuntimeException("Error loading Bag profile: " + e.toString());
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(String.format("Error loading bag config file: {}", e.getMessage()), e);
+            } catch (IOException e) {
+                throw new RuntimeException(String.format("Error reading bag profile: {}", e.getMessage()), e);
             }
         }
     }

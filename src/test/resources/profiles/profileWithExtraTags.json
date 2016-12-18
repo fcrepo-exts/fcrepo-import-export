@@ -1,24 +1,24 @@
 {
    "BagIt-Profile-Info":{
-      "BagIt-Profile-Identifier":"http://fedora.info/bagprofile/aptrust.json",
+      "BagIt-Profile-Identifier":"http://fedora.info/testProfile.json",
       "Source-Organization":"Duraspace",
-      "Contact-Name":"Esmé Cowles",
-      "Contact-Email":"escowles@ticklefish.org",
-      "External-Description":"Bag Profile for Fedora and APTrust.",
-      "Version":"1.2"
+      "Contact-Name":"Fedo Radmin",
+      "Contact-Email":"fedo@example.org",
+      "External-Description":"Test Bag Profile for Fedora.",
+      "Version":"0.1"
    },
    "Bag-Info":{
       "Source-Organization":{
          "required":true
       },
       "Organization-Address":{
-         "required":false
+         "required":true
       },
       "Contact-Name":{
-         "required":false
+         "required":true
       },
       "Contact-Phone":{
-         "required":false
+         "required":true
       },
       "Contact-Email":{
          "required":false
@@ -52,24 +52,23 @@
       }
    },
    "Other-Info" : [
-      {"APTrust-Info":{
-         "Title":{
-            "required":true
-         },
-         "Access":{
-            "required":true,
-            "values":["Consortia","Institution","Restricted"]
-         }
-      }}
+       {
+           "APTrust-Info": {
+                "Title":{
+                    "required":true
+                },
+                "Access":{
+                    "required":true,
+                    "values":["Consortia","Institution","Restricted"]
+                }
+           }
+       }
    ],
    "Manifests-Required":[
-      "sha1","sha256"
+      "md5", "sha1", "sha256"
    ],
    "Allow-Fetch.txt":false,
    "Serialization":"optional",
-   "Tag-Files-Required":[
-     "aptrust-info.txt"
-   ],
    "Tag-Manifests-Required":[
      "sha1"
    ],
