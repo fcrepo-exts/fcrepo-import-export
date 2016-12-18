@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -53,7 +54,8 @@ public class BagProfileTest {
         assertTrue(profile.getMetadataFields().keySet().contains("Payload-Oxum"));
         assertFalse(profile.getMetadataFields().keySet().contains("Contact-Email"));
 
-        assertFalse(profile.hasExtraSections());
+        assertFalse(
+            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
     }
 
     @Test
@@ -61,9 +63,9 @@ public class BagProfileTest {
         final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
-        assertTrue(profile.hasExtraSections());
-        assertTrue(profile.hasSection("APTrust-Info"));
-        assertFalse(profile.hasSection("Wrong-Tags"));
+        assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+        assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals("APTrust-Info")));
+        assertFalse(profile.getSectionNames().stream().anyMatch(t -> t.equals("Wrong-Tags")));
         assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Title"));
         assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Access"));
         assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Consortia"));
@@ -93,6 +95,24 @@ public class BagProfileTest {
     @Test(expected = RuntimeException.class)
     public void testMissingAccessValue() throws Exception {
         final File configFile = new File("src/test/resources/configs/bagit-config-missing-access.yml");
+        final BagConfig config = new BagConfig(configFile);
+        final File profileFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateConfig(config);
+    }
+
+    @Test
+    public void testMissingSectionNotNeeded() throws Exception {
+        final File configFile = new File("src/test/resources/configs/bagit-config-no-aptrust.yml");
+        final BagConfig config = new BagConfig(configFile);
+        final File profileFile = new File("src/test/resources/profiles/profile.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateConfig(config);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testMissingSectionRequired() throws Exception {
+        final File configFile = new File("src/test/resources/configs/bagit-config-no-aptrust.yml");
         final BagConfig config = new BagConfig(configFile);
         final File profileFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(profileFile));

@@ -148,9 +148,6 @@ public class BagConfig {
      * @return a map of filenames to key-value property maps
      */
     public Map<String, String> getFieldsForTagFile(final String tagFile) {
-        if (map.get(tagFile) != null) {
-            return map.get(tagFile);
-        }
-        return null;
+        return map.get(tagFile);
     }
 }

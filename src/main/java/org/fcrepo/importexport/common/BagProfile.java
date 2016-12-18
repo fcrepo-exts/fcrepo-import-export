@@ -161,29 +161,7 @@ public class BagProfile {
      * @return map of tag = set of acceptable values, or null if tagFile doesn't exist
      */
     public Map<String, Set<String>> getMetadataFields(final String tagFile) {
-        if (sections.contains(tagFile)) {
-            return metadataFields.get(tagFile);
-        }
-        return null;
-    }
-
-    /**
-     * Does a specific tag section exist in Other-Info
-     *
-     * @param section section to look for
-     * @return true if tagFile exists
-     */
-    public boolean hasSection(final String section) {
-        return (!sections.isEmpty() && sections.contains(section));
-    }
-
-    /**
-     * Does the profile have other tag files in Other-Info
-     *
-     * @return true if any extra tag files exist
-     */
-    public boolean hasExtraSections() {
-        return (sections.stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+        return metadataFields.get(tagFile);
     }
 
     /**
