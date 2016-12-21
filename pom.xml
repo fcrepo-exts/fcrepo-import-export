@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.fcrepo</groupId>
@@ -8,7 +7,7 @@
   </parent>
   <groupId>org.fcrepo.importexport</groupId>
   <artifactId>fcrepo-import-export</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <packaging>jar</packaging>
 
 
@@ -97,7 +96,7 @@
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
     <developerConnection>scm:git:git@github.com:fcrepo4-labs/${project_name}.git</developerConnection>
     <url>https://github.com/fcrepo4-labs/${project_name}</url>
-    <tag>HEAD</tag>
+    <tag>fcrepo-import-export-0.1.0</tag>
   </scm>
 
   <build>
@@ -173,12 +172,10 @@
             <configuration>
               <transformers>
                 <!-- add Main-Class to manifest file -->
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.fcrepo.importexport.ImportExportDriver</mainClass>
                 </transformer>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
               </transformers>
             </configuration>
           </execution>
