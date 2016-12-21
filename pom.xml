@@ -7,7 +7,7 @@
   </parent>
   <groupId>org.fcrepo.importexport</groupId>
   <artifactId>fcrepo-import-export</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
 
@@ -96,7 +96,7 @@
     <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
     <developerConnection>scm:git:git@github.com:fcrepo4-labs/${project_name}.git</developerConnection>
     <url>https://github.com/fcrepo4-labs/${project_name}</url>
-    <tag>fcrepo-import-export-0.1.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
