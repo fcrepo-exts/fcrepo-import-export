@@ -131,7 +131,7 @@ public class ImporterTest {
         binBuilder = mock(PutBuilder.class);
         final FcrepoResponse binResponse = mock(FcrepoResponse.class);
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
-        when(binBuilder.body(isA(File.class), isA(String.class))).thenReturn(binBuilder);
+        when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
@@ -141,7 +141,8 @@ public class ImporterTest {
         externalResourceBuilder = mock(PutBuilder.class);
         final FcrepoResponse externalResourceResponse = mock(FcrepoResponse.class);
         when(client.put(eq(externalResourceURI))).thenReturn(externalResourceBuilder);
-        when(externalResourceBuilder.body(isA(File.class), isA(String.class))).thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.body(isA(InputStream.class), isA(String.class)))
+                .thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
         when(externalResourceResponse.getStatusCode()).thenReturn(201);
         when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
@@ -168,8 +169,7 @@ public class ImporterTest {
         importer.run();
         verify(client).put(binaryURI);
         verify(binBuilder).digest(eq("2a6d6229e30f667c60d406f7bf44d834e52d11b7"));
-        verify(binBuilder).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
-                                eq("application/x-www-form-urlencoded"));
+        verify(binBuilder).body(isA(InputStream.class), eq("application/x-www-form-urlencoded"));
         verify(client).put(binaryDescriptionURI);
     }
 
@@ -178,8 +178,7 @@ public class ImporterTest {
         final Importer importer = new Importer(externalResourceArgs, clientBuilder);
         importer.run();
         verify(client).put(externalResourceURI);
-        verify(externalResourceBuilder).body(eq(new File(externalFilesDir, "rest/ext1.external")),
-                                eq("message/external-body"));
+        verify(externalResourceBuilder).body(isA(InputStream.class), eq("message/external-body"));
         verify(client).put(externalResourceDescriptionURI);
     }
 
@@ -188,8 +187,7 @@ public class ImporterTest {
         final Importer importer = new Importer(noBinaryArgs, clientBuilder);
         importer.run();
         verify(client, never()).put(binaryURI);
-        verify(binBuilder, never()).body(eq(new File(binaryFilesDir, "rest/bin1.binary")),
-                                eq("application/x-www-form-urlencoded"));
+        verify(binBuilder, never()).body(isA(InputStream.class), eq("application/x-www-form-urlencoded"));
         verify(client, never()).put(binaryDescriptionURI);
     }
 

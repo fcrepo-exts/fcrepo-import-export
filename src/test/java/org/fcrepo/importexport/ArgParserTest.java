@@ -68,6 +68,17 @@ public class ArgParserTest {
     }
 
     @Test
+    public void parseRetrieveExternal() throws Exception {
+        final String[] args = new String[]{"-m", "export",
+                                           "-d", "/tmp/rdf",
+                                           "-x",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertEquals(true, config.retrieveExternal());
+    }
+
+    @Test
     public void parseMinimalValidExport() throws Exception {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());

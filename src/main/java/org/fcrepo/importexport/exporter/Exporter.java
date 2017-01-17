@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.GetBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.BagConfig;
@@ -223,7 +224,8 @@ public class Exporter implements TransferProcess {
             if (linkHeaders.contains(binaryURI)) {
                 final String contentType = response.getContentType();
                 final boolean external = contentType != null && contentType.contains("message/external-body");
-                exportBinary(uri, external);
+                final List<URI> describedby = response.getLinkHeaders("describedby");
+                exportBinary(uri, describedby, external);
             } else if (linkHeaders.contains(containerURI)) {
                 exportDescription(uri);
             } else {
@@ -241,7 +243,7 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private void exportBinary(final URI uri, final boolean external)
+    private void exportBinary(final URI uri, final List<URI> describedby, final boolean external)
             throws FcrepoOperationFailedException, IOException {
 
         if (!config.isIncludeBinaries()) {
@@ -249,7 +251,11 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        try (FcrepoResponse response = client().get(uri).disableRedirects().perform()) {
+        GetBuilder getBuilder = client().get(uri);
+        if (external && !config.retrieveExternal()) {
+            getBuilder = getBuilder.disableRedirects();
+        }
+        try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri);
 
             final File file = external ?
@@ -257,7 +263,7 @@ public class Exporter implements TransferProcess {
                                     TransferProcess.fileForBinary(uri, config.getBaseDirectory());
 
             logger.info("Exporting binary: {}", uri);
-            writeResponse(response, file);
+            writeResponse(response, describedby, file);
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         }
@@ -274,7 +280,7 @@ public class Exporter implements TransferProcess {
         try (FcrepoResponse response = client().get(uri).accept(config.getRdfLanguage()).perform()) {
             checkValidResponse(response, uri);
             logger.info("Exporting description: {}", uri);
-            writeResponse(response, file);
+            writeResponse(response, null, file);
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         } catch ( Exception ex ) {
@@ -296,7 +302,7 @@ public class Exporter implements TransferProcess {
             logger.warn("Unable to parse file: {}", ex.toString());
         }
     }
-    void writeResponse(final FcrepoResponse response, final File file)
+    void writeResponse(final FcrepoResponse response, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
@@ -316,9 +322,10 @@ public class Exporter implements TransferProcess {
             }
         }
 
-        final List<URI> describedby = response.getLinkHeaders("describedby");
-        for (final Iterator<URI> it = describedby.iterator(); describedby != null && it.hasNext(); ) {
-            exportDescription(it.next());
+        if (describedby != null) {
+            for (final Iterator<URI> it = describedby.iterator(); it.hasNext(); ) {
+                exportDescription(it.next());
+            }
         }
     }
 

@@ -121,6 +121,13 @@ public class ArgParser {
                 .desc("When present this flag indicates that binaries should be imported/exported.")
                 .required(false).build());
 
+        // Retrieve external content
+        configOptions.addOption(Option.builder("x")
+                .longOpt("external")
+                .hasArg(false)
+                .desc("When present this flag indicates that external content should be retrieved.")
+                .required(false).build());
+
         // RDF language option
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
@@ -307,6 +314,7 @@ public class ArgParser {
         config.setResource(cmd.getOptionValue('r'));
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
+        config.setRetrieveExternal(cmd.hasOption('x'));
 
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
@@ -463,6 +471,14 @@ public class ArgParser {
                         "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
                         entry.getValue()), lineNumber);
                 }
+            } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
+                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
+                    c.setRetrieveExternal(Boolean.parseBoolean(entry.getValue()));
+                } else {
+                    throw new java.text.ParseException(String.format(
+                        "external configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
+                        entry.getValue()), lineNumber);
+                }
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
@@ -495,6 +511,7 @@ public class ArgParser {
             map.put("rdfLang", config.getRdfLanguage());
         }
         map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
+        map.put("external", Boolean.toString(config.retrieveExternal()));
         if (config.getBagProfile() != null) {
             map.put(BAG_PROFILE_OPTION_KEY, config.getBagProfile());
         }

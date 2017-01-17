@@ -342,7 +342,13 @@ public class Importer implements TransferProcess {
         final String contentType = model.getProperty(binaryRes, HAS_MIME_TYPE).getString();
         final boolean external = contentType.contains("message/external-body");
         final File binaryFile =  fileForBinaryURI(binaryURI, external);
-        PutBuilder builder = client().put(binaryURI).body(binaryFile, contentType);
+        final InputStream contentStream;
+        if (external) {
+            contentStream = new ByteArrayInputStream(new byte[]{});
+        } else {
+            contentStream = new FileInputStream(binaryFile);
+        }
+        PutBuilder builder = client().put(binaryURI).body(contentStream, contentType);
         if (!external) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum

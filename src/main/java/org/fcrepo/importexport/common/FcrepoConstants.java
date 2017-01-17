@@ -45,6 +45,7 @@ public abstract class FcrepoConstants {
     public static final Resource CONTAINER = createResource(LDP_NAMESPACE + "Container");
     public static final Property MEMBERSHIP_RESOURCE = createProperty(LDP_NAMESPACE + "membershipResource");
     public static final Property NON_RDF_SOURCE = createProperty(LDP_NAMESPACE + "NonRDFSource");
+    public static final Property RDF_SOURCE = createProperty(LDP_NAMESPACE + "RDFSource");
     public static final Property CONTAINS = createProperty(LDP_NAMESPACE + "contains");
 
     public static final String PREMIS_NAMESPACE = "http://www.loc.gov/premis/rdf/v1#";
