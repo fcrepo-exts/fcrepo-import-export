@@ -17,10 +17,12 @@
  */
 package org.fcrepo.importexport.integration;
 
+import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -73,6 +75,32 @@ public class ExporterIT extends AbstractResourceIT {
 
         // Verify
         assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportRetrieveExternal() throws Exception {
+        // Create an external content resource pointing at another repository resource
+        final URI binaryURI = URI.create(serverAddress + UUID.randomUUID());
+        createBody(binaryURI, "content", "text/plain");
+        createBody(url, "", "message/external-body; access-type=URL; URL=\"" + binaryURI.toString() + "\"");
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setIncludeBinaries(true);
+        config.setRetrieveExternal(true);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
+        assertTrue(externalFile.exists());
+        assertEquals("content", readFileToString(externalFile, "UTF-8"));
     }
 
     @Test

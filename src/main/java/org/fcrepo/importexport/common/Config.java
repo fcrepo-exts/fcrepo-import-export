@@ -53,6 +53,7 @@ public class Config {
     private File baseDirectory;
 
     private boolean includeBinaries = false;
+    private boolean retrieveExternal = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
 
@@ -125,6 +126,24 @@ public class Config {
      */
     public boolean isIncludeBinaries() {
         return includeBinaries;
+    }
+
+    /**
+     * Sets flag indicating whether or not external content should be retrieved when exporting.
+     *
+     * @param retrieveExternal in import/export
+     */
+    public void setRetrieveExternal(final boolean retrieveExternal) {
+        this.retrieveExternal = retrieveExternal;
+    }
+
+    /**
+     * Returns true if external content should be retrieved.
+     *
+     * @return retrieve external content flag
+     */
+    public boolean retrieveExternal() {
+        return retrieveExternal;
     }
 
     /**
@@ -374,6 +393,14 @@ public class Config {
                         "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
                         entry.getValue()), lineNumber);
                 }
+            } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
+                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
+                    c.setRetrieveExternal(Boolean.parseBoolean(entry.getValue()));
+                } else {
+                    throw new ParseException(String.format(
+                        "external configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
+                        entry.getValue()), lineNumber);
+                }
             } else {
                 throw new ParseException(String.format("Unknown configuration key: {}", entry.getKey()), lineNumber);
             }
@@ -398,6 +425,7 @@ public class Config {
             map.put("rdfLang", this.getRdfLanguage());
         }
         map.put("binaries", Boolean.toString(this.includeBinaries));
+        map.put("external", Boolean.toString(this.retrieveExternal));
         return map;
     }
 

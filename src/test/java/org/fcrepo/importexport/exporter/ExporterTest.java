@@ -24,6 +24,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -61,6 +62,7 @@ public class ExporterTest {
     private FcrepoResponse headResponse;
     private List<URI> binaryLinks;
     private List<URI> containerLinks;
+    private List<URI> descriptionLinks;
     private List<URI> describedbyLinks;
     private URI resource;
     private URI resource2;
@@ -85,14 +87,15 @@ public class ExporterTest {
 
         binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
         containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
+        descriptionLinks = Arrays.asList(new URI(RDF_SOURCE.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
 
-        mockResponse(resource, new ArrayList<>(), "{\"@id\":\"" + resource.toString() + "\",\""
+        mockResponse(resource, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource.toString() + "\",\""
                 + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
-        mockResponse(resource2, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
-        mockResponse(resource3, describedbyLinks, "binary");
-        mockResponse(resource4, new ArrayList<>(), "{\"@id\":\"" + resource4.toString() + "\"}");
-        mockResponse(resource5, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
+        mockResponse(resource2, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
+        mockResponse(resource3, binaryLinks, describedbyLinks, "binary");
+        mockResponse(resource4, descriptionLinks, new ArrayList<>(), "{\"@id\":\"" + resource4.toString() + "\"}");
+        mockResponse(resource5, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
@@ -110,8 +113,18 @@ public class ExporterTest {
         }
     }
 
-    private void mockResponse(final URI uri, final List<URI> describedbyLinks, final String body)
-            throws FcrepoOperationFailedException {
+    private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
+            final String body) throws FcrepoOperationFailedException {
+        final HeadBuilder headBuilder = mock(HeadBuilder.class);
+        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
+        when(client.head(eq(uri))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
+        when(headBuilder.perform()).thenReturn(headResponse);
+        when(headResponse.getUrl()).thenReturn(uri);
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+        when(headResponse.getStatusCode()).thenReturn(200);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
         when(client.get(eq(uri))).thenReturn(getBuilder);
@@ -122,6 +135,7 @@ public class ExporterTest {
         when(getResponse.getUrl()).thenReturn(uri);
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(getResponse.getStatusCode()).thenReturn(200);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
     }
 
     @Test
@@ -135,9 +149,10 @@ public class ExporterTest {
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(resource3);
 
-        final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
-        when(headResponse.getContentType()).thenReturn("image/tiff");
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+
+        final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
@@ -157,9 +172,11 @@ public class ExporterTest {
         bagArgs.setBagProfile("default");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
-        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1/fcr%3Ametadata.jsonld")));
@@ -181,6 +198,7 @@ public class ExporterTest {
 
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
@@ -230,7 +248,6 @@ public class ExporterTest {
         noBinaryArgs.setResource(resource3);
 
         final ExporterWrapper exporter = new ExporterWrapper(noBinaryArgs, clientBuilder);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
         Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
@@ -306,7 +323,6 @@ public class ExporterTest {
         metadataArgs.setResource(resource);
 
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
-        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(binaryLinks);
         exporter.run();
         Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/1")));
     }
@@ -359,7 +375,6 @@ public class ExporterTest {
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-custom-tagfile.yml");
 
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
 
@@ -378,9 +393,9 @@ class ExporterWrapper extends Exporter {
         super(config, clientBuilder);
     }
     @Override
-    void writeResponse(final FcrepoResponse response, final File file)
+    void writeResponse(final FcrepoResponse response, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
-        super.writeResponse(response, file);
+        super.writeResponse(response, describedby, file);
         writtenFiles.add(file);
     }
     boolean wroteFile(final File file) {
