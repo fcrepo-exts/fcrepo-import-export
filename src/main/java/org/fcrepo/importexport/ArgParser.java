@@ -125,7 +125,7 @@ public class ArgParser {
         configOptions.addOption(Option.builder("x")
                 .longOpt("external")
                 .hasArg(false)
-                .desc("When present this flag indicates that external content should be retrieved.")
+                .desc("When present this flag indicates that external content should be exported.")
                 .required(false).build());
 
         // RDF language option
