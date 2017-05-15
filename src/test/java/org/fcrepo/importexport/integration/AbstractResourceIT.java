@@ -155,12 +155,17 @@ abstract class AbstractResourceIT {
     }
 
     protected void removeAndReset(final URI uri) throws FcrepoOperationFailedException {
-        clientBuilder.build().delete(uri).perform();
-        final FcrepoResponse getResponse = clientBuilder.build().get(uri).perform();
-        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        final FcrepoResponse getResponse = remove(uri);
         final URI tombstone = getResponse.getLinkHeaders("hasTombstone").get(0);
         final FcrepoResponse delResponse = clientBuilder.build().delete(tombstone).perform();
         assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT, delResponse.getStatusCode());
+    }
+
+    protected FcrepoResponse remove(final URI uri) throws FcrepoOperationFailedException {
+        clientBuilder.build().delete(uri).perform();
+        final FcrepoResponse getResponse = clientBuilder.build().get(uri).perform();
+        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        return getResponse;
     }
 
     abstract protected Logger logger();

@@ -75,7 +75,7 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(uri, response.getLocation());
         create(URI.create(uri.toString() + "/res1"));
 
-        roundtrip(uri);
+        roundtrip(uri, true);
 
         final Model model = getAsModel(URI.create(uri.toString() + "/res1"));
         assertTrue(model.contains(null, RDF_TYPE, CONTAINER));
@@ -104,7 +104,7 @@ public class RoundtripIT extends AbstractResourceIT {
             + "<" + EDM_END + "> \"2013-12-31T23:59:59Z\"^^<" + XSD_DATETIME + "> . ";
         createTurtle(res2, turtle);
 
-        final Config config = roundtrip(URI.create(baseURI));
+        final Config config = roundtrip(URI.create(baseURI), true);
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
@@ -152,7 +152,7 @@ public class RoundtripIT extends AbstractResourceIT {
         createTurtle(parts, partsTurtle);
         create(part1);
 
-        roundtrip(URI.create(baseURI));
+        roundtrip(URI.create(baseURI), true);
 
         final Resource parent = createResource(res1.toString());
         final Resource container = createResource(parts.toString());
@@ -194,7 +194,7 @@ public class RoundtripIT extends AbstractResourceIT {
         createTurtle(parts, partsTurtle);
         createTurtle(proxy, proxyTurtle);
 
-        roundtrip(URI.create(baseURI));
+        roundtrip(URI.create(baseURI), true);
 
         final Resource member = createResource(res1.toString());
         final Resource parent = createResource(res2.toString());
@@ -235,7 +235,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI file1desc = resp.getLinkHeaders("describedby").get(0);
         patch(file1desc, file1patch);
 
-        final Config config = roundtrip(URI.create(baseURI));
+        final Config config = roundtrip(URI.create(baseURI), true);
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
@@ -289,7 +289,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI file1desc = resp.getLinkHeaders("describedby").get(0);
         patch(file1desc, file1patch);
 
-        final Config config = roundtrip(URI.create(baseURI));
+        final Config config = roundtrip(URI.create(baseURI), true);
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
@@ -327,6 +327,28 @@ public class RoundtripIT extends AbstractResourceIT {
                 createResource("urn:sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709")));
     }
 
+    @Test
+    public void testRoundtripOverwrite() throws Exception {
+        final URI uri = URI.create(serverAddress + UUID.randomUUID());
+        final URI parentURI = URI.create(uri.toString() + "/res1");
+        final URI childURI = URI.create(parentURI.toString() + "/child1");
+        final URI fileURI = URI.create(parentURI.toString() + "/file1");
+
+        final FcrepoResponse response = create(uri);
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(uri, response.getLocation());
+        create(parentURI);
+        create(childURI);
+        createBody(fileURI, "this is some content", "text/plain");
+
+        roundtrip(uri, false);
+
+        // verify that the resources have been created
+        assertTrue(exists(parentURI));
+        assertTrue(exists(childURI));
+        assertTrue(exists(fileURI));
+    }
+
     private Literal dateLiteral(final String dateString) {
         return createTypedLiteral(dateString, XSDdateTime);
     }
@@ -335,7 +357,7 @@ public class RoundtripIT extends AbstractResourceIT {
         return createTypedLiteral(longString, XSDlong);
     }
 
-    private Config roundtrip(final URI uri) throws FcrepoOperationFailedException {
+    private Config roundtrip(final URI uri, final boolean reset) throws FcrepoOperationFailedException {
         // export resources
         final Config config = new Config();
         config.setMode("export");
@@ -349,11 +371,18 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setPassword(PASSWORD);
         new Exporter(config, clientBuilder).run();
 
-        // delete container and remove tombstone
-        removeAndReset(uri);
+        // delete container and optionally remove tombstone
+        if (reset) {
+            removeAndReset(uri);
+        } else {
+            remove(uri);
+        }
 
         // setup config for import to a new base URL, then perform import
         config.setMode("import");
+        if (!reset) {
+            config.setOverwriteTombstones(true);
+        }
         new Importer(config, clientBuilder).run();
 
         return config;

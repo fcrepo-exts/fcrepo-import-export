@@ -79,6 +79,17 @@ public class ArgParserTest {
     }
 
     @Test
+    public void parseOverwriteTombstones() throws Exception {
+        final String[] args = new String[]{"-m", "import",
+                                           "-d", "/tmp/rdf",
+                                           "-T",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isImport());
+        Assert.assertEquals(true, config.overwriteTombstones());
+    }
+
+    @Test
     public void parseMinimalValidExport() throws Exception {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());

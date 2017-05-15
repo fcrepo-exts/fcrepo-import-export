@@ -128,6 +128,13 @@ public class ArgParser {
                 .desc("When present this flag indicates that external content should be exported.")
                 .required(false).build());
 
+        // Overwrite Tombstones
+        configOptions.addOption(Option.builder("T")
+                 .longOpt("overwriteTombstones")
+                 .hasArg(false)
+                 .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
+                 .required(false).build());
+
         // RDF language option
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
@@ -315,6 +322,7 @@ public class ArgParser {
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
         config.setRetrieveExternal(cmd.hasOption('x'));
+        config.setOverwriteTombstones(cmd.hasOption('T'));
 
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
@@ -512,6 +520,7 @@ public class ArgParser {
         }
         map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
         map.put("external", Boolean.toString(config.retrieveExternal()));
+        map.put("overwriteTombstones", Boolean.toString(config.overwriteTombstones()));
         if (config.getBagProfile() != null) {
             map.put(BAG_PROFILE_OPTION_KEY, config.getBagProfile());
         }

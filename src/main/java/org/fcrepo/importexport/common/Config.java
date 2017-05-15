@@ -54,6 +54,7 @@ public class Config {
 
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
+    private boolean overwriteTombstones = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
 
@@ -144,6 +145,24 @@ public class Config {
      */
     public boolean retrieveExternal() {
         return retrieveExternal;
+    }
+
+    /**
+     * Sets flag indicating whether or not tombstones should be overwritten when importing.
+     *
+     * @param overwriteTombstones on import
+     */
+    public void setOverwriteTombstones(final boolean overwriteTombstones) {
+        this.overwriteTombstones = overwriteTombstones;
+    }
+
+    /**
+     * Returns true if tombstones should be deleted then importing.
+     *
+     * @return retrieve overwite tombstones flag
+     */
+    public boolean overwriteTombstones() {
+        return overwriteTombstones;
     }
 
     /**
@@ -386,26 +405,27 @@ public class Config {
             } else if (entry.getKey().equalsIgnoreCase("rdfLang")) {
                 c.setRdfLanguage(entry.getValue());
             } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
-                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
-                    c.setIncludeBinaries(Boolean.parseBoolean(entry.getValue()));
-                } else {
-                    throw new ParseException(String.format(
-                        "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
-                        entry.getValue()), lineNumber);
-                }
+                c.setIncludeBinaries(parseBoolean(entry, "binaries", lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
+                c.setIncludeBinaries(parseBoolean(entry, "overwriteTombstones", lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
-                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
-                    c.setRetrieveExternal(Boolean.parseBoolean(entry.getValue()));
-                } else {
-                    throw new ParseException(String.format(
-                        "external configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
-                        entry.getValue()), lineNumber);
-                }
+                c.setIncludeBinaries(parseBoolean(entry, "external", lineNumber));
             } else {
                 throw new ParseException(String.format("Unknown configuration key: {}", entry.getKey()), lineNumber);
             }
         }
         return c;
+    }
+
+    private static boolean parseBoolean(final Map.Entry<String, String> entry, final String key,
+            final int lineNumber) throws ParseException {
+        if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
+            return Boolean.parseBoolean(entry.getValue());
+        } else {
+            throw new ParseException(String.format(
+                "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
+                key, entry.getValue()), lineNumber);
+        }
     }
 
     /**

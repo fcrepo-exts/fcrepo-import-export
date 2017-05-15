@@ -372,6 +372,9 @@ public class Importer implements TransferProcess {
             final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
             return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
                 .preferLenient().perform();
+        } else if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
+            deleteTombstone(binaryResponse);
+            return builder.perform();
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
                     binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
@@ -389,7 +392,27 @@ public class Importer implements TransferProcess {
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
             builder = builder.digest(checksum);
         }
-        return builder.preferLenient().perform();
+        final FcrepoResponse response = builder.preferLenient().perform();
+        if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
+            deleteTombstone(response);
+            return builder.preferLenient().perform();
+        } else {
+            return response;
+        }
+    }
+
+    private void deleteTombstone(final FcrepoResponse response) throws FcrepoOperationFailedException {
+        final URI tombstone = response.getLinkHeaders("hasTombstone").get(0);
+        if (tombstone != null) {
+            client().delete(tombstone).perform();
+        } else {
+            String uri = response.getUrl().toString();
+            if (uri.endsWith("/")) {
+                uri = uri.substring(0, uri.length() - 1);
+            }
+            final URI parent = URI.create(uri.substring(0, uri.lastIndexOf("/", uri.length() - 1)));
+            deleteTombstone(client().head(parent).perform());
+        }
     }
 
     private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
