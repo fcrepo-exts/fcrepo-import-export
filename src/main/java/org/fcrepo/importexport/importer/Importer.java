@@ -124,7 +124,7 @@ public class Importer implements TransferProcess {
                 final File bagdir = config.getBaseDirectory().getParentFile();
                 // TODO: Maybe use this once we get an updated release of bagit-java library
                 //if (verifyBag(bagdir)) {
-                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-SHA1.txt");
+                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-sha1.txt");
                 this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
                 this.sha1 = MessageDigest.getInstance("SHA-1");
                 // }
