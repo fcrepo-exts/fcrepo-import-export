@@ -330,23 +330,44 @@ public class RoundtripIT extends AbstractResourceIT {
     @Test
     public void testRoundtripOverwrite() throws Exception {
         final URI uri = URI.create(serverAddress + UUID.randomUUID());
+        final FileInputStream stream = new FileInputStream("src/test/resources/test.ttl");
         final URI parentURI = URI.create(uri.toString() + "/res1");
         final URI childURI = URI.create(parentURI.toString() + "/child1");
         final URI fileURI = URI.create(parentURI.toString() + "/file1");
+        final File fileContent = new File("src/test/resources/binary.txt");
 
-        final FcrepoResponse response = create(uri);
+        final FcrepoResponse response = createBody(uri, stream, "text/turtle");
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(uri, response.getLocation());
         create(parentURI);
         create(childURI);
-        createBody(fileURI, "this is some content", "text/plain");
+        createBody(fileURI, new FileInputStream(fileContent), "text/plain");
 
         roundtrip(uri, false);
 
         // verify that the resources have been created
+        final Model model = getAsModel(uri);
+        assertTrue(model.contains(createResource(uri.toString()), createProperty(DC_TITLE), "this is a title"));
         assertTrue(exists(parentURI));
         assertTrue(exists(childURI));
         assertTrue(exists(fileURI));
+        assertEquals("this is some content\n", getAsString(fileURI));
+    }
+
+    @Test
+    public void testRoundtripOverwriteBinary() throws Exception {
+        final URI fileURI = URI.create(serverAddress + UUID.randomUUID());
+        final File fileContent = new File("src/test/resources/binary.txt");
+
+        final FcrepoResponse response = createBody(fileURI, new FileInputStream(fileContent), "text/plain");
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(fileURI, response.getLocation());
+
+        roundtrip(fileURI, false);
+
+        // verify that the resources have been created
+        assertTrue(exists(fileURI));
+        assertEquals("this is some content\n", getAsString(fileURI));
     }
 
     private Literal dateLiteral(final String dateString) {

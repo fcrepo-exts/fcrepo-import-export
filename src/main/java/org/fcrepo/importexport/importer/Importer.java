@@ -65,7 +65,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
@@ -340,30 +339,9 @@ public class Importer implements TransferProcess {
 
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
-        final Resource binaryRes = createResource(binaryURI.toString());
-        final String contentType = model.getProperty(binaryRes, HAS_MIME_TYPE).getString();
-        final boolean external = contentType.contains("message/external-body");
-        final File binaryFile =  fileForBinaryURI(binaryURI, external);
-        final InputStream contentStream;
-        if (external) {
-            contentStream = new ByteArrayInputStream(new byte[]{});
-        } else {
-            contentStream = new FileInputStream(binaryFile);
-        }
-        PutBuilder builder = client().put(binaryURI).body(contentStream, contentType);
-        if (!external) {
-            if (sha1FileMap != null) {
-                // Use the bagIt checksum
-                final String checksum = sha1FileMap.get(binaryFile);
-                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getPath());
-                builder = builder.digest(checksum);
-            } else {
-                builder = builder.digest(model.getProperty(binaryRes, HAS_MESSAGE_DIGEST)
-                                          .getObject().toString().replaceAll(".*:",""));
-            }
-        }
-        final FcrepoResponse binaryResponse = builder.perform();
-
+        final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
+        final File binaryFile =  fileForBinaryURI(binaryURI, external(contentType));
+        final FcrepoResponse binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
             importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
@@ -374,7 +352,7 @@ public class Importer implements TransferProcess {
                 .preferLenient().perform();
         } else if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
             deleteTombstone(binaryResponse);
-            return builder.perform();
+            return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
                     binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
@@ -382,7 +360,44 @@ public class Importer implements TransferProcess {
         }
     }
 
+    private PutBuilder binaryBuilder(final URI binaryURI, final File binaryFile, final String contentType,
+            final Model model) throws FcrepoOperationFailedException, IOException {
+        final InputStream contentStream;
+        if (external(contentType)) {
+            contentStream = new ByteArrayInputStream(new byte[]{});
+        } else {
+            contentStream = new FileInputStream(binaryFile);
+        }
+        PutBuilder builder = client().put(binaryURI).body(contentStream, contentType);
+        if (!external(contentType)) {
+            if (sha1FileMap != null) {
+                // Use the bagIt checksum
+                final String checksum = sha1FileMap.get(binaryFile);
+                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getPath());
+                builder = builder.digest(checksum);
+            } else {
+                builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
+                                          .getObject().toString().replaceAll(".*:",""));
+            }
+        }
+        return builder;
+    }
+
+    private boolean external(final String contentType) {
+        return contentType.startsWith("message/external-body");
+    }
+
     private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
+        final FcrepoResponse response = containerBuilder(uri, model).preferLenient().perform();
+        if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
+            deleteTombstone(response);
+            return containerBuilder(uri, model).preferLenient().perform();
+        } else {
+            return response;
+        }
+    }
+
+    private PutBuilder containerBuilder(final URI uri, final Model model) throws FcrepoOperationFailedException {
         PutBuilder builder = client().put(uri).body(modelToStream(model), config.getRdfLanguage());
         if (sha1FileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
@@ -392,13 +407,7 @@ public class Importer implements TransferProcess {
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
             builder = builder.digest(checksum);
         }
-        final FcrepoResponse response = builder.preferLenient().perform();
-        if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
-            deleteTombstone(response);
-            return builder.preferLenient().perform();
-        } else {
-            return response;
-        }
+        return builder;
     }
 
     private void deleteTombstone(final FcrepoResponse response) throws FcrepoOperationFailedException {

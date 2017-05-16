@@ -286,7 +286,7 @@ public class ArgParser {
      * @param configFile containing config args
      * @return Array of args
      */
-    private Config retrieveConfig(final File configFile) {
+    protected Config retrieveConfig(final File configFile) {
         if (!configFile.exists()) {
             printHelp("Configuration file does not exist: " + configFile);
         }
@@ -472,21 +472,11 @@ public class ArgParser {
             } else if (entry.getKey().equalsIgnoreCase("rdfLang")) {
                 c.setRdfLanguage(entry.getValue());
             } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
-                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
-                    c.setIncludeBinaries(Boolean.parseBoolean(entry.getValue()));
-                } else {
-                    throw new java.text.ParseException(String.format(
-                        "binaries configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
-                        entry.getValue()), lineNumber);
-                }
-            } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
-                if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
-                    c.setRetrieveExternal(Boolean.parseBoolean(entry.getValue()));
-                } else {
-                    throw new java.text.ParseException(String.format(
-                        "external configuration parameter only accepts \"true\" or \"false\", \"{}\" received",
-                        entry.getValue()), lineNumber);
-                }
+                c.setIncludeBinaries(parseBoolean("binaries", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
+                c.setRetrieveExternal(parseBoolean("external", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
+                c.setOverwriteTombstones(parseBoolean("overwriteTombstone", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
@@ -499,6 +489,17 @@ public class ArgParser {
             }
         }
         return c;
+    }
+
+    private static boolean parseBoolean(final String key, final String value,
+            final int lineNumber) throws java.text.ParseException {
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+            return Boolean.parseBoolean(value);
+        } else {
+            throw new java.text.ParseException(String.format(
+                "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
+                key, value), lineNumber);
+        }
     }
 
     /**

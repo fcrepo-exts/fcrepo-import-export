@@ -1,0 +1,10 @@
+external: false
+predicates: http://www.w3.org/ns/ldp#contains
+resource: http://localhost:8080/rest/1
+bag-profile: default
+overwriteTombstones: true
+source: http://localhost:8080/rest/2
+bag-config: path/config.yaml
+dir: /tmp/rdf
+binaries: true
+rdfLang: text/turtle

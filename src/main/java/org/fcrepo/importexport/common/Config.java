@@ -25,7 +25,6 @@ import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 
 import java.io.File;
 import java.net.URI;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -157,7 +156,7 @@ public class Config {
     }
 
     /**
-     * Returns true if tombstones should be deleted then importing.
+     * Returns true if tombstones should be deleted when importing.
      *
      * @return retrieve overwite tombstones flag
      */
@@ -375,57 +374,6 @@ public class Config {
             return getLogger(IMPORT_EXPORT_LOG_PREFIX);
         }
         return NOP_LOGGER;
-    }
-
-    /** Static constructor using Yaml hashmap
-     *
-     * @param configVars config vars from Yaml file
-     * @return Config object with values from Yaml
-     * @throws ParseException If the Yaml does not parse correctly.
-     */
-    public static Config fromFile(final Map<String, String> configVars) throws ParseException {
-        final Config c = new Config();
-        int lineNumber = 0;
-        for (Map.Entry<String, String> entry : configVars.entrySet()) {
-            logger.debug("config map entry is ({}) and value ({})", entry.getKey(), entry.getValue());
-            lineNumber += 1;
-            if (entry.getKey().equalsIgnoreCase("mode")) {
-                if (entry.getValue().equalsIgnoreCase("import") || entry.getValue().equalsIgnoreCase("export")) {
-                    c.setMode(entry.getValue());
-                } else {
-                    throw new ParseException(String.format("Invalid value for \"mode\": {}", entry.getValue()),
-                        lineNumber);
-                }
-            } else if (entry.getKey().equalsIgnoreCase("resource")) {
-                c.setResource(entry.getValue());
-            } else if (entry.getKey().equalsIgnoreCase("source")) {
-                c.setSource(entry.getValue());
-            } else if (entry.getKey().equalsIgnoreCase("dir")) {
-                c.setBaseDirectory(entry.getValue());
-            } else if (entry.getKey().equalsIgnoreCase("rdfLang")) {
-                c.setRdfLanguage(entry.getValue());
-            } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
-                c.setIncludeBinaries(parseBoolean(entry, "binaries", lineNumber));
-            } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
-                c.setIncludeBinaries(parseBoolean(entry, "overwriteTombstones", lineNumber));
-            } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
-                c.setIncludeBinaries(parseBoolean(entry, "external", lineNumber));
-            } else {
-                throw new ParseException(String.format("Unknown configuration key: {}", entry.getKey()), lineNumber);
-            }
-        }
-        return c;
-    }
-
-    private static boolean parseBoolean(final Map.Entry<String, String> entry, final String key,
-            final int lineNumber) throws ParseException {
-        if (entry.getValue().equalsIgnoreCase("true") || entry.getValue().equalsIgnoreCase("false")) {
-            return Boolean.parseBoolean(entry.getValue());
-        } else {
-            throw new ParseException(String.format(
-                "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
-                key, entry.getValue()), lineNumber);
-        }
     }
 
     /**
