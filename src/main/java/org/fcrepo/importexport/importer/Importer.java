@@ -22,6 +22,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
@@ -30,6 +31,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -402,8 +404,7 @@ public class Importer implements TransferProcess {
                     || s.getPredicate().equals(CONTAINS)
                     || s.getPredicate().equals(HAS_MESSAGE_DIGEST)
                     || s.getPredicate().equals(HAS_SIZE)
-                    || (s.getPredicate().equals(RDF_TYPE)
-                        && s.getResource().getNameSpace().equals(REPOSITORY_NAMESPACE)) ) {
+                    || (s.getPredicate().equals(RDF_TYPE) && forbiddenType(s.getResource()))) {
                 remove.add(s);
             } else if (s.getObject().isResource()) {
                 // make sure that referenced repository objects exist
@@ -414,6 +415,13 @@ public class Importer implements TransferProcess {
             }
         }
         return model.remove(remove);
+    }
+
+    private boolean forbiddenType(final Resource resource) {
+         return resource.getNameSpace().equals(REPOSITORY_NAMESPACE)
+             || resource.getURI().equals(CONTAINER.getURI())
+             || resource.getURI().equals(NON_RDF_SOURCE.getURI())
+             || resource.getURI().equals(RDF_SOURCE.getURI());
     }
 
     /**
