@@ -41,6 +41,12 @@ Running the import/export utility with command-line arguments
 $ java -jar target/fcrepo-import-export-<version>.jar --mode [import|export] [options]
 ```
 
+To change the import-export logging level (default is INFO), set the `fcrepo.log.importexport` system property when running the command, e.g.: (Note, available logging levels are: TRACE, DEBUG, INFO, WARN, and ERROR.)
+
+```sh
+$ java -Dfcrepo.log.importexport=WARN -jar target/fcrepo-import-export-<version>.jar --mode [import|export] [options]
+```
+
 To control the format of the exported RDF, the RDF language/serialization format can also be specified by adding, e.g.:
 
 ```sh
