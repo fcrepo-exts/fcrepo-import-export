@@ -129,7 +129,7 @@ public class ArgParser {
                 .required(false).build());
 
         // Overwrite Tombstones
-        configOptions.addOption(Option.builder("T")
+        configOptions.addOption(Option.builder("t")
                  .longOpt("overwriteTombstones")
                  .hasArg(false)
                  .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
@@ -322,7 +322,7 @@ public class ArgParser {
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
         config.setRetrieveExternal(cmd.hasOption('x'));
-        config.setOverwriteTombstones(cmd.hasOption('T'));
+        config.setOverwriteTombstones(cmd.hasOption('t'));
 
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
@@ -476,7 +476,7 @@ public class ArgParser {
             } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
                 c.setRetrieveExternal(parseBoolean("external", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
-                c.setOverwriteTombstones(parseBoolean("overwriteTombstone", entry.getValue(), lineNumber));
+                c.setOverwriteTombstones(parseBoolean("overwriteTombstones", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {

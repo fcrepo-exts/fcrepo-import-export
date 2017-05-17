@@ -82,7 +82,7 @@ public class ArgParserTest {
     public void parseOverwriteTombstones() throws Exception {
         final String[] args = new String[]{"-m", "import",
                                            "-d", "/tmp/rdf",
-                                           "-T",
+                                           "-t",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isImport());
