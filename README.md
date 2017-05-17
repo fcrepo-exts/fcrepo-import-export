@@ -144,6 +144,7 @@ That configuration file is [Yaml](http://yaml.org) and allows for the following 
 * mode: [import|export] # which mode to operate in
 * dir: Directory to import from/export to
 * binaries: [true|false] # whether is import/export binary resources
+* overwriteTombstones: [true|false] # whether to replace tombstones of previously deleted resources
 * source: Source hostname, used if the files were exported from a different hostname. Only for import mode.
 * resource: The resource to export/import
 * rdfLang: The RDF language to export into or import from

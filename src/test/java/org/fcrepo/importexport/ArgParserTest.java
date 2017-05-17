@@ -79,6 +79,17 @@ public class ArgParserTest {
     }
 
     @Test
+    public void parseOverwriteTombstones() throws Exception {
+        final String[] args = new String[]{"-m", "import",
+                                           "-d", "/tmp/rdf",
+                                           "-t",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isImport());
+        Assert.assertTrue(config.overwriteTombstones());
+    }
+
+    @Test
     public void parseMinimalValidExport() throws Exception {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());
@@ -247,5 +258,24 @@ public class ArgParserTest {
                                            "-r", resource};
         final Config config = parser.parseConfiguration(args);
         Assert.assertEquals(resource, config.getSource().toString());
+    }
+
+    @Test
+    public void retrieveConfig() {
+        final File configFile = new File("src/test/resources/configs/importexport.yml");
+        final Config config = parser.retrieveConfig(configFile);
+
+        Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.getPredicates()[0]);
+        Assert.assertEquals(URI.create("http://localhost:8080/rest/1"), config.getResource());
+        Assert.assertEquals(URI.create("http://localhost:8080/rest/2"), config.getSource());
+        Assert.assertEquals("default", config.getBagProfile());
+        Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
+        Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
+        Assert.assertEquals("text/turtle", config.getRdfLanguage());
+        Assert.assertEquals(".ttl", config.getRdfExtension());
+
+        Assert.assertFalse(config.retrieveExternal());
+        Assert.assertTrue(config.isIncludeBinaries());
+        Assert.assertTrue(config.overwriteTombstones());
     }
 }

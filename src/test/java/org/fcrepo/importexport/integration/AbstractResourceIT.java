@@ -19,11 +19,13 @@ package org.fcrepo.importexport.integration;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
@@ -113,8 +115,12 @@ abstract class AbstractResourceIT {
 
     protected FcrepoResponse createBody(final URI uri, final String body, final String contentType)
             throws FcrepoOperationFailedException {
+        return createBody(uri, new ByteArrayInputStream(body.getBytes()), contentType);
+    }
+
+    protected FcrepoResponse createBody(final URI uri, final InputStream stream, final String contentType)
+            throws FcrepoOperationFailedException {
         logger.debug("Create with binary: {}", uri);
-        final InputStream stream = new ByteArrayInputStream(body.getBytes());
         return clientBuilder.build().put(uri).body(stream, contentType).perform();
     }
 
@@ -148,6 +154,11 @@ abstract class AbstractResourceIT {
         return loadModel(uri.toString());
     }
 
+    protected String getAsString(final URI uri) throws FcrepoOperationFailedException, IOException {
+        final FcrepoResponse response = clientBuilder.build().get(uri).perform();
+        return IOUtils.toString(response.getBody());
+    }
+
     protected void assertHasTitle(final URI uri, final String title) throws FcrepoOperationFailedException {
         final Model model = getAsModel(uri);
         assertTrue(uri + " should have had the dc:title, \"" + title + "\"!",
@@ -155,12 +166,17 @@ abstract class AbstractResourceIT {
     }
 
     protected void removeAndReset(final URI uri) throws FcrepoOperationFailedException {
-        clientBuilder.build().delete(uri).perform();
-        final FcrepoResponse getResponse = clientBuilder.build().get(uri).perform();
-        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        final FcrepoResponse getResponse = remove(uri);
         final URI tombstone = getResponse.getLinkHeaders("hasTombstone").get(0);
         final FcrepoResponse delResponse = clientBuilder.build().delete(tombstone).perform();
         assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT, delResponse.getStatusCode());
+    }
+
+    protected FcrepoResponse remove(final URI uri) throws FcrepoOperationFailedException {
+        clientBuilder.build().delete(uri).perform();
+        final FcrepoResponse getResponse = clientBuilder.build().get(uri).perform();
+        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        return getResponse;
     }
 
     abstract protected Logger logger();
