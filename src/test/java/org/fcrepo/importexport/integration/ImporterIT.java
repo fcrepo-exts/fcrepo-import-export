@@ -134,6 +134,46 @@ public class ImporterIT extends AbstractResourceIT {
     }
 
     @Test
+    public void testImportMemberResources() throws Exception {
+        final String sourceServerAddress = "http://localhost:8080/fcrepo/rest";
+        final URI sourceURI = URI.create(sourceServerAddress + "/linkFrom");
+        final URI linkFrom = URI.create(serverAddress + "linkFrom");
+        final URI linkTo = URI.create(serverAddress + "linkTo");
+        final URI linkToFile1 = URI.create(serverAddress + "linkTo/file1");
+        final String referencePath = TARGET_DIR + "/test-classes/sample/reference";
+        logger().debug("Importing from {}", referencePath);
+
+        final String[] providedPredicates = new String[] { "http://purl.org/dc/terms/relation" };
+        final Config config = new Config();
+        config.setMode("import");
+        config.setIncludeBinaries(true);
+        config.setBaseDirectory(referencePath);
+        config.setPredicates(providedPredicates);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(linkFrom.toString());
+        config.setMap(new String[] { sourceServerAddress + "/", serverAddress });
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify the resources exist and link to each other
+        assertTrue(resourceExists(linkFrom));
+        assertTrue(resourceExists(linkTo));
+        assertTrue(resourceExists(linkToFile1));
+        assertTrue(resourceLinksTo(linkTo, linkFrom));
+        assertTrue(resourceLinksTo(linkFrom, linkTo));
+
+        // verify member resource content
+        final FcrepoResponse response = clientBuilder.build().get(linkTo).accept("text/plain").perform();
+        final String triples = IOUtils.toString(response.getBody());
+        final String hasfileTriple = "<" + linkTo + "> <http://pcdm.org/models#hasFile> <" + linkToFile1 + "> .";
+        assertEquals(1, count(triples, hasfileTriple));
+    }
+
+    @Test
     public void testReferences() throws Exception {
         final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
         final URI linkFrom = URI.create(serverAddress + "linkFrom");

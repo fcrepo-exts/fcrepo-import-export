@@ -18,7 +18,10 @@
 package org.fcrepo.importexport.importer;
 
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toList;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -66,6 +69,7 @@ import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
@@ -82,6 +86,7 @@ import gov.loc.repository.bagit.verify.BagVerifier;
 /**
  * Fedora Import Utility
  *
+ * @author lsitu
  * @author awoods
  * @author escowles
  * @since 2016-08-29
@@ -91,6 +96,9 @@ public class Importer implements TransferProcess {
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
+    private final List<URI> relatedResources = new ArrayList<>();
+    private final List<URI> importedResources = new ArrayList<>();
+    private URI repositoryRoot = null;
 
     private Bag bag;
 
@@ -152,10 +160,31 @@ public class Importer implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running importer...");
-        final File importContainerMetadataFile = fileForContainerURI(config.getResource());
-        importContainerDirectory = directoryForContainer(config.getResource());
 
+        findRepositoryRoot(config.getResource());
+
+        processImport(config.getResource());
+
+        importLogger.info("Finished import... {} resources imported", successCount.get());
+    }
+
+    private void processImport(final URI resource) {
+        importedResources.add(resource);
+
+        final File importContainerMetadataFile = fileForContainerURI(resource);
+        importContainerDirectory = directoryForContainer(resource);
+
+        // clean up the membership resources that were imported.
+        membershipResources.clear();
         discoverMembershipResources(importContainerDirectory);
+
+        logger.debug("Importing resource {} for file {}", resource, importContainerMetadataFile.getPath());
+
+        // discover the related resources in the resource being imported.
+        if (importContainerMetadataFile.exists()) {
+            logger.debug("Parsing membership resource in file {}", importContainerMetadataFile.getAbsolutePath());
+            parseMembershipResources(importContainerMetadataFile);
+        }
 
         if (!importContainerMetadataFile.exists()) {
             logger.debug("No container exists in the metadata directory {} for the requested resource {},"
@@ -167,7 +196,13 @@ public class Importer implements TransferProcess {
         importDirectory(importContainerDirectory);
 
         importMembershipResources();
-        importLogger.info("Finished import... {} resources imported", successCount.get());
+
+        // loop through for nested member/membership resources
+        if (relatedResources.size() > 0) {
+            final List<URI> referenceResources = relatedResources.stream().collect(toList());
+            relatedResources.clear();
+            importMemberResources(referenceResources);
+        }
     }
 
     private void discoverMembershipResources(final File dir) {
@@ -191,11 +226,39 @@ public class Importer implements TransferProcess {
                         membershipResources.add(URI.create(node.toString()));
                     });
             }
+
+            // Discover all the related resources with member predicates. Those related resources that aren't imported
+            // during importing the targeted resource are in other container hierarchy that need to handle specifically.
+            // The related resources referenced by default predicate could be ignored.
+            for (final String p : config.getPredicates()) {
+                if (!p.equals(CONTAINS.toString())) {
+                    for (final NodeIterator it = model.listObjectsOfProperty(createProperty(p)); it.hasNext();) {
+                        final String uri = it.nextNode().toString();
+
+                        logger.debug("Discovered member resource {} for source {}.", uri, config.getSource());
+                        // add member resource to list, exclude those that are already imported
+                        if ((fileForContainerURI(URI.create(uri)).exists())
+                                && !importedResources.contains(URI.create(uri))) {
+                            relatedResources.add(URI.create(uri));
+
+                            logger.debug("Added member resource {}", uri);
+                        }
+                    }
+                }
+            }
         } catch (final IOException e) {
             throw new RuntimeException("Error reading file: " + f.getAbsolutePath() + ": " + e.toString());
         } catch (final RiotException e) {
             throw new RuntimeException("Error parsing RDF: " + f.getAbsolutePath() + ": " + e.toString());
         }
+    }
+
+    private void importMemberResources(final List<URI> memberResources) {
+        logger.debug("Importing memberResources {} ...", memberResources.get(0));
+        memberResources.stream().forEach(uri -> {
+            logger.info("Importing memberResources {} ...", uri);
+            processImport(uri);
+        });
     }
 
     private void importMembershipResources() {
@@ -268,6 +331,14 @@ public class Importer implements TransferProcess {
             URI destinationUri = null;
             try {
                 final Model model = parseStream(new FileInputStream(f));
+                // remove the member resources that are being imported
+                for (final ResIterator it = model.listSubjects(); it.hasNext();) {
+                    final URI uri = URI.create(it.next().toString());
+                    if (relatedResources.contains(uri)) {
+                        relatedResources.remove(uri);
+                    }
+                }
+
                 if (model.contains(null, RDF_TYPE, createResource(REPOSITORY_NAMESPACE + "RepositoryRoot"))) {
                     logger.debug("Skipping import of repository root.");
                     return;
@@ -442,7 +513,7 @@ public class Importer implements TransferProcess {
             } else if (s.getObject().isResource()) {
                 // make sure that referenced repository objects exist
                 final String obj = s.getResource().toString();
-                if (obj.startsWith(config.getResource().toString())) {
+                if (obj.startsWith(repositoryRoot.toString())) {
                     ensureExists(URI.create(obj));
                 }
             }
@@ -560,5 +631,37 @@ public class Importer implements TransferProcess {
         } catch (Exception e) {
             throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
+    }
+
+    /**
+     * Find the repository root
+     * 
+     * @param uri
+     * @throws IOException
+     * @throws FcrepoOperationFailedException
+     */
+    private void findRepositoryRoot(final URI uri) {
+        repositoryRoot = uri;
+        try (FcrepoResponse response = client().get(repositoryRoot).accept(config.getRdfLanguage())
+                .disableRedirects().perform()) {
+
+            logger.debug("FcrepoResponse response for {}: {}", repositoryRoot, response.getStatusCode());
+            final String root = repositoryRoot.toString();
+            if (response.getStatusCode() == 200) {
+                // Resource exists, check for repository root
+                final Model model = createDefaultModel().read(response.getBody(), null, config.getRdfLanguage());
+                if (model.contains(null, createProperty(REPOSITORY_NAMESPACE + "hasParent"), (RDFNode) null)) {
+                    findRepositoryRoot(URI.create(root.substring(0, root.lastIndexOf("/"))));
+                }
+            } else if (response.getStatusCode() == 404) {
+                // Resource dosn't exist: a single resource yet to be imported.
+                findRepositoryRoot(URI.create(root.substring(0, root.lastIndexOf("/"))));
+            }
+        } catch (IOException ex) {
+            logger.error("Error finding repository root {}: {}", repositoryRoot, ex.toString());
+        } catch (final FcrepoOperationFailedException ex) {
+            logger.error("Error finding repository root {}: {}", repositoryRoot, ex.toString());
+        }
+        logger.debug("Repository root {}", repositoryRoot);
     }
 }
