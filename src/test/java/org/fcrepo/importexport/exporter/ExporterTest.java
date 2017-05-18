@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -393,12 +394,17 @@ class ExporterWrapper extends Exporter {
         super(config, clientBuilder);
     }
     @Override
-    void writeResponse(final FcrepoResponse response, final List<URI> describedby, final File file)
+    void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
-        super.writeResponse(response, describedby, file);
+        super.writeResponse(uri, in, describedby, file);
         writtenFiles.add(file);
     }
     boolean wroteFile(final File file) {
         return writtenFiles.contains(file);
+    }
+
+    @Override
+    void findRepositoryRoot(final URI uri) {
+        repositoryRoot = uri;
     }
 }

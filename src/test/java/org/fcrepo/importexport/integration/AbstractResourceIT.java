@@ -79,6 +79,7 @@ abstract class AbstractResourceIT {
     static final String PREMIS_DIGEST = "http://www.loc.gov/premis/rdf/v1#hasMessageDigest";
     static final String SKOS_PREFLABEL = "http://www.w3.org/2004/02/skos/core#prefLabel";
     static final String XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime";
+    static final String PCDM_HAS_MEMBER = "http://pcdm.org/models#hasMember";
 
     static final String USERNAME = "fedoraAdmin";
 

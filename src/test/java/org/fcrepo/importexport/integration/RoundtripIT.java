@@ -20,6 +20,9 @@ package org.fcrepo.importexport.integration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
@@ -270,6 +273,55 @@ public class RoundtripIT extends AbstractResourceIT {
     }
 
     @Test
+    public void testRoundtripExcludedBinaries() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final UUID uuidBinary = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI);
+        final URI file1 = URI.create(serverAddress + uuidBinary);
+
+        final Resource container = createResource(res1.toString());
+
+        final String file1patch = "insert data { "
+                + "<" + file1.toString() + "> <" + SKOS_PREFLABEL + "> \"original version\" . }";
+
+        final String fileMemberPatch = "insert data { "
+                + "<" + res1.toString() + "> <" + PCDM_HAS_MEMBER + "> <" + file1.toString() + "> . }";
+
+        create(res1);
+        final FcrepoResponse resp = createBody(file1, "this is some content", "text/plain");
+        final URI file1desc = resp.getLinkHeaders("describedby").get(0);
+        patch(file1desc, file1patch);
+        patch(res1, fileMemberPatch);
+
+        assertTrue(exists(res1));
+        assertTrue(exists(file1));
+
+        final Config config = roundtrip(res1, Collections.singletonList(file1), true, false);
+
+        // verify that files exist and contain expected content
+        final File exportDir = config.getBaseDirectory();
+        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/file1.binary");
+        final File descFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/file1/fcr%3Ametadata"
+                + config.getRdfExtension());
+
+        assertTrue(containerFile.exists() && containerFile.isFile());
+        final Model contModel = loadModel(containerFile.getAbsolutePath());
+
+        assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
+
+        // verify that the files are not exported on disk
+        assertFalse(binaryFile.exists());
+        assertFalse(descFile.exists());
+
+        // verify that the resource exists in the repository
+        assertTrue(exists(res1));
+        // verify that the file doesn't exist in the repository
+        assertFalse(exists(file1));
+    }
+
+    @Test
     public void testRoundtripExternal() throws Exception {
         final UUID uuid = UUID.randomUUID();
         final String baseURI = serverAddress + uuid;
@@ -379,11 +431,17 @@ public class RoundtripIT extends AbstractResourceIT {
     }
 
     private Config roundtrip(final URI uri, final boolean reset) throws FcrepoOperationFailedException {
+        return roundtrip(uri, new ArrayList<URI>(), true, true);
+    }
+
+    private Config roundtrip(final URI uri, final List<URI> relatedResources,
+            final boolean reset, final boolean includeBinary)
+            throws FcrepoOperationFailedException {
         // export resources
         final Config config = new Config();
         config.setMode("export");
         config.setBaseDirectory(TARGET_DIR + File.separator + UUID.randomUUID());
-        config.setIncludeBinaries(true);
+        config.setIncludeBinaries(includeBinary);
         config.setResource(uri);
         config.setPredicates(new String[]{ CONTAINS.toString() });
         config.setRdfExtension(DEFAULT_RDF_EXT);
@@ -395,8 +453,14 @@ public class RoundtripIT extends AbstractResourceIT {
         // delete container and optionally remove tombstone
         if (reset) {
             removeAndReset(uri);
+            for (final URI rel : relatedResources) {
+                removeAndReset(rel);
+            }
         } else {
             remove(uri);
+            for (final URI rel : relatedResources) {
+                remove(rel);
+            }
         }
 
         // setup config for import to a new base URL, then perform import
