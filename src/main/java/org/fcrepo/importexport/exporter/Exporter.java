@@ -23,6 +23,9 @@ import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
+import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
+import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -258,9 +261,8 @@ public class Exporter implements TransferProcess {
         try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri);
 
-            final File file = external ?
-                                TransferProcess.fileForExternalResources(uri, config.getBaseDirectory()) :
-                                    TransferProcess.fileForBinary(uri, config.getBaseDirectory());
+            final File file = external ? fileForExternalResources(uri, null, null, config.getBaseDirectory()) :
+                    fileForBinary(uri, null, null, config.getBaseDirectory());
 
             logger.info("Exporting binary: {}", uri);
             writeResponse(response, describedby, file);
@@ -270,8 +272,7 @@ public class Exporter implements TransferProcess {
     }
 
     private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
-        final File file = TransferProcess.fileForURI(uri, config.getBaseDirectory(),
-                config.getRdfExtension());
+        final File file = fileForURI(uri, null, null, config.getBaseDirectory(), config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);
             return;

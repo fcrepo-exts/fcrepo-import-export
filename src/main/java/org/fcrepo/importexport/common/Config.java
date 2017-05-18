@@ -49,6 +49,7 @@ public class Config {
     private String mode;
     private URI resource;
     private URI source;
+    private URI destination;
     private File baseDirectory;
 
     private boolean includeBinaries = false;
@@ -196,41 +197,53 @@ public class Config {
     }
 
     /**
-     * Sets the URI of the source resource, for mapping URIs being imported
+     * Sets the URI map, for mapping URIs being imported
      *
-     * @param source URI to import/export
+     * @param map Array containing two URIs for the export baseURL and the import baseURL
      */
-    public void setSource(final String source) {
-        if (source != null) {
-            setSource(URI.create(source));
-        }
-    }
-
-    /**
-     * Sets the URI of the source resoruce, for mapping URIs being imported
-     *
-     * @param source URI to import/export
-     */
-    public void setSource(final URI source) {
-        if (source.toString().endsWith("/")) {
-            this.source = URI.create(source.toString().substring(0, source.toString().length() - 1));
+    public void setMap(final String[] map) {
+        if (map.length == 2 && map[0] != null && map[1] != null) {
+            this.source = URI.create(map[0]);
+            this.destination = URI.create(map[1]);
         } else {
-            this.source = source;
+            throw new IllegalArgumentException("The map should contain the export and import baseURLs");
         }
     }
 
     /**
-     * Gets the URI of the source resoruce, for mapping URIs being imported
+     * Gets the source (export) baseURL, for mapping URIs being imported
      *
-     * @return source source
+     * @return Export baseURL
      */
     public URI getSource() {
-        // If 'source' exists, use it... else return 'resource'
-        if (source != null) {
-            return source;
-        } else {
-            return resource;
-        }
+        return source;
+    }
+
+    /**
+     * Gets the source (export) base path, for mapping URIs being imported
+     *
+     * @return Export base path
+     */
+    public String getSourcePath() {
+        return (source == null) ? null : source.getPath();
+    }
+
+    /**
+     * Gets the destination (import) baseURL, for mapping URIs being imported
+     *
+     * @return Import baseURL
+     */
+    public URI getDestination() {
+        return destination;
+    }
+
+    /**
+     * Gets the destination (import) base path, for mapping URIs being imported
+     *
+     * @return Import base path
+     */
+    public String getDestinationPath() {
+        return (destination == null) ? null : destination.getPath();
     }
 
     /**
@@ -385,8 +398,8 @@ public class Config {
         final Map<String, String> map = new HashMap<String, String>();
         map.put("mode", (this.isImport() ? "import" : "export"));
         map.put("resource", this.getResource().toString());
-        if (!this.getSource().toString().isEmpty()) {
-            map.put("source", this.getSource().toString());
+        if (this.getSource() != null && this.getDestination() != null) {
+            map.put("map", this.getSource() + "," + this.getDestination());
         }
         map.put("dir", this.getBaseDirectory().getAbsolutePath());
         if (!this.getRdfLanguage().isEmpty()) {

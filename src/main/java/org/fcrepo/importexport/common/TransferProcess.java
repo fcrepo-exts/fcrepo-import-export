@@ -81,49 +81,65 @@ public interface TransferProcess {
      * Gets the file where a binary resource at the given URL would be stored
      * in the export package.
      * @param uri the URI for the resource
+     * @param sourcePath the base path the resource was exported from
+     * @param destinationPath the base path the resource is importing to
      * @param baseDir the base directory in the export package
      * @return a unique location for binary resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForBinary(final URI uri, final File baseDir) {
-        return fileForURI(uri, baseDir, BINARY_EXTENSION);
+    public static File fileForBinary(final URI uri, final String sourcePath, final String destinationPath,
+            final File baseDir) {
+        return fileForURI(uri, sourcePath, destinationPath, baseDir, BINARY_EXTENSION);
     }
 
     /**
      * Gets the file where an external binary resource at the given URL would be stored
      * in the export package.
      * @param uri the URI for the resource
+     * @param sourcePath the base path the resource was exported from
+     * @param destinationPath the base path the resource is importing to
      * @param baseDir the base directory in the export package
      * @return a unique location for external resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForExternalResources(final URI uri, final File baseDir) {
-        return fileForURI(uri, baseDir, EXTERNAL_RESOURCE_EXTENSION);
+    public static File fileForExternalResources(final URI uri, final String sourcePath,
+            final String destinationPath, final File baseDir) {
+        return fileForURI(uri, sourcePath, destinationPath, baseDir, EXTERNAL_RESOURCE_EXTENSION);
     }
 
     /**
      * Gets the file where a resource at the given URL with the given extension
      * would be stored in the export package.
      * @param uri the URI for the resource
+     * @param sourcePath the base path the resource was exported from
+     * @param destinationPath the base path the resource is importing to
      * @param baseDir the baseDir directory in the export package
      * @param extension the arbitrary extension expected the file
      * @return a unique location for resources from the path of the given URI
      *         would be stored
      */
-    public static File fileForURI(final URI uri, final File baseDir, final String extension) {
-        return new File(baseDir, TransferProcess.encodePath(uri.getPath()) + extension);
+    public static File fileForURI(final URI uri, final String sourcePath, final String destinationPath,
+            final File baseDir, final String extension) {
+        String path = uri.getPath();
+        if (sourcePath != null && destinationPath != null) {
+            path = path.replaceFirst(destinationPath, sourcePath);
+        }
+        return new File(baseDir, encodePath(path) + extension);
     }
 
     /**
      * Gets the directory where metadata resources contained by the resource at the given
      * URI would be stored in the export package.
      * @param uri the URI for the resource
+     * @param sourcePath the base path the resource was exported from
+     * @param destinationPath the base path the resource is importing to
      * @param baseDir the base directory in the export package
      * @return a unique location for metadata resources contained by the resource at the
      *         given URI would be stored
      */
-    public static File directoryForContainer(final URI uri, final File baseDir) {
-        return new File(baseDir, TransferProcess.encodePath(uri.getPath()));
+    public static File directoryForContainer(final URI uri, final String sourcePath,
+            final String destinationPath, final File baseDir) {
+        return fileForURI(uri, sourcePath, destinationPath, baseDir, "");
     }
 
     /**

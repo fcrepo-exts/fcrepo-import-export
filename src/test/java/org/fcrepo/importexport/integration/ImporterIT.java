@@ -121,7 +121,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setBaseDirectory(referencePath);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setSource(sourceURI.toString());
+        config.setMap(new String[]{sourceURI.toString(), serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
 
@@ -148,7 +148,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(predicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setSource(sourceURI.toString());
+        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
 
@@ -178,7 +178,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(predicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setSource(sourceURI.toString());
+        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
 
@@ -194,6 +194,27 @@ public class ImporterIT extends AbstractResourceIT {
                 + "\"foo\"^^<http://www.w3.org/2001/XMLSchema#string> .";
         assertEquals(1, count(triples, titleTriple));
         assertEquals(1, count(triples, memberTriple));
+    }
+
+    @Test
+    public void testImportMapped() throws Exception {
+        final URI sourceURI = URI.create("http://localhost:8080/rest/dev/asdf");
+        final URI resourceURI = URI.create(serverAddress + "prod/asdf");
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(TARGET_DIR + "/test-classes/sample/mapped");
+        config.setResource(resourceURI.toString());
+        config.setMap(new String[]{sourceURI.toString(), serverAddress + "prod/asdf"});
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify one title and one hasMember
+        assertTrue(resourceExists(resourceURI));
     }
 
     private int count(final String triples, final String triple) {

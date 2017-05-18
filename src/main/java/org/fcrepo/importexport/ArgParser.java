@@ -100,11 +100,13 @@ public class ArgParser {
                 .required(true).build());
 
         // Source Resource option
-        configOptions.addOption(Option.builder("s")
-                .longOpt("source")
-                .hasArg(true).numberOfArgs(1).argName("source")
-                .desc("Source (URI) data was exported from, when importing to a different Fedora URI")
-                .required(false).build());
+        configOptions.addOption(Option.builder("M")
+                .longOpt("map").argName("map")
+                .hasArgs().numberOfArgs(2)
+                .valueSeparator(',')
+                .required(false)
+                .desc("Old and new base URIs, separated by comma, to map URIs when importing")
+                .build());
 
         // Base Directory option
         configOptions.addOption(Option.builder("d")
@@ -328,7 +330,13 @@ public class ArgParser {
         if (rdfLanguage != null) {
             config.setRdfLanguage(rdfLanguage);
         }
-        config.setSource(cmd.getOptionValue('s'));
+        if (cmd.getOptionValues('M') != null) {
+            if (cmd.getOptionValues('M').length != 2) {
+                throw new IllegalArgumentException("The map should contain the export and import baseURLs, "
+                        + "separated by a comma");
+            }
+            config.setMap(cmd.getOptionValues('M'));
+        }
         if (cmd.getOptionValues('p') != null) {
             config.setPredicates(cmd.getOptionValues('p'));
         }
@@ -465,8 +473,12 @@ public class ArgParser {
                 }
             } else if (entry.getKey().equalsIgnoreCase("resource")) {
                 c.setResource(entry.getValue());
-            } else if (entry.getKey().equalsIgnoreCase("source")) {
-                c.setSource(entry.getValue());
+            } else if (entry.getKey().equalsIgnoreCase("map")) {
+                if (entry.getValue().split(",").length != 2) {
+                    throw new java.text.ParseException("The map should contain the export and import baseURLs, "
+                            + "separated by a comma", lineNumber);
+                }
+                c.setMap(entry.getValue().split(","));
             } else if (entry.getKey().equalsIgnoreCase("dir")) {
                 c.setBaseDirectory(entry.getValue());
             } else if (entry.getKey().equalsIgnoreCase("rdfLang")) {
@@ -512,8 +524,8 @@ public class ArgParser {
         final Map<String, String> map = new HashMap<String, String>();
         map.put("mode", (config.isImport() ? "import" : "export"));
         map.put("resource", config.getResource().toString());
-        if (!config.getSource().toString().isEmpty()) {
-            map.put("source", config.getSource().toString());
+        if (!config.getMap().toString().isEmpty()) {
+            map.put("map", config.getMap().toString());
         }
         map.put("dir", config.getBaseDirectory().getAbsolutePath());
         if (!config.getRdfLanguage().isEmpty()) {
