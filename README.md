@@ -169,9 +169,7 @@ Currently, if the first use of a particular namespace occurs in RDF that is POST
 - Create a repository.json file and namespaces.cnd file, as described in [Best Practices - RDF Namespaces](https://wiki.duraspace.org/display/FEDORA4x/Best+Practices+-+RDF+Namespaces).
 - Start the destination repository for import with -Dfcrepo.modeshape.configuration=file:/path/to/repository.json, as described in [Application Configuration](https://wiki.duraspace.org/display/FEDORA4x/Application+Configuration).
 
-Note:
-- Setting -Dfcrepo.modeshape.configuration=file:/path/to/repository.json does not work if deploying Fedora using the one-click jar.
-- If restoring Fedora from a backup, prefix bindings in the backup will take precedence over bindings in namespaces.cnd.
+Setting -Dfcrepo.modeshape.configuration=file:/path/to/repository.json does not work if deploying Fedora using the one-click jar.
 
 Maintainers
 -----------
