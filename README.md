@@ -163,6 +163,14 @@ dir: /tmp/test
 resource: http://localhost:8080/rest/1
 ```
 
+Namespaces
+----------
+Currently, if the first use of a particular namespace occurs in RDF that is POSTed or PUT to the repository, regardless of any specific prefix binding supplied in the submitted graph, Fedora will instead bind the new namespace to a system-generated prefix in the form "ns00x".  While this behavior is not incorrect, it is inconvenient: prefixes generated during import will not match prefix bindings in the source repository. In order to avoid this behavior, follow the steps below:
+- Create a repository.json file and namespaces.cnd file, as described in [Best Practices - RDF Namespaces](https://wiki.duraspace.org/display/FEDORA4x/Best+Practices+-+RDF+Namespaces).
+- Start the destination repository for import with -Dfcrepo.modeshape.configuration=file:/path/to/repository.json, as described in [Application Configuration](https://wiki.duraspace.org/display/FEDORA4x/Application+Configuration).
+
+Setting -Dfcrepo.modeshape.configuration=file:/path/to/repository.json does not work if deploying Fedora using the one-click jar.
+
 Maintainers
 -----------
 
