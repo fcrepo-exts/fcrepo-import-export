@@ -27,9 +27,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
-import org.fcrepo.importexport.common.Config;
-
 import org.apache.commons.lang3.ArrayUtils;
+import org.fcrepo.importexport.common.Config;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -122,6 +121,17 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isImport());
         Assert.assertTrue(config.overwriteTombstones());
+    }
+
+    @Test
+    public void parseIncludeVersions() throws Exception {
+        final String[] args = new String[]{"-m", "export",
+            "-d", "/tmp/rdf",
+            "-V",
+            "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertTrue(config.includeVersions());
     }
 
     @Test

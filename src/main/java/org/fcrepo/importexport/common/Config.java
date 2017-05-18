@@ -59,6 +59,7 @@ public class Config {
     private boolean retrieveInbound = false;
     private boolean overwriteTombstones = false;
     private boolean legacy = false;
+    private boolean includeVersions = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
 
@@ -185,6 +186,24 @@ public class Config {
      */
     public boolean overwriteTombstones() {
         return overwriteTombstones;
+    }
+
+    /**
+     * Returns true if versions should be exported.
+     * 
+     * @return retrieve include versions flag
+     */
+    public boolean includeVersions() {
+        return includeVersions;
+    }
+
+    /**
+     * Sets flag indicating whether versions should be exported.
+     * 
+     * @param includeVersions in export
+     */
+    public void setIncludeVersions(final boolean includeVersions) {
+        this.includeVersions = includeVersions;
     }
 
     /**
