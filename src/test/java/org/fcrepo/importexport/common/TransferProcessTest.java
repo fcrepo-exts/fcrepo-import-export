@@ -42,50 +42,31 @@ public class TransferProcessTest {
     }
 
     @Test
-    public void testMappingPort() throws Exception {
-        final URI src = create("http://localhost:9090/rest/foo");
-        final URI uri = create("http://localhost:8080/rest/foo");
-        assertEquals(new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest", "/rest", dir, ext));
-    }
-
-    @Test
-    public void testMappingHost() throws Exception {
-        final URI src = create("http://example.org:8080/rest/foo");
-        final URI uri = create("http://localhost:8080/rest/foo");
-        assertEquals(new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest", "/rest", dir, ext));
-    }
-
-    @Test
     public void testMappingBase() throws Exception {
-        final URI src = create("http://localhost:9090/rest/foo");
         final URI uri = create("http://localhost:8080/fedora/rest/foo");
         assertEquals(new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest", "/fedora/rest", dir, ext));
     }
 
     @Test
     public void testMappingPath() throws Exception {
-        final URI src = create("http://localhost:7777/rest/dev/foo");
         final URI uri = create("http://localhost:8888/rest/prod/foo");
         assertEquals(new File(dir, "rest/dev/foo" + ext), fileForURI(uri, "/rest/dev", "/rest/prod", dir, ext));
     }
 
     @Test
     public void testMappingRest() throws Exception {
-        final URI src = create("http://localhost:9090/rest/bar");
         final URI uri = create("http://localhost:8080/rest/foo");
         assertEquals(new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest", "/rest", dir, ext));
     }
 
     @Test
     public void testMappingRestless() throws Exception {
-        final URI src = create("http://localhost:9090/foo");
         final URI uri = create("http://localhost:8080/rest/foo");
         assertEquals(new File(dir, "foo" + ext), fileForURI(uri, "/", "/rest/", dir, ext));
     }
 
     @Test
     public void testMappingRestless2() throws Exception {
-        final URI src = create("http://localhost:9090/rest/foo");
         final URI uri = create("http://localhost:8080/foo");
         assertEquals( new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest/", "/", dir, ext));
     }

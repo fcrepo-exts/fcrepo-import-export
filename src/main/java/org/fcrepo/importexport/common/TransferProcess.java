@@ -120,21 +120,11 @@ public interface TransferProcess {
      */
     public static File fileForURI(final URI uri, final String sourcePath, final String destinationPath,
             final File baseDir, final String extension) {
-        return new File(baseDir, encodePath(relativePath(uri, sourcePath, destinationPath)) + extension);
-    }
-
-    /**
-     * Translates the path of a URI relative to an optional source URI.
-     * @param uri the URI for the resource
-     * @param sourcePath the base path the resource was exported from
-     * @param destinationPath the base path the resource is importing to
-     */
-    public static String relativePath(final URI uri, final String sourcePath, final String destinationPath) {
         String path = uri.getPath();
         if (sourcePath != null && destinationPath != null) {
             path = path.replaceFirst(destinationPath, sourcePath);
         }
-        return path;
+        return new File(baseDir, encodePath(path) + extension);
     }
 
     /**

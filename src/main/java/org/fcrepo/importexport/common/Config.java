@@ -199,12 +199,14 @@ public class Config {
     /**
      * Sets the URI map, for mapping URIs being imported
      *
-     * @param map Comma-separated URIs for the export baseURL and the import baseURL
+     * @param map Array containing two URIs for the export baseURL and the import baseURL
      */
     public void setMap(final String[] map) {
         if (map.length == 2 && map[0] != null && map[1] != null) {
             this.source = URI.create(map[0]);
             this.destination = URI.create(map[1]);
+        } else {
+            throw new IllegalArgumentException("The map should contain the export and import baseURLs");
         }
     }
 

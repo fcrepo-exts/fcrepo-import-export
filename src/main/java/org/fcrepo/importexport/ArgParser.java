@@ -331,6 +331,10 @@ public class ArgParser {
             config.setRdfLanguage(rdfLanguage);
         }
         if (cmd.getOptionValues('M') != null) {
+            if (cmd.getOptionValues('M').length != 2) {
+                throw new IllegalArgumentException("The map should contain the export and import baseURLs, "
+                        + "separated by a comma");
+            }
             config.setMap(cmd.getOptionValues('M'));
         }
         if (cmd.getOptionValues('p') != null) {
@@ -470,6 +474,10 @@ public class ArgParser {
             } else if (entry.getKey().equalsIgnoreCase("resource")) {
                 c.setResource(entry.getValue());
             } else if (entry.getKey().equalsIgnoreCase("map")) {
+                if (entry.getValue().split(",").length != 2) {
+                    throw new java.text.ParseException("The map should contain the export and import baseURLs, "
+                            + "separated by a comma", lineNumber);
+                }
                 c.setMap(entry.getValue().split(","));
             } else if (entry.getKey().equalsIgnoreCase("dir")) {
                 c.setBaseDirectory(entry.getValue());
