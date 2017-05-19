@@ -65,4 +65,8 @@ public abstract class FcrepoConstants {
     public static final Property CREATED_BY = createProperty(REPOSITORY_NAMESPACE + "createdBy");
     public static final Property LAST_MODIFIED_DATE = createProperty(REPOSITORY_NAMESPACE + "lastModified");
     public static final Property LAST_MODIFIED_BY = createProperty(REPOSITORY_NAMESPACE + "lastModifiedBy");
+
+    public static final String FCR_VERSIONS_PATH = "fcr:versions";
+    public static final Property HAS_VERSION = createProperty(REPOSITORY_NAMESPACE + "hasVersion");
+    public static final Property HAS_VERSION_LABEL = createProperty(REPOSITORY_NAMESPACE + "hasVersionLabel");
 }
