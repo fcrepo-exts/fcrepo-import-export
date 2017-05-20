@@ -44,6 +44,7 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,6 +72,8 @@ import org.fcrepo.importexport.common.TransferProcess;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.slf4j.Logger;
 
@@ -194,6 +197,11 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
+
+        if (!config.isIncludeBinaries()) {
+            findRepositoryRoot(config.getResource());
+        }
+
         export(config.getResource());
         if (bag != null) {
             try {
@@ -335,24 +343,26 @@ public class Exporter implements TransferProcess {
      */
     private Model filterBinaryReferences(final URI uri, final Model model) throws IOException,
             FcrepoOperationFailedException {
-        for (final NodeIterator it = model.listObjects(); it.hasNext();) {
-            final RDFNode node = it.nextNode();
 
-            if (repositoryRoot == null) {
-                findRepositoryRoot(config.getResource());
-            }
+        final List<Statement> removeList = new ArrayList<>();
+        for (final StmtIterator it = model.listStatements(); it.hasNext();) {
+            final Statement s = it.nextStatement();
 
-            if (node.isResource() && node.toString().startsWith(repositoryRoot.toString())) {
-                try (final FcrepoResponse resp = client().head(URI.create(node.toString())).disableRedirects()
+            final RDFNode obj = s.getObject();
+            if (obj.isResource() && obj.toString().startsWith(repositoryRoot.toString())
+                    && !s.getPredicate().toString().equals(REPOSITORY_NAMESPACE + "hasTransactionProvider")) {
+                try (final FcrepoResponse resp = client().head(URI.create(obj.toString())).disableRedirects()
                         .perform()) {
                     checkValidResponse(resp, uri);
                     final List<URI> linkHeaders = resp.getLinkHeaders("type");
                     if (linkHeaders.contains(binaryURI)) {
-                        model.removeAll(null, null, node);
+                        removeList.add(s);
                     }
                 }
             }
         }
+
+        model.remove(removeList);
         return model;
     }
 
@@ -361,7 +371,7 @@ public class Exporter implements TransferProcess {
      * @param uri
      * @throws IOException
      */
-    void findRepositoryRoot(final URI uri) throws IOException {
+    void findRepositoryRoot(final URI uri) {
         repositoryRoot = uri;
         try (FcrepoResponse response = client().get(repositoryRoot).accept(config.getRdfLanguage()).disableRedirects()
                 .perform()) {
@@ -371,11 +381,13 @@ public class Exporter implements TransferProcess {
                  findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
                          repositoryRoot.toString().lastIndexOf("/"))));
              }
-        } catch (final FcrepoOperationFailedException ex) {
-            logger.warn("Error retriving container {}: {}", repositoryRoot, ex.toString());
-            exportLogger.error(String.format("Error retriving container {}, Message: {}",
-                    repositoryRoot, ex.toString()), ex);
+        } catch (final IOException ex) {
+            throw new RuntimeException(String.format("Error in finding the repository root: {}", ex.getMessage()), ex);
+        } catch (final Exception ex) {
+            throw new RuntimeException(String.format("Error in finding the repository root: {}", ex.getMessage()), ex);
         }
+
+        logger.debug("Repository root {}.", repositoryRoot);
     }
 
     void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)

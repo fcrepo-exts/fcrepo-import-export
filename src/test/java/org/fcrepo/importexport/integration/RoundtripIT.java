@@ -302,8 +302,8 @@ public class RoundtripIT extends AbstractResourceIT {
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
         final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/file1.binary");
-        final File descFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/file1/fcr%3Ametadata"
+        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + ".binary");
+        final File descFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/fcr%3Ametadata"
                 + config.getRdfExtension());
 
         assertTrue(containerFile.exists() && containerFile.isFile());
