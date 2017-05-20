@@ -197,12 +197,7 @@ public class Importer implements TransferProcess {
 
         importMembershipResources();
 
-        // loop through for nested member/membership resources
-        if (relatedResources.size() > 0) {
-            final List<URI> referenceResources = relatedResources.stream().collect(toList());
-            relatedResources.clear();
-            importMemberResources(referenceResources);
-        }
+        importRelatedResources();
     }
 
     private void discoverMembershipResources(final File dir) {
@@ -235,13 +230,21 @@ public class Importer implements TransferProcess {
                     for (final NodeIterator it = model.listObjectsOfProperty(createProperty(p)); it.hasNext();) {
                         final String uri = it.nextNode().toString();
 
-                        logger.debug("Discovered member resource {} for source {}.", uri, config.getSource());
-                        // add member resource to list, exclude those that are already imported
-                        if ((fileForContainerURI(URI.create(uri)).exists())
-                                && !importedResources.contains(URI.create(uri))) {
-                            relatedResources.add(URI.create(uri));
+                        logger.debug("Discovered related resource {} for source {}.", uri, config.getSource());
+                        if (!importedResources.contains(URI.create(uri))) {
+                            // add related resource to list, exclude those that are already imported
+                            final URI resURI = URI.create(uri);
+                            if ((fileForContainerURI(resURI).exists())) {
+                                relatedResources.add(URI.create(uri));
 
-                            logger.debug("Added member resource {}", uri);
+                                logger.debug("Added related resource {}", uri);
+                            } else if ((fileForBinaryURI(resURI, false).exists() || fileForBinaryURI(resURI, true)
+                                    .exists())) {
+                                importedResources.add(URI.create(uri));
+
+                                // The binary file will be imported when the non-RDF metadata file is being imported.
+                                importDirectory(directoryForContainer(resURI));
+                            }
                         }
                     }
                 }
@@ -253,12 +256,16 @@ public class Importer implements TransferProcess {
         }
     }
 
-    private void importMemberResources(final List<URI> memberResources) {
-        logger.debug("Importing memberResources {} ...", memberResources.get(0));
-        memberResources.stream().forEach(uri -> {
-            logger.info("Importing memberResources {} ...", uri);
-            processImport(uri);
-        });
+    private void importRelatedResources() {
+        if (relatedResources.size() > 0) {
+            final List<URI> referenceResources = relatedResources.stream().collect(toList());
+            relatedResources.clear();
+            // loop through for nested related resources
+            referenceResources.stream().forEach(uri -> {
+                logger.info("Importing related resources {} ...", uri);
+                processImport(uri);
+            });
+        }
     }
 
     private void importMembershipResources() {
@@ -634,7 +641,8 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * Find the repository root
+     * Find the repository root starting from the given url. The container with no has parent predicate is the
+     * repository root.
      * 
      * @param uri
      * @throws IOException
@@ -658,9 +666,9 @@ public class Importer implements TransferProcess {
                 findRepositoryRoot(URI.create(root.substring(0, root.lastIndexOf("/"))));
             }
         } catch (IOException ex) {
-            logger.error("Error finding repository root {}: {}", repositoryRoot, ex.toString());
+            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
         } catch (final FcrepoOperationFailedException ex) {
-            logger.error("Error finding repository root {}: {}", repositoryRoot, ex.toString());
+            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
         }
         logger.debug("Repository root {}", repositoryRoot);
     }
