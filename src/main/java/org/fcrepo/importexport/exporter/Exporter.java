@@ -24,10 +24,12 @@ import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
-import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -58,15 +60,12 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
-import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
-import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.jena.rdf.model.Model;
@@ -197,11 +196,6 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
-
-        if (!config.isIncludeBinaries()) {
-            findRepositoryRoot(config.getResource());
-        }
-
         export(config.getResource());
         if (bag != null) {
             try {
@@ -238,7 +232,7 @@ public class Exporter implements TransferProcess {
 
     private void export(final URI uri) {
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
                 final String contentType = response.getContentType();
@@ -275,7 +269,7 @@ public class Exporter implements TransferProcess {
             getBuilder = getBuilder.disableRedirects();
         }
         try (FcrepoResponse response = getBuilder.perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
 
             final File file = external ? fileForExternalResources(uri, null, null, config.getBaseDirectory()) :
                     fileForBinary(uri, null, null, config.getBaseDirectory());
@@ -295,10 +289,16 @@ public class Exporter implements TransferProcess {
         }
 
         try (FcrepoResponse response = client().get(uri).accept(config.getRdfLanguage()).perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting description: {}", uri);
 
             if (!config.isIncludeBinaries()) {
+                if (repositoryRoot == null) {
+                    findRepositoryRoot(config.getResource());
+
+                    logger.debug("Repository root {}", repositoryRoot);
+                }
+
                 // filter binary resources reference for exporting without binaries
                 final Model model = filterBinaryReferences(uri,
                         createDefaultModel().read(response.getBody(), null, config.getRdfLanguage()));
@@ -353,7 +353,7 @@ public class Exporter implements TransferProcess {
                     && !s.getPredicate().toString().equals(REPOSITORY_NAMESPACE + "hasTransactionProvider")) {
                 try (final FcrepoResponse resp = client().head(URI.create(obj.toString())).disableRedirects()
                         .perform()) {
-                    checkValidResponse(resp, uri);
+                    checkValidResponse(resp, uri, config.getUsername());
                     final List<URI> linkHeaders = resp.getLinkHeaders("type");
                     if (linkHeaders.contains(binaryURI)) {
                         removeList.add(s);
@@ -367,27 +367,17 @@ public class Exporter implements TransferProcess {
     }
 
     /**
-     * Find the repository root
-     * @param uri
+     * Method to find and set the repository root from the resource uri.
+     * @param uri the URI for the resource
      * @throws IOException
+     * @throws FcrepoOperationFailedException
      */
-    void findRepositoryRoot(final URI uri) {
+    private void findRepositoryRoot(final URI uri) throws IOException, FcrepoOperationFailedException {
         repositoryRoot = uri;
-        try (FcrepoResponse response = client().get(repositoryRoot).accept(config.getRdfLanguage()).disableRedirects()
-                .perform()) {
-            checkValidResponse(response, repositoryRoot);
-             final Model model = createDefaultModel().read(response.getBody(), null, config.getRdfLanguage());
-             if (model.contains(null, createProperty(REPOSITORY_NAMESPACE + "hasParent"), (RDFNode) null)) {
-                 findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
-                         repositoryRoot.toString().lastIndexOf("/"))));
-             }
-        } catch (final IOException ex) {
-            throw new RuntimeException(String.format("Error in finding the repository root: {}", ex.getMessage()), ex);
-        } catch (final Exception ex) {
-            throw new RuntimeException(String.format("Error in finding the repository root: {}", ex.getMessage()), ex);
+        if (!isRepositoryRoot(uri, client(), config)) {
+            findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
+                    repositoryRoot.toString().lastIndexOf("/"))));
         }
-
-        logger.debug("Repository root {}.", repositoryRoot);
     }
 
     void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)
@@ -450,28 +440,6 @@ public class Exporter implements TransferProcess {
                 out.write(buf, 0, read);
                 successBytes.addAndGet(read);
             }
-        }
-    }
-
-    /**
-     * Checks the response code and throws a RuntimeException with a helpful
-     * message (when possible) for non 2xx codes.
-     * @param response the response from a REST call to Fedora
-     * @param uri the URI against which the request was made
-     */
-    private void checkValidResponse(final FcrepoResponse response, final URI uri) {
-        switch (response.getStatusCode()) {
-            case 401:
-                throw new AuthenticationRequiredRuntimeException();
-            case 403:
-                throw new AuthorizationDeniedRuntimeException(config.getUsername(), uri);
-            case 404:
-                throw new ResourceNotFoundRuntimeException(uri);
-            default:
-                if (response.getStatusCode() < 200 || response.getStatusCode() > 307) {
-                    throw new RuntimeException("Export operation failed: unexpected status "
-                            + response.getStatusCode() + " for " + uri);
-                }
         }
     }
 }

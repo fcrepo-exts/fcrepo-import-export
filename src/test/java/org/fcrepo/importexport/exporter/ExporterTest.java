@@ -25,6 +25,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -91,7 +92,8 @@ public class ExporterTest {
         descriptionLinks = Arrays.asList(new URI(RDF_SOURCE.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
 
-        mockResponse(resource, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource.toString() + "\",\""
+        mockResponse(resource, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource.toString()
+                + "\",\"@type\":[\"" + REPOSITORY_NAMESPACE + "RepositoryRoot\"],\""
                 + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
         mockResponse(resource2, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
         mockResponse(resource3, binaryLinks, describedbyLinks, "binary");
@@ -132,7 +134,8 @@ public class ExporterTest {
         when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
         when(getBuilder.disableRedirects()).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
-        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
+        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes())).thenReturn(
+                new ByteArrayInputStream(body.getBytes()));
         when(getResponse.getUrl()).thenReturn(uri);
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(getResponse.getStatusCode()).thenReturn(200);
@@ -401,10 +404,5 @@ class ExporterWrapper extends Exporter {
     }
     boolean wroteFile(final File file) {
         return writtenFiles.contains(file);
-    }
-
-    @Override
-    void findRepositoryRoot(final URI uri) {
-        repositoryRoot = uri;
     }
 }

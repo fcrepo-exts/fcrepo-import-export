@@ -19,11 +19,25 @@ package org.fcrepo.importexport.common;
 
 import static java.net.URI.create;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.junit.Assert.assertEquals;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URI;
 
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.GetBuilder;
+import org.fcrepo.client.HeadBuilder;
 import org.junit.Test;
 
 /**
@@ -34,6 +48,8 @@ public class TransferProcessTest {
 
     private File dir = new File("/export/dir/");
     private String ext = ".ttl";
+
+    private FcrepoClient client;
 
     @Test
     public void testMappingNull() throws Exception {
@@ -69,5 +85,35 @@ public class TransferProcessTest {
     public void testMappingRestless2() throws Exception {
         final URI uri = create("http://localhost:8080/foo");
         assertEquals( new File(dir, "rest/foo" + ext), fileForURI(uri, "/rest/", "/", dir, ext));
+    }
+
+    @Test
+    public void testIsrepositoryRoot() throws Exception {
+        final String rdfLanguage = "application/ld+json";
+        final Config config = mock(Config.class);
+        final URI uri = URI.create("http://localhost:8080/fcrepo");
+        client = mock(FcrepoClient.class);
+
+        final HeadBuilder headBuilder = mock(HeadBuilder.class);
+        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
+        when(client.head(eq(uri))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
+        when(headBuilder.perform()).thenReturn(headResponse);
+        when(headResponse.getStatusCode()).thenReturn(200);
+
+        final GetBuilder getBuilder = mock(GetBuilder.class);
+        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
+        when(config.getRdfLanguage()).thenReturn(rdfLanguage);
+        when(client.get(isA(URI.class))).thenReturn(getBuilder);
+        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
+        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
+        when(getBuilder.perform()).thenReturn(getResponse);
+        when(getResponse.getBody()).thenReturn(
+                new ByteArrayInputStream(("{\"@type\":[\"" + CONTAINER + "\"]}").getBytes()));
+        assertFalse(TransferProcess.isRepositoryRoot(uri, client, config));
+
+        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(
+                ("{\"@type\":[\"" + REPOSITORY_NAMESPACE + "RepositoryRoot\"]}").getBytes()));
+        assertTrue(TransferProcess.isRepositoryRoot(uri, client, config));
     }
 }

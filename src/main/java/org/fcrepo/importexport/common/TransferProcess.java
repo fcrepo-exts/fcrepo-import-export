@@ -17,8 +17,12 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +37,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.apache.jena.rdf.model.Model;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+
 /**
+ * @author lsitu
  * @author barmintor
  * @since 2016-08-31
  */
@@ -160,5 +170,53 @@ public interface TransferProcess {
             throw new RuntimeException(String.format("Error reading manifest: {}", manifestFile.toString()), e);
         }
         return sha1FileMap;
+    }
+
+    /**
+     * Checks the response code and throws a RuntimeException with a helpful
+     * message (when possible) for non 2xx codes.
+     * @param response the response from a REST call to Fedora
+     * @param uri the URI against which the request was made
+     */
+    public static void checkValidResponse(final FcrepoResponse response, final URI uri, final String user) {
+        switch (response.getStatusCode()) {
+        case 401:
+            throw new AuthenticationRequiredRuntimeException();
+        case 403:
+            throw new AuthorizationDeniedRuntimeException(user, uri);
+        case 404:
+            throw new ResourceNotFoundRuntimeException(uri);
+        default:
+            if (response.getStatusCode() < 200 || response.getStatusCode() > 307) {
+                throw new RuntimeException("Export operation failed: unexpected status "
+                        + response.getStatusCode() + " for " + uri);
+            }
+        }
+    }
+
+    /**
+     * Utility method to determine whether the current uri is repository root or not. The repository root is the
+     * container with type fcrepo:RepositoryRoot
+     * @param uri the URI for the resource
+     * @param client the FcrepoClient to query the repository
+     * @param config the Config for import/export
+     * @throws IOException
+     * @throws FcrepoOperationFailedException
+     */
+    public static boolean isRepositoryRoot(final URI uri, final FcrepoClient client, Config config)
+            throws IOException, FcrepoOperationFailedException {
+        final String userName = config.getUsername();
+        final String rdfLanguage = config.getRdfLanguage();
+        try (FcrepoResponse response = client.head(uri).disableRedirects().perform()) {
+            checkValidResponse(response, uri, userName);
+            try (FcrepoResponse resp = client.get(uri).accept(rdfLanguage).disableRedirects()
+                    .perform()) {
+                final Model model = createDefaultModel().read(resp.getBody(), null, rdfLanguage);
+                if (model.contains(null, RDF_TYPE, createResource(REPOSITORY_NAMESPACE + "RepositoryRoot"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
