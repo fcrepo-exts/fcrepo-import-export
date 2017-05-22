@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
@@ -33,6 +34,7 @@ import java.util.List;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
@@ -66,6 +68,7 @@ public class ImporterTest {
     private FcrepoResponse conResponse;
     private PutBuilder binBuilder;
     private PutBuilder externalResourceBuilder;
+    private GetBuilder getBuilder;
 
     @Before
     public void setUp() throws Exception {
@@ -126,6 +129,16 @@ public class ImporterTest {
         clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
         client = mock(FcrepoClient.class);
         when(clientBuilder.build()).thenReturn(client);
+
+        // mock get container/description interactions
+        getBuilder = mock(GetBuilder.class);
+        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
+        when(client.get(isA(URI.class))).thenReturn(getBuilder);
+        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
+        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
+        when(getBuilder.perform()).thenReturn(getResponse);
+        when(getResponse.getStatusCode()).thenReturn(200);
+        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream("{}".getBytes()));
 
         // mock binary interactions
         binBuilder = mock(PutBuilder.class);
