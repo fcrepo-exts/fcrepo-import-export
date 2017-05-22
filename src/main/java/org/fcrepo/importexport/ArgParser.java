@@ -24,10 +24,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.fcrepo.client.FcrepoClient;
@@ -387,8 +385,8 @@ public class ArgParser {
         // Write config to file
         try {
             final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
-            logger.debug("YAML output is ({})", getMap(config).toString());
-            writer.write(getMap(config));
+            logger.debug("YAML output is ({})", config.getMap().toString());
+            writer.write(config.getMap());
             writer.close();
             logger.info("Saved configuration to: {}", configFile.getPath());
 
@@ -513,36 +511,4 @@ public class ArgParser {
                 key, value), lineNumber);
         }
     }
-
-    /**
-     * Generate a HashMap suitable for serializing to Yaml from a Config
-     *
-     * @param config the config to turn into a Hashmap
-     * @return Map key value pairs of configuration
-     */
-    public static Map<String, String> getMap(final Config config) {
-        final Map<String, String> map = new HashMap<String, String>();
-        map.put("mode", (config.isImport() ? "import" : "export"));
-        map.put("resource", config.getResource().toString());
-        if (!config.getMap().toString().isEmpty()) {
-            map.put("map", config.getMap().toString());
-        }
-        map.put("dir", config.getBaseDirectory().getAbsolutePath());
-        if (!config.getRdfLanguage().isEmpty()) {
-            map.put("rdfLang", config.getRdfLanguage());
-        }
-        map.put("binaries", Boolean.toString(config.isIncludeBinaries()));
-        map.put("external", Boolean.toString(config.retrieveExternal()));
-        map.put("overwriteTombstones", Boolean.toString(config.overwriteTombstones()));
-        if (config.getBagProfile() != null) {
-            map.put(BAG_PROFILE_OPTION_KEY, config.getBagProfile());
-        }
-        if (config.getBagConfigPath() != null) {
-            map.put(BAG_CONFIG_OPTION_KEY, config.getBagConfigPath());
-        }
-        final String predicates = Arrays.stream(config.getPredicates()).collect(Collectors.joining(","));
-        map.put("predicates", predicates);
-        return map;
-    }
-
 }
