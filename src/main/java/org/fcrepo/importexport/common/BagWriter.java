@@ -138,7 +138,8 @@ public class BagWriter {
                 try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
                     for (final Iterator<File> files = filemap.keySet().iterator(); files.hasNext(); ) {
                         final File payload = files.next();
-                        out.println(filemap.get(payload) + "  " + bagDir.toPath().relativize(payload.toPath()));
+                        out.println(filemap.get(payload) + TransferProcess.BAGIT_CHECKSUM_DELIMITER
+                                + bagDir.toPath().relativize(payload.toPath()));
                     }
                 }
             }

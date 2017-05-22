@@ -1,1 +1,5 @@
-c537ab534deef7493140106c2151eccf2a219b8e data/fcrepo/rest/testBagImport.ttl
+c537ab534deef7493140106c2151eccf2a219b8e  data/fcrepo/rest/testBagImport.ttl
+427b598d3b581cb23d5efe362a52aa43a24cfebb  data/fcrepo/rest/image0/fcr%3Ametadata.ttl
+da39a3ee5e6b4b0d3255bfef95601890afd80709  data/fcrepo/rest/image0.binary
+427b598d3b581cb23d5efe362a52aa43a24cfebb  data/fcrepo/rest/bad_image/fcr%3Ametadata.ttl
+c537ab534deef7493140106c2151eccf2a219b8e  data/fcrepo/rest/bad_image.binary

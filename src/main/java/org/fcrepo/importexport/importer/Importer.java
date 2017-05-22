@@ -105,7 +105,7 @@ public class Importer implements TransferProcess {
 
     private MessageDigest sha1;
 
-    private Map<File, String> sha1FileMap;
+    private Map<String, String> sha1FileMap;
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -452,8 +452,8 @@ public class Importer implements TransferProcess {
         if (!external(contentType)) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
-                final String checksum = sha1FileMap.get(binaryFile);
-                logger.debug("Using Bagit checksum ({}) for file ({})", checksum, binaryFile.getPath());
+                final String checksum = sha1FileMap.get(binaryFile.getAbsolutePath());
+                logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
                 builder = builder.digest(checksum);
             } else {
                 builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)

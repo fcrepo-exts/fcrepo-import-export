@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
 import java.io.ByteArrayInputStream;
@@ -57,6 +58,7 @@ public class ImporterTest {
     private Config externalResourceArgs;
     private Config containerArgs;
     private Config pairtreeArgs;
+    private Config bagItArgs;
     private URI binaryURI;
     private URI binaryDescriptionURI;
     private URI externalResourceURI;
@@ -121,6 +123,16 @@ public class ImporterTest {
         pairtreeArgs.setRdfLanguage("application/ld+json");
         pairtreeArgs.setResource(new URI("http://example.org:9999/rest"));
         pairtreeArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
+
+        bagItArgs = new Config();
+        bagItArgs.setMode("import");
+        bagItArgs.setBaseDirectory("src/test/resources/sample/bagcorrupted");
+        bagItArgs.setIncludeBinaries(true);
+        bagItArgs.setRdfLanguage("application/ld+json");
+        bagItArgs.setResource(new URI("http://example.org:9999/rest"));
+        bagItArgs.setMap(new String[] { "http://localhost:8080/rest", "http://example.org:9999/rest" });
+        bagItArgs.setBagProfile("default");
+        bagItArgs.setUsername("tester");
 
         pairtreeURI = new URI("http://example.org:9999/rest/ab");
         finalContainerURI = new URI("http://example.org:9999/rest/ab/abc123");
@@ -237,5 +249,28 @@ public class ImporterTest {
         importer.run();
         verify(client).put(finalContainerURI);
         verify(client, never()).put(pairtreeURI);
+    }
+
+    @Test
+    public void testImportBagVerifyBinaryDigest() throws Exception {
+        final URI badBinURI = new URI("http://example.org:9999/rest/bad_bin1");
+
+        // mock bad binary interactions
+        final PutBuilder badBinBuilder = mock(PutBuilder.class);
+        final FcrepoResponse badBinResponse = mock(FcrepoResponse.class);
+        when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.perform()).thenReturn(badBinResponse);
+        when(badBinResponse.getStatusCode()).thenReturn(409);
+        when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
+
+        final Importer importer = new Importer(bagItArgs, clientBuilder);
+        importer.run();
+
+        verify(client).put(badBinURI);
+
+        // verify that the checksum from the manifest-sha1 file is used
+        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"));
     }
 }
