@@ -435,17 +435,14 @@ public class Exporter implements TransferProcess {
 
             // Extract uris of previous versions for export
             final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
-            exportLogger.warn("Exporting versions {}", model);
-            logger.warn("Exporting versions {}", model);
             final Resource resc = model.getResource(uri.toString());
-            logger.warn("Got resource {}, prop {}", resc, HAS_VERSION.getURI());
 
             final StmtIterator versionsIt = resc.listProperties(HAS_VERSION);
             while (versionsIt.hasNext()) {
                 final Statement versionSt = versionsIt.next();
                 final Resource versionResc = versionSt.getResource();
-                exportLogger.warn("Exporting versions {} for {}", versionResc.getURI(), uri);
-                logger.warn("Exporting versions {} for {}", versionResc.getURI(), uri);
+                exportLogger.info("Exporting version: {}", versionResc.getURI());
+                logger.info("Exporting version {} for {}", versionResc.getURI(), uri);
 
                 export(URI.create(versionResc.getURI()));
             }
