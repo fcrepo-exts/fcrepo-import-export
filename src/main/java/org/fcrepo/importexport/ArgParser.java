@@ -128,6 +128,13 @@ public class ArgParser {
                 .desc("When present this flag indicates that external content should be exported.")
                 .required(false).build());
 
+        // Retrieve inbound references
+        configOptions.addOption(Option.builder("i")
+                .longOpt("inbound")
+                .hasArg(false)
+                .desc("When present this flag indicates that inbound references should be exported.")
+                .required(false).build());
+
         // Overwrite Tombstones
         configOptions.addOption(Option.builder("t")
                  .longOpt("overwriteTombstones")
@@ -322,6 +329,7 @@ public class ArgParser {
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeBinaries(cmd.hasOption('b'));
         config.setRetrieveExternal(cmd.hasOption('x'));
+        config.setRetrieveInbound(cmd.hasOption('i'));
         config.setOverwriteTombstones(cmd.hasOption('t'));
 
         final String rdfLanguage = cmd.getOptionValue('l');
@@ -485,6 +493,8 @@ public class ArgParser {
                 c.setIncludeBinaries(parseBoolean("binaries", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
                 c.setRetrieveExternal(parseBoolean("external", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("inbound")) {
+                c.setRetrieveInbound(parseBoolean("inbound", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
                 c.setOverwriteTombstones(parseBoolean("overwriteTombstones", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
