@@ -157,7 +157,7 @@ public interface TransferProcess {
                 sha1FileMap.put(file, checksum);
             });
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Error reading manifest: {}", manifestFile.toString()), e);
+            throw new RuntimeException("Error reading manifest: " + manifestFile.toString(), e);
         }
         return sha1FileMap;
     }

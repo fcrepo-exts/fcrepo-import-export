@@ -25,8 +25,10 @@ import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.jena.riot.Lang;
 import org.slf4j.Logger;
@@ -72,7 +74,7 @@ public class Config {
      * @return true if import config
      */
     public boolean isImport() {
-        return mode.equalsIgnoreCase("import");
+        return mode != null && mode.equalsIgnoreCase("import");
     }
 
     /**
@@ -401,12 +403,22 @@ public class Config {
         if (this.getSource() != null && this.getDestination() != null) {
             map.put("map", this.getSource() + "," + this.getDestination());
         }
-        map.put("dir", this.getBaseDirectory().getAbsolutePath());
+        map.put("dir", this.baseDirectory.getAbsolutePath());
         if (!this.getRdfLanguage().isEmpty()) {
             map.put("rdfLang", this.getRdfLanguage());
         }
         map.put("binaries", Boolean.toString(this.includeBinaries));
         map.put("external", Boolean.toString(this.retrieveExternal));
+        map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
+        if (this.getBagProfile() != null) {
+            map.put("bag-profile", this.getBagProfile());
+        }
+        if (this.getBagConfigPath() != null) {
+            map.put("bag-config", this.getBagConfigPath());
+        }
+        final String predicates = Arrays.stream(this.getPredicates()).collect(Collectors.joining(","));
+        map.put("predicates", predicates);
+
         return map;
     }
 

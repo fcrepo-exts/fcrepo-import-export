@@ -275,6 +275,7 @@ public class ArgParserTest {
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
+        Assert.assertEquals("/tmp/rdf", config.getMap().get("dir"));
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(".ttl", config.getRdfExtension());
 
