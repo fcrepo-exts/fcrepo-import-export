@@ -34,7 +34,6 @@ import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,10 +47,10 @@ import org.apache.http.HttpStatus;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.exporter.ExporterTest.ResponseMocker;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -122,39 +121,9 @@ public class ExporterTest {
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final String body) throws FcrepoOperationFailedException {
-        final HeadBuilder headBuilder = mock(HeadBuilder.class);
-        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
-        when(client.head(eq(uri))).thenReturn(headBuilder);
-        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
-        when(headBuilder.perform()).thenReturn(headResponse);
-        when(headResponse.getUrl()).thenReturn(uri);
-        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
-        when(headResponse.getStatusCode()).thenReturn(200);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks);
 
-        final GetBuilder getBuilder = mock(GetBuilder.class);
-        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
-        when(client.get(eq(uri))).thenReturn(getBuilder);
-        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
-        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
-        when(getBuilder.perform()).thenReturn(getResponse);
-        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes())).thenReturn(
-                new ByteArrayInputStream(body.getBytes()));
-        when(getResponse.getUrl()).thenReturn(uri);
-        when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
-        when(getResponse.getStatusCode()).thenReturn(200);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
-    }
-
-    private void mockGetResponseError(final URI uri, final int statusCode) throws FcrepoOperationFailedException {
-        final GetBuilder getBuilder = mock(GetBuilder.class);
-        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
-        when(client.get(eq(uri))).thenReturn(getBuilder);
-        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
-        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
-        when(getBuilder.perform()).thenReturn(getResponse);
-        when(getResponse.getUrl()).thenReturn(uri);
-        when(getResponse.getStatusCode()).thenReturn(statusCode);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, body);
     }
 
     @Test
