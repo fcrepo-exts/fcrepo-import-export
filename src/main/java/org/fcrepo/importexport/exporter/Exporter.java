@@ -336,8 +336,9 @@ public class Exporter implements TransferProcess {
 
     /**
      * Filter out the binary resource references from the model
-     * @param model
-     * @return
+     * @param uri the URI for the resource
+     * @param model the RDF Model of the resource
+     * @return the RDF model with no binary references
      * @throws FcrepoOperationFailedException
      * @throws IOException
      */

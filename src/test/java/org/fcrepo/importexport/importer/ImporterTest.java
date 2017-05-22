@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,6 +36,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
+import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
@@ -69,6 +71,7 @@ public class ImporterTest {
     private PutBuilder binBuilder;
     private PutBuilder externalResourceBuilder;
     private GetBuilder getBuilder;
+    private HeadBuilder headBuilder;
 
     @Before
     public void setUp() throws Exception {
@@ -130,6 +133,14 @@ public class ImporterTest {
         client = mock(FcrepoClient.class);
         when(clientBuilder.build()).thenReturn(client);
 
+        // mock head interactions
+        headBuilder = mock(HeadBuilder.class);
+        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
+        when(client.head(isA(URI.class))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
+        when(headBuilder.perform()).thenReturn(headResponse);
+        when(headResponse.getStatusCode()).thenReturn(200);
+
         // mock get container/description interactions
         getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
@@ -138,7 +149,9 @@ public class ImporterTest {
         when(getBuilder.disableRedirects()).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
         when(getResponse.getStatusCode()).thenReturn(200);
-        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream("{}".getBytes()));
+        when(getResponse.getBody()).thenReturn(
+                new ByteArrayInputStream(("{\"@type\":[\"" + REPOSITORY_NAMESPACE + "RepositoryRoot\"]}").getBytes()))
+                .thenReturn(new ByteArrayInputStream("{}".getBytes()));
 
         // mock binary interactions
         binBuilder = mock(PutBuilder.class);
