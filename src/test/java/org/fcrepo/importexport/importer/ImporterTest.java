@@ -244,7 +244,6 @@ public class ImporterTest {
         final Model model = createDefaultModel();
         model.read(streamCapture.getValue(), "", "JSON-LD");
         final Graph graph = model.getGraph();
-        System.out.println(graph);
         assertFalse(graph.contains(Node.ANY, createURI("http://fedora.info/definitions/v4/repository#lastModified"),
                 Node.ANY));
     }
@@ -259,7 +258,6 @@ public class ImporterTest {
         final Model model = createDefaultModel();
         model.read(streamCapture.getValue(), "", "JSON-LD");
         final Graph graph = model.getGraph();
-        System.out.println(graph);
         assertTrue(graph.contains(Node.ANY, createURI("http://fedora.info/definitions/v4/repository#lastModified"),
                 Node.ANY));
     }
