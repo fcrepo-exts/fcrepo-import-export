@@ -142,6 +142,14 @@ public class ArgParser {
                  .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
                  .required(false).build());
 
+        // Legacy Mode option
+        configOptions.addOption(Option.builder("L")
+                .longOpt("legacyMode")
+                .hasArg(false)
+                .desc("When importing, omit certain server-managed-triples that aren't modifyable in old" +
+                        " versions of fedora.")
+                .required(false).build());
+
         // RDF language option
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
@@ -278,7 +286,7 @@ public class ArgParser {
     /**
      * This method tries to parse the configuration file, if that option was provided
      *
-     * @param args from command line
+     * @param cmd from command line
      * @return Config or null if no config file option was provided
      */
     private Config parseConfigFileOptions(final CommandLine cmd) {
@@ -331,6 +339,7 @@ public class ArgParser {
         config.setRetrieveExternal(cmd.hasOption('x'));
         config.setRetrieveInbound(cmd.hasOption('i'));
         config.setOverwriteTombstones(cmd.hasOption('t'));
+        config.setLegacy(cmd.hasOption("L"));
 
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
@@ -379,7 +388,7 @@ public class ArgParser {
     /**
      * This method writes the configuration file to disk.  The current
      * implementation omits the user/password information.
-     * @param args to be persisted
+     * @param config to be persisted
      */
     private void saveConfig(final Config config) {
         final File configFile = new File(System.getProperty("java.io.tmpdir"), CONFIG_FILE_NAME);
@@ -497,6 +506,8 @@ public class ArgParser {
                 c.setRetrieveInbound(parseBoolean("inbound", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
                 c.setOverwriteTombstones(parseBoolean("overwriteTombstones", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("legacyMode")) {
+                c.setLegacy(parseBoolean("legacyMode", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {

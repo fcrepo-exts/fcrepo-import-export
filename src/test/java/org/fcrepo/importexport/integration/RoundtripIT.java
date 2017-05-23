@@ -448,6 +448,7 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
         new Exporter(config, clientBuilder).run();
 
         // delete container and optionally remove tombstone

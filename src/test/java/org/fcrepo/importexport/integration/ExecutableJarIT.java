@@ -217,6 +217,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
                 "-d", exportPath,
                 "-b", exportPath,
                 "-r", parent.toString(),
+                "-L",
                 "-u", "fedoraAdmin:password");
 
         // Verify

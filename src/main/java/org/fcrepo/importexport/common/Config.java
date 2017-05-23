@@ -58,6 +58,7 @@ public class Config {
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
     private boolean overwriteTombstones = false;
+    private boolean legacy = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
 
@@ -420,6 +421,24 @@ public class Config {
     }
 
     /**
+     * Turn on/off "legacy" mode, a mode in which certain server-managed triples are
+     * intentionally omitted from import because updating them wasn't supported by
+     * Fedora.
+     * @param legacy true to indicate legacy mode should be enabled, false to disable it
+     */
+    public void setLegacy(final boolean legacy) {
+        this.legacy = legacy;
+    }
+
+    /**
+     * Check whether "legacy" mode is enabled.
+     * @return true if legacy mode is enabled, false, otherwise
+     */
+    public boolean legacy() {
+        return this.legacy;
+    }
+
+    /**
      * Generate a HashMap suitable for serializing to Yaml
      *
      * @return Map key value pairs of configuration
@@ -439,6 +458,7 @@ public class Config {
         map.put("external", Boolean.toString(this.retrieveExternal));
         map.put("inbound", Boolean.toString(this.retrieveInbound));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
+        map.put("legacyMode", Boolean.toString(this.legacy()));
         if (this.getBagProfile() != null) {
             map.put("bag-profile", this.getBagProfile());
         }

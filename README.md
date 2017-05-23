@@ -95,6 +95,13 @@ To retrieve inbound references (for example, when exporting a collection and you
 
 To retrieve external content binaries (binaries on other systems linked to with the `message/external-body` content type), use the `-x` or `--external` option.  When enabled, the external binaries will be retrieved and included in the export.  When disabled, they will not be retrieved, and only pointers to them will be exported.
 
+If running against a version of fedora in which fedora:lastModified, fedora:lastModifiedBy, fedora:created and fedora:createdBy cannot be set, run the import in legacy mode.  *WARNING: the imported resources will have different values for these fields than the original resources!*
+
+```sh
+java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --legacyMode
+```
+
+
 Running the import/export utility with a BagIt support
 ------------------------------------------------------
 
