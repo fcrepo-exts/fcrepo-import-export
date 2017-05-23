@@ -56,6 +56,7 @@ public class Config {
 
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
+    private boolean retrieveInbound = false;
     private boolean overwriteTombstones = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
@@ -147,6 +148,24 @@ public class Config {
      */
     public boolean retrieveExternal() {
         return retrieveExternal;
+    }
+
+    /**
+     * Sets flag indicating whether or not inbound references should be retrieved when exporting.
+     *
+     * @param retrieveInbound Whether to retrieve inbound references
+     */
+    public void setRetrieveInbound(final boolean retrieveInbound) {
+        this.retrieveInbound = retrieveInbound;
+    }
+
+    /**
+     * Get the inbound references flag.
+     *
+     * @return true if inbound references should be retrieved
+     */
+    public boolean retrieveInbound() {
+        return retrieveInbound;
     }
 
     /**
@@ -409,6 +428,7 @@ public class Config {
         }
         map.put("binaries", Boolean.toString(this.includeBinaries));
         map.put("external", Boolean.toString(this.retrieveExternal));
+        map.put("inbound", Boolean.toString(this.retrieveInbound));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
         if (this.getBagProfile() != null) {
             map.put("bag-profile", this.getBagProfile());
@@ -418,7 +438,6 @@ public class Config {
         }
         final String predicates = Arrays.stream(this.getPredicates()).collect(Collectors.joining(","));
         map.put("predicates", predicates);
-
         return map;
     }
 

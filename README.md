@@ -91,6 +91,10 @@ into `http://example.org:8080/fedora/rest/`:
 java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --map http://localhost:8984/rest/dev/,http://example.org:8080/fedora/rest/
 ```
 
+To retrieve inbound references (for example, when exporting a collection and you also want to export the members that link to the collection), use the `-i` or `--inbound` option.  When enabled, resources that are linked to or from with the specified predicates will be exported.
+
+To retrieve external content binaries (binaries on other systems linked to with the `message/external-body` content type), use the `-x` or `--external` option.  When enabled, the external binaries will be retrieved and included in the export.  When disabled, they will not be retrieved, and only pointers to them will be exported.
+
 Running the import/export utility with a BagIt support
 ------------------------------------------------------
 
@@ -159,6 +163,8 @@ That configuration file is [Yaml](http://yaml.org) and allows for the following 
 * dir: Directory to import from/export to
 * binaries: [true|false] # whether is import/export binary resources
 * overwriteTombstones: [true|false] # whether to replace tombstones of previously deleted resources
+* external: [true|false] # whether to retrieve external content binaries when exporting
+* inbound: [true|false] # whether to export inbound references when exporting
 * map: Old and new base URIs, separated by comma, to map URIs when importing.
 * resource: The resource to export/import
 * rdfLang: The RDF language to export into or import from

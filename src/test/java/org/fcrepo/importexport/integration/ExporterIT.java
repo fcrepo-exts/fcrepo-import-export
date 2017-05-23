@@ -232,6 +232,38 @@ public class ExporterIT extends AbstractResourceIT {
         return config;
     }
 
+    @Test
+    public void testExportCustomPredicatesInbound() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI col1 = URI.create(baseURI + "/col1");
+        final URI obj1 = URI.create(baseURI + "/obj1");
+        final URI obj2 = URI.create(baseURI + "/obj2");
+
+        create(col1);
+        createTurtle(obj1, "<> <http://example.org/custom> <" + col1.toString() + "> .");
+        createTurtle(obj2, "<> <http://example.org/custom> <" + col1.toString() + "> .");
+
+        // export with custom predicates
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(col1);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(new String[] { "http://example.org/custom" });
+        config.setRetrieveInbound(true);
+
+        new Exporter(config, clientBuilder).run();
+
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertTrue(new File(baseDir, "/col1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/obj1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/obj2" + DEFAULT_RDF_EXT).exists());
+    }
+
     @Override
     protected Logger logger() {
         return getLogger(ExporterIT.class);

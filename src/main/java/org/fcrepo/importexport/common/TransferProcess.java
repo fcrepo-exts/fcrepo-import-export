@@ -156,6 +156,7 @@ public interface TransferProcess {
      * Gets a Map of files and sha1 checksums from the BagIt manifest file.
      *
      * @param manifestFile the manifest file
+     * @param baseDir the base directory in the export package
      * @return the map
      */
     public static Map<File, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
