@@ -19,10 +19,14 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.riot.RDFDataMgr.loadModel;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +36,8 @@ import java.io.File;
 import java.net.URI;
 import java.util.UUID;
 
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -75,6 +81,59 @@ public class ExporterIT extends AbstractResourceIT {
 
         // Verify
         assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportExcludedBinaries() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI);
+        final URI file1 = URI.create(baseURI + "/file1");
+
+        final Resource container = createResource(res1.toString());
+
+        final String file1patch = "insert data { "
+                + "<" + file1.toString() + "> <" + SKOS_PREFLABEL + "> \"original version\" . }";
+
+        create(res1);
+        final FcrepoResponse resp = createBody(file1, "this is some content", "text/plain");
+        final URI file1desc = resp.getLinkHeaders("describedby").get(0);
+        patch(file1desc, file1patch);
+
+        assertTrue(exists(res1));
+        assertTrue(exists(file1));
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(res1);
+        config.setIncludeBinaries(false);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(new String[] { CONTAINS.toString() });
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // verify that files exist and contain expected content
+        final File exportDir = config.getBaseDirectory();
+        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.binary");
+        final File descFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1/fcr%3Ametadata"
+                + config.getRdfExtension());
+
+        assertTrue(containerFile.exists() && containerFile.isFile());
+        final Model contModel = loadModel(containerFile.getAbsolutePath());
+
+        assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
+        // verify that references binaries are excluded
+        assertFalse(contModel.contains(container, null, createResource(file1.toString())));
+
+        // verify that the files for binaries are not on disk
+        assertFalse(binaryFile.exists());
+        assertFalse(descFile.exists());
     }
 
     @Test

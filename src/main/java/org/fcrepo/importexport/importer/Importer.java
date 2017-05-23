@@ -21,7 +21,6 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -40,6 +39,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPAC
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
+import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -65,6 +65,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
@@ -641,31 +642,24 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * Find the repository root starting from the given url. The container with no has parent predicate is the
-     * repository root.
-     * 
-     * @param uri
+     * Method to find and set the repository root from the resource uri.
+     * @param uri the URI for the resource
      * @throws IOException
      * @throws FcrepoOperationFailedException
      */
     private void findRepositoryRoot(final URI uri) {
         repositoryRoot = uri;
-        try (FcrepoResponse response = client().get(repositoryRoot).accept(config.getRdfLanguage())
-                .disableRedirects().perform()) {
-
-            logger.debug("FcrepoResponse response for {}: {}", repositoryRoot, response.getStatusCode());
-            final String root = repositoryRoot.toString();
-            if (response.getStatusCode() == 200) {
-                // Resource exists, check for repository root
-                final Model model = createDefaultModel().read(response.getBody(), null, config.getRdfLanguage());
-                if (model.contains(null, createProperty(REPOSITORY_NAMESPACE + "hasParent"), (RDFNode) null)) {
-                    findRepositoryRoot(URI.create(root.substring(0, root.lastIndexOf("/"))));
-                }
-            } else if (response.getStatusCode() == 404) {
-                // Resource dosn't exist: a single resource yet to be imported.
-                findRepositoryRoot(URI.create(root.substring(0, root.lastIndexOf("/"))));
+        try {
+            repositoryRoot = uri;
+            if (!isRepositoryRoot(uri, client(), config)) {
+                findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
+                        repositoryRoot.toString().lastIndexOf("/"))));
             }
-        } catch (IOException ex) {
+        } catch (ResourceNotFoundRuntimeException ex) {
+            // The targeted resource that need to be imported next
+            findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
+                    repositoryRoot.toString().lastIndexOf("/"))));
+        } catch (final IOException ex) {
             throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
         } catch (final FcrepoOperationFailedException ex) {
             throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);

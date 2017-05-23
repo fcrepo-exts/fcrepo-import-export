@@ -21,13 +21,19 @@ import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
+import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -40,6 +46,7 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,24 +60,26 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
-import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.AuthorizationDeniedRuntimeException;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
-import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.riot.RDFDataMgr;
 import org.slf4j.Logger;
 
 /**
  * Fedora Export Utility
  *
+ * @author lsitu
  * @author awoods
  * @author escowles
  * @since 2016-08-29
@@ -96,6 +105,7 @@ public class Exporter implements TransferProcess {
     private SimpleDateFormat dateFormat;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
     private AtomicLong successBytes = new AtomicLong();
+    protected URI repositoryRoot = null;
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -222,7 +232,7 @@ public class Exporter implements TransferProcess {
 
     private void export(final URI uri) {
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
                 final String contentType = response.getContentType();
@@ -259,13 +269,13 @@ public class Exporter implements TransferProcess {
             getBuilder = getBuilder.disableRedirects();
         }
         try (FcrepoResponse response = getBuilder.perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
 
             final File file = external ? fileForExternalResources(uri, null, null, config.getBaseDirectory()) :
                     fileForBinary(uri, null, null, config.getBaseDirectory());
 
             logger.info("Exporting binary: {}", uri);
-            writeResponse(response, describedby, file);
+            writeResponse(uri, response.getBody(), describedby, file);
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         }
@@ -279,9 +289,29 @@ public class Exporter implements TransferProcess {
         }
 
         try (FcrepoResponse response = client().get(uri).accept(config.getRdfLanguage()).perform()) {
-            checkValidResponse(response, uri);
+            checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting description: {}", uri);
-            writeResponse(response, null, file);
+
+            if (!config.isIncludeBinaries()) {
+                if (repositoryRoot == null) {
+                    findRepositoryRoot(config.getResource());
+
+                    logger.debug("Repository root {}", repositoryRoot);
+                }
+
+                // filter binary resources reference for exporting without binaries
+                final Model model = filterBinaryReferences(uri,
+                        createDefaultModel().read(response.getBody(), null, config.getRdfLanguage()));
+
+                try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                    RDFDataMgr.write(out, model, contentTypeToLang(config.getRdfLanguage()));
+                    final ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+                    writeResponse(uri, in, null, file);
+                }
+            } else {
+                writeResponse(uri, response.getBody(), null, file);
+            }
+
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
         } catch ( Exception ex ) {
@@ -303,14 +333,62 @@ public class Exporter implements TransferProcess {
             logger.warn("Unable to parse file: {}", ex.toString());
         }
     }
-    void writeResponse(final FcrepoResponse response, final List<URI> describedby, final File file)
+
+    /**
+     * Filter out the binary resource references from the model
+     * @param uri the URI for the resource
+     * @param model the RDF Model of the resource
+     * @return the RDF model with no binary references
+     * @throws FcrepoOperationFailedException
+     * @throws IOException
+     */
+    private Model filterBinaryReferences(final URI uri, final Model model) throws IOException,
+            FcrepoOperationFailedException {
+
+        final List<Statement> removeList = new ArrayList<>();
+        for (final StmtIterator it = model.listStatements(); it.hasNext();) {
+            final Statement s = it.nextStatement();
+
+            final RDFNode obj = s.getObject();
+            if (obj.isResource() && obj.toString().startsWith(repositoryRoot.toString())
+                    && !s.getPredicate().toString().equals(REPOSITORY_NAMESPACE + "hasTransactionProvider")) {
+                try (final FcrepoResponse resp = client().head(URI.create(obj.toString())).disableRedirects()
+                        .perform()) {
+                    checkValidResponse(resp, uri, config.getUsername());
+                    final List<URI> linkHeaders = resp.getLinkHeaders("type");
+                    if (linkHeaders.contains(binaryURI)) {
+                        removeList.add(s);
+                    }
+                }
+            }
+        }
+
+        model.remove(removeList);
+        return model;
+    }
+
+    /**
+     * Method to find and set the repository root from the resource uri.
+     * @param uri the URI for the resource
+     * @throws IOException
+     * @throws FcrepoOperationFailedException
+     */
+    private void findRepositoryRoot(final URI uri) throws IOException, FcrepoOperationFailedException {
+        repositoryRoot = uri;
+        if (!isRepositoryRoot(uri, client(), config)) {
+            findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
+                    repositoryRoot.toString().lastIndexOf("/"))));
+        }
+    }
+
+    void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
         try (OutputStream out = new FileOutputStream(file)) {
-            copy(response.getBody(), out);
-            logger.info("Exported {} to {}", response.getUrl(), file.getAbsolutePath());
+            copy(in, out);
+            logger.info("Exported {} to {}", uri, file.getAbsolutePath());
 
             if (md5FileMap != null) {
                 md5FileMap.put(file, new String(encodeHex(md5.digest())));
@@ -363,28 +441,6 @@ public class Exporter implements TransferProcess {
                 out.write(buf, 0, read);
                 successBytes.addAndGet(read);
             }
-        }
-    }
-
-    /**
-     * Checks the response code and throws a RuntimeException with a helpful
-     * message (when possible) for non 2xx codes.
-     * @param response the response from a REST call to Fedora
-     * @param uri the URI against which the request was made
-     */
-    private void checkValidResponse(final FcrepoResponse response, final URI uri) {
-        switch (response.getStatusCode()) {
-            case 401:
-                throw new AuthenticationRequiredRuntimeException();
-            case 403:
-                throw new AuthorizationDeniedRuntimeException(config.getUsername(), uri);
-            case 404:
-                throw new ResourceNotFoundRuntimeException(uri);
-            default:
-                if (response.getStatusCode() < 200 || response.getStatusCode() > 307) {
-                    throw new RuntimeException("Export operation failed: unexpected status "
-                            + response.getStatusCode() + " for " + uri);
-                }
         }
     }
 }
