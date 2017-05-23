@@ -616,13 +616,17 @@ public class Importer implements TransferProcess {
     }
 
     private File fileForContainerURI(final URI uri) {
-        return fileForURI(uri, config.getSourcePath(), config.getDestinationPath(), config.getBaseDirectory(),
-                config.getRdfExtension());
+        return fileForURI(withSlash(uri), config.getSourcePath(), config.getDestinationPath(),
+                config.getBaseDirectory(), config.getRdfExtension());
     }
 
     private File directoryForContainer(final URI uri) {
-        return TransferProcess.directoryForContainer(uri, config.getSourcePath(), config.getDestinationPath(),
-                config.getBaseDirectory());
+        return TransferProcess.directoryForContainer(withSlash(uri), config.getSourcePath(),
+                config.getDestinationPath(), config.getBaseDirectory());
+    }
+
+    private static URI withSlash(final URI uri) {
+        return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 
     /**
