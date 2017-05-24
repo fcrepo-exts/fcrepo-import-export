@@ -438,6 +438,7 @@ public class Config {
         }
         final String predicates = Arrays.stream(this.getPredicates()).collect(Collectors.joining(","));
         map.put("predicates", predicates);
+        map.put("auditLog", Boolean.toString(this.auditLog));
         return map;
     }
 
