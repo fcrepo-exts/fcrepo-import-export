@@ -291,6 +291,33 @@ public class ImporterIT extends AbstractResourceIT {
         assertTrue(resourceExists(childURI));
     }
 
+    @Test
+    public void testRepositoryRoot() throws Exception {
+        final URI rest = URI.create(serverAddress);
+        final URI restFoo = URI.create(serverAddress + "foo");
+        final URI restFooBar = URI.create(serverAddress + "foo/bar");
+        final URI root = URI.create(serverAddress.substring(0, serverAddress.length() - 1));
+
+        final Config config = new Config();
+        config.setMode("import");
+        final Importer importer = new Importer(config, clientBuilder);
+
+        assertEquals(root, importer.findRepositoryRoot(rest));
+        assertEquals(root, importer.findRepositoryRoot(restFoo));
+        assertEquals(root, importer.findRepositoryRoot(restFooBar));
+    }
+
+    @Test
+    public void testRepositoryRootFallback() throws Exception {
+        final URI dummy = URI.create("http://example.org:8675");
+
+        final Config config = new Config();
+        config.setMode("import");
+        final Importer importer = new Importer(config, clientBuilder);
+
+        assertEquals(dummy, importer.findRepositoryRoot(dummy));
+    }
+
     private int count(final String triples, final String triple) {
         int count = 0;
         final String[] arr = triples.split("\\n");
