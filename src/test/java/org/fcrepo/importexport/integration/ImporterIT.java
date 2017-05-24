@@ -281,6 +281,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
