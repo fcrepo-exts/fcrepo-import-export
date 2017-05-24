@@ -257,6 +257,28 @@ public class ImporterIT extends AbstractResourceIT {
         assertTrue(resourceExists(resourceURI));
     }
 
+    @Test
+    public void testImportMappedTrailingSlash() throws Exception {
+        final URI sourceURI = URI.create("http://localhost:8080/rest/dev/");
+        final URI resourceURI = URI.create(serverAddress + "prod2/");
+        final URI childURI = URI.create(serverAddress + "prod2/asdf/");
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(TARGET_DIR + "/test-classes/sample/mapped");
+        config.setResource(childURI.toString());
+        config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify one title and one hasMember
+        assertTrue(resourceExists(childURI));
+    }
+
     private int count(final String triples, final String triple) {
         int count = 0;
         final String[] arr = triples.split("\\n");

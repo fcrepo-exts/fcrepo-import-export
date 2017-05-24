@@ -22,7 +22,6 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
@@ -78,7 +77,6 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
 import org.slf4j.Logger;
 
 /**
@@ -337,16 +335,15 @@ public class Exporter implements TransferProcess {
 
     private void exportMembers(final File file, final URI parentURI) {
         try {
-            final Resource parent = createResource(parentURI.toString());
             final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
             for (final String p : config.getPredicates()) {
-                final NodeIterator members = model.listObjectsOfProperty(parent, createProperty(p));
+                final NodeIterator members = model.listObjectsOfProperty(createProperty(p));
                 while (members.hasNext()) {
                     export(URI.create(members.nextNode().toString()));
                 }
 
                 if (config.retrieveInbound()) {
-                    final ResIterator inbound = model.listSubjectsWithProperty(createProperty(p), parent);
+                    final ResIterator inbound = model.listSubjectsWithProperty(createProperty(p));
                     while (inbound.hasNext()) {
                         export(URI.create(inbound.next().toString()));
                     }

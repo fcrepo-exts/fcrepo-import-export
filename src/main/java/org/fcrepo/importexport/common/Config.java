@@ -226,8 +226,17 @@ public class Config {
         if (map.length == 2 && map[0] != null && map[1] != null) {
             this.source = URI.create(map[0]);
             this.destination = URI.create(map[1]);
+            checkTrailingSlashes(this.source.toString(), this.destination.toString());
         } else {
             throw new IllegalArgumentException("The map should contain the export and import baseURLs");
+        }
+    }
+
+    private static void checkTrailingSlashes(final String source, final String destination) {
+        if ((source.endsWith("/") && !destination.endsWith("/")) ||
+            (!source.endsWith("/") && destination.endsWith("/"))) {
+            logger.warn("Possible mismatch between the source and destination URIs: one ends with a trailing "
+                + "slash but the other does not: \"{}\" -> \"{}\"", source, destination);
         }
     }
 

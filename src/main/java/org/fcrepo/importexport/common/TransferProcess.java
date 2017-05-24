@@ -134,6 +134,9 @@ public interface TransferProcess {
         if (sourcePath != null && destinationPath != null) {
             path = path.replaceFirst(destinationPath, sourcePath);
         }
+        if (extension != null && path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
         return new File(baseDir, encodePath(path) + extension);
     }
 
