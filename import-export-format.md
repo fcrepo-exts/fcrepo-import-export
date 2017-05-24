@@ -3,17 +3,17 @@ Import / Export Format
 
 Export Format
 -------------
-When run in `export` mode, the import/export utility creates a directory tree representing the designated resource node and its child nodes:
-* The directory structure represents the hierarchy of nodes beginning at the Fedora repository root down to the exported resource.
-* The RDF nodes of the exported resource and its children are each represented by a file of serialized properties in the specified RDF language (e.g., _turtle_, the default).
+When run in `export` mode, the import/export utility creates a directory tree representing the designated resource and its child resources (where `b` is a child of `a` in this case, `/a/b`):
+* The directory structure represents the hierarchy of resources beginning at the Fedora repository root down to the exported resource.
+* The RDF properties of the exported resource and its children are each represented by a file of serialized properties in the specified RDF language (e.g., _turtle_, the default).
 
-If the export includes binaries, the binaries (i.e., non-RDF nodes) of the exported resource are represented by
+If the export includes binaries, the binaries (i.e., non-RDF resources) of the exported resource are represented by
   * A file with a .binary extension that contains the binary bitstream.
   * A directory containing a `fcr%3Ametadata` file with the serialized properties associated with the binary.
   
 **Note:** The examples which follow assume the default RDF language (`turtle`) was used for the export.
  
-**_Example: Resource Export with Binaries_**
+**_Example 1: Resource Export with Binaries_**
 
 For example, an export with binaries of a resource at http://localhost:8080/rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e that contains one non-RDF resource ('content') would look like this:
 ```text
@@ -69,8 +69,8 @@ In the example above ...
         ldp:contains           <http://localhost:8080/rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content> .
 ```
 
-* `rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content.binary` contains the bitstream of the non-RDF `content` node.
-* `rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content/fcr%3Ametadata.ttl` contains the RDF properties of the non-RDF `content` node:
+* `rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content.binary` contains the bitstream of the non-RDF `content` resource.
+* `rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content/fcr%3Ametadata.ttl` contains the RDF properties of the non-RDF `content` resource:
 ```text
 @prefix premis:  <http://www.loc.gov/premis/rdf/v1#> .
 @prefix test:  <info:fedora/test/> .
@@ -112,7 +112,7 @@ In the example above ...
         fedora:hasFixityService  <http://localhost:8080/rest/1f/ee/45/fd/1fee45fd-f506-446f-b9e9-f274c06a620e/content/fcr:fixity> .
 ```
 
-**_Example: Resource Export without Binaries_**
+**_Example 2: Resource Export without Binaries_**
 
 If the same resource as above was exported without binaries, the export directory contents would be the same except for the omission of the `1fee45fd-f506-446f-b9e9-f274c06a620e` directory and its contents, namely, the `content.binary` file and the `content` sub-directory:
 ```text
@@ -126,7 +126,7 @@ If the same resource as above was exported without binaries, the export director
 
 The contents of the `1fee45fd-f506-446f-b9e9-f274c06a620e.ttl` file would be the same as above.
 
-**_Example: Repository Export with Binaries_**
+**_Example 3: Repository Export with Binaries_**
 
 If, instead, the entire repository had been exported (i.e., an export of `http://localhost:8080/rest`) (with binaries in this example), the export directory contents would be the same as in the first example above, except for the addition of a `rest.ttl` file (assuming the repository contains only the one resource in the examples above):
 ```text
@@ -143,7 +143,7 @@ If, instead, the entire repository had been exported (i.e., an export of `http:/
        |fcr%3Ametadata.ttl
 ```
 
-The `rest.ttl` file contains the RDF properties of the repository root node:
+The `rest.ttl` file contains the RDF properties of the repository root resource:
 ```text
 @prefix premis:  <http://www.loc.gov/premis/rdf/v1#> .
 @prefix test:  <info:fedora/test/> .
@@ -181,3 +181,28 @@ The `rest.ttl` file contains the RDF properties of the repository root node:
 ```
 
 The other files in the export (`1fee45fd-f506-446f-b9e9-f274c06a620e.ttl`, `content.binary`, and `fcr%3Ametadata.ttl` would be the same as in the first example above.
+
+**_Example 4: Resource Export with Binaries Using BagIt_**
+
+When an export is done using the utility's BagIt support, the export directory structure described in the examples above is contained in the `data` directory of the exported BagIt bag.  Referring to Example 1 above, if the export is done using the default BagIt profile, the export directory structure would be as follows:
+```text
+|bag-info.txt
+|bagit.txt
+|manifest-sha1.txt
+|tagmanifest-sha1.txt
+\data
+ \rest
+  \1f
+   \ee
+    \45
+     \fd
+      |1fee45fd-f506-446f-b9e9-f274c06a620e.ttl
+      \1fee45fd-f506-446f-b9e9-f274c06a620e
+       |content.binary
+       \content
+        |fcr%3Ametadata.ttl
+```
+
+Import Format
+-------------
+The format described above from an `export` is the same as what is expected for an `import`.
