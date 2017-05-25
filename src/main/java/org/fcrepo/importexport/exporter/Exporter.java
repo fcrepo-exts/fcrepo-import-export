@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.RDFNode;
@@ -68,6 +69,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
+
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -80,6 +82,7 @@ import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
+
 import org.slf4j.Logger;
 
 /**
@@ -307,58 +310,81 @@ public class Exporter implements TransferProcess {
             getBuilder = getBuilder.preferRepresentation(
                 Arrays.asList(URI.create(INBOUND_REFERENCES.getURI())), null);
         }
+
         try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting description: {}", uri);
 
-            if (!config.isIncludeBinaries()) {
-                if (repositoryRoot == null) {
-                    findRepositoryRoot(config.getResource());
+            final String responseBody = IOUtils.toString(response.getBody());
+            final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
+                    null, config.getRdfLanguage());
+            List<URI> inboundMembers = null;
 
-                    logger.debug("Repository root {}", repositoryRoot);
+            if (!config.isIncludeBinaries() || config.retrieveInbound()) {
+
+                if (!config.isIncludeBinaries()) {
+                    if (repositoryRoot == null) {
+                        findRepositoryRoot(config.getResource());
+                        logger.debug("Repository root {}", repositoryRoot);
+                    }
+                    filterBinaryReferences(uri, model);
                 }
 
-                // filter binary resources reference for exporting without binaries
-                final Model model = filterBinaryReferences(uri,
-                        createDefaultModel().read(response.getBody(), null, config.getRdfLanguage()));
+                if (config.retrieveInbound()) {
+                    inboundMembers = filterInboundReferences(uri, model);
+                }
 
                 try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                     RDFDataMgr.write(out, model, contentTypeToLang(config.getRdfLanguage()));
-                    final ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-                    writeResponse(uri, in, null, file);
+                    writeResponse(uri, new ByteArrayInputStream(out.toByteArray()), null, file);
                 }
             } else {
-                writeResponse(uri, response.getBody(), null, file);
+                // we can write the body to disk unfiltered
+                writeResponse(uri, new ByteArrayInputStream(responseBody.getBytes()), null, file);
             }
 
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
+
+            exportMembers(model, inboundMembers);
         } catch ( Exception ex ) {
             ex.printStackTrace();
             exportLogger.error(String.format("Error exporting description: {}, Cause: {}", uri, ex.getMessage()), ex);
         }
 
-        exportMembers(file, uri);
     }
 
-    private void exportMembers(final File file, final URI parentURI) {
-        try {
-            final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
-            for (final String p : config.getPredicates()) {
-                final NodeIterator members = model.listObjectsOfProperty(createProperty(p));
-                while (members.hasNext()) {
-                    export(URI.create(members.nextNode().toString()));
-                }
-
-                if (config.retrieveInbound()) {
-                    final ResIterator inbound = model.listSubjectsWithProperty(createProperty(p));
-                    while (inbound.hasNext()) {
-                        export(URI.create(inbound.next().toString()));
-                    }
+    private List<URI> filterInboundReferences(final URI uri, final Model model) {
+        final List<URI> inboundMembers = new ArrayList<>();
+        final List<Statement> removeList = new ArrayList<>();
+        for (final String p : config.getPredicates()) {
+            final StmtIterator inbound = model.listStatements(null, createProperty(p), (RDFNode)null);
+            while (inbound.hasNext()) {
+                final Statement s = inbound.next();
+                final String subject = s.getSubject().toString();
+                if (!subject.startsWith(uri.toString())) {
+                    removeList.add(s);
+                    inboundMembers.add(URI.create(subject));
                 }
             }
-        } catch (FileNotFoundException ex) {
-            logger.warn("Unable to parse file: {}", ex.toString());
+        }
+
+        model.remove(removeList);
+        return inboundMembers;
+    }
+
+    private void exportMembers(final Model model, final List<URI> inboundMembers) {
+        for (final String p : config.getPredicates()) {
+            final NodeIterator members = model.listObjectsOfProperty(createProperty(p));
+            while (members.hasNext()) {
+                export(URI.create(members.nextNode().toString()));
+            }
+        }
+
+        if (inboundMembers != null) {
+            for (final URI inbound : inboundMembers) {
+                export(inbound);
+            }
         }
     }
 
@@ -370,7 +396,7 @@ public class Exporter implements TransferProcess {
      * @throws FcrepoOperationFailedException
      * @throws IOException
      */
-    private Model filterBinaryReferences(final URI uri, final Model model) throws IOException,
+    private void filterBinaryReferences(final URI uri, final Model model) throws IOException,
             FcrepoOperationFailedException {
 
         final List<Statement> removeList = new ArrayList<>();
@@ -392,7 +418,6 @@ public class Exporter implements TransferProcess {
         }
 
         model.remove(removeList);
-        return model;
     }
 
     /**

@@ -19,6 +19,7 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFDataMgr.loadModel;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
@@ -303,10 +304,19 @@ public class ExporterIT extends AbstractResourceIT {
 
         new Exporter(config, clientBuilder).run();
 
+        // the inbound objects should be written to disk
         final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
-        assertTrue(new File(baseDir, "/col1" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/obj1" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/obj2" + DEFAULT_RDF_EXT).exists());
+
+        // the inbound links should not be written to disk
+        final File collectionFile = new File(baseDir, "/col1" + DEFAULT_RDF_EXT);
+        assertTrue(collectionFile.exists());
+        final Model collectionModel = loadModel(collectionFile.getAbsolutePath());
+        assertFalse(collectionModel.contains(
+                createResource(obj1.toString()),
+                createProperty("http://example.org/custom"),
+                createResource(col1.toString())));
     }
 
     @Override
