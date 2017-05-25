@@ -88,27 +88,28 @@ public class ArgParserTest {
     @Test
     public void parseRetrieveInbound() throws Exception {
         final String[] args = new String[]{"-m", "export",
-                "-d", "/tmp/rdf",
-                "-i",
-                "-r", "http://localhost:8080/rest/1"};
+                                           "-d", "/tmp/rdf",
+                                           "-i",
+                                           "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertTrue(config.retrieveInbound());
     }
 
+    @Test
     public void parseLegacyModeShort() throws Exception {
-        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, new String[] {"-L" });
-        final Config config = parser.parseConfiguration(args);
+        final Config config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, new String[] {"-L" }));
         Assert.assertTrue(config.isImport());
-        Assert.assertEquals(true, config.legacy());
+        Assert.assertTrue(config.isLegacy());
     }
 
     @Test
     public void parseLegacyMode() throws Exception {
-        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, new String[] {"--legacyMode" });
-        final Config config = parser.parseConfiguration(args);
+        final Config config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, new String[] {"--legacyMode" }));
         Assert.assertTrue(config.isImport());
-        Assert.assertEquals(true, config.legacy());
+        Assert.assertTrue(config.isLegacy());
     }
 
     @Test

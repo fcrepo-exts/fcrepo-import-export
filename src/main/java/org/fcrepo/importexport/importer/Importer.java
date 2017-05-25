@@ -521,7 +521,7 @@ public class Importer implements TransferProcess {
      * versions and some of the types.
      *
      * @param model the RDF statements about an exported resource
-     * @return the provided model updated to omit statements that may not be udpated directly through
+     * @return the provided model updated to omit statements that may not be updated directly through
      *         the fedora API
      * @throws IOException
      * @throws FcrepoOperationFailedException
@@ -568,11 +568,11 @@ public class Importer implements TransferProcess {
      * Tests whether the provided property is one of the small subset of the predicates within the
      * repository namespace that may be modified.  This method always returns false if the
      * import/export configuration is set to "legacy" mode.
-     * @param p the propeprty (predicate) to test
+     * @param p the property (predicate) to test
      * @return true if the predicate is of the type that can be modified
      */
     private boolean relaxedPredicate(final Property p) {
-        return !config.legacy() && (p.equals(CREATED_BY) || p.equals(CREATED_DATE)
+        return !config.isLegacy() && (p.equals(CREATED_BY) || p.equals(CREATED_DATE)
                 || p.equals(LAST_MODIFIED_BY) || p.equals(LAST_MODIFIED_DATE));
     }
 

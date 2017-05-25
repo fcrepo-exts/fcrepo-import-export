@@ -146,7 +146,7 @@ public class ArgParser {
         configOptions.addOption(Option.builder("L")
                 .longOpt("legacyMode")
                 .hasArg(false)
-                .desc("When importing, omit certain server-managed-triples that aren't modifyable in old" +
+                .desc("When importing, omit certain server-managed-triples that aren't modifiable in old" +
                         " versions of fedora.")
                 .required(false).build());
 

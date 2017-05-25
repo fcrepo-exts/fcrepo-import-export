@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importexport.importer;
 
-import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
@@ -244,8 +244,7 @@ public class ImporterTest {
         final Model model = createDefaultModel();
         model.read(streamCapture.getValue(), "", "JSON-LD");
         final Graph graph = model.getGraph();
-        assertFalse(graph.contains(Node.ANY, createURI("http://fedora.info/definitions/v4/repository#lastModified"),
-                Node.ANY));
+        assertFalse(graph.contains(Node.ANY, LAST_MODIFIED_DATE.asNode(), Node.ANY));
     }
 
     @Test
@@ -258,8 +257,7 @@ public class ImporterTest {
         final Model model = createDefaultModel();
         model.read(streamCapture.getValue(), "", "JSON-LD");
         final Graph graph = model.getGraph();
-        assertTrue(graph.contains(Node.ANY, createURI("http://fedora.info/definitions/v4/repository#lastModified"),
-                Node.ANY));
+        assertTrue(graph.contains(Node.ANY, LAST_MODIFIED_DATE.asNode(), Node.ANY));
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)

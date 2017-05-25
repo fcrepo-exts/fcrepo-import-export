@@ -434,7 +434,7 @@ public class Config {
      * Check whether "legacy" mode is enabled.
      * @return true if legacy mode is enabled, false, otherwise
      */
-    public boolean legacy() {
+    public boolean isLegacy() {
         return this.legacy;
     }
 
@@ -458,7 +458,7 @@ public class Config {
         map.put("external", Boolean.toString(this.retrieveExternal));
         map.put("inbound", Boolean.toString(this.retrieveInbound));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
-        map.put("legacyMode", Boolean.toString(this.legacy()));
+        map.put("legacyMode", Boolean.toString(this.isLegacy()));
         if (this.getBagProfile() != null) {
             map.put("bag-profile", this.getBagProfile());
         }
