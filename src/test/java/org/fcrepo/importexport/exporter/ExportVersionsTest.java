@@ -63,7 +63,7 @@ import org.slf4j.Logger;
 public class ExportVersionsTest {
 
     private final String BASE_URI = "http://localhost:8080/rest/";
-    private String exportDirectory = "target/export";
+    private String exportDirectory = "target/export-versions-test";
     private final String basedir = exportDirectory + "/versions";
 
     private final String versionCreated = "2017-05-16T17:35:26.608Z";

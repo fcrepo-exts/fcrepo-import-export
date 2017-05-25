@@ -478,6 +478,7 @@ public class Config {
         map.put("inbound", Boolean.toString(this.retrieveInbound));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
         map.put("legacyMode", Boolean.toString(this.isLegacy()));
+        map.put("versions", Boolean.toString(this.includeVersions));
         if (this.getBagProfile() != null) {
             map.put("bag-profile", this.getBagProfile());
         }

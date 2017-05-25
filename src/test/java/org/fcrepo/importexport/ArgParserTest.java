@@ -335,7 +335,7 @@ public class ArgParserTest {
                                             "-g", "custom-profile.yml",
                                             "-G", "custom-metadata.yml",
                                             "-p", "http://example.org/sample",
-                                            "-b", "-x", "-i", "-t", "-a"};
+                                            "-b", "-x", "-i", "-t", "-a", "-V"};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
         Assert.assertEquals("import", config.get("mode"));
         Assert.assertEquals("http://localhost:8686/rest", config.get("resource"));
@@ -350,6 +350,7 @@ public class ArgParserTest {
         Assert.assertEquals("true", config.get("inbound"));
         Assert.assertEquals("true", config.get("overwriteTombstones"));
         Assert.assertEquals("true", config.get("auditLog"));
+        Assert.assertEquals("true", config.get("versions"));
     }
 
     @Test
@@ -371,5 +372,6 @@ public class ArgParserTest {
         Assert.assertEquals("false", config.get("inbound"));
         Assert.assertEquals("false", config.get("overwriteTombstones"));
         Assert.assertEquals("false", config.get("auditLog"));
+        Assert.assertEquals("false", config.get("versions"));
     }
 }

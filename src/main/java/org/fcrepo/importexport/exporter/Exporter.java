@@ -455,7 +455,12 @@ public class Exporter implements TransferProcess {
     private URI addRelativePath(final URI uri, final String path) {
         final String base = uri.toString();
 
-        if (base.charAt(base.length() - 1) == '/' || path.charAt(0) == '/') {
+        if (base.charAt(base.length() - 1) == '/') {
+            if (path.charAt(0) == '/') {
+                return URI.create(base + path.substring(1, path.length()));
+            }
+            return URI.create(base + path);
+        } else if (path.charAt(0) == '/') {
             return URI.create(base + path);
         }
 
