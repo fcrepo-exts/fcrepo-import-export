@@ -167,7 +167,8 @@ public class Importer implements TransferProcess {
     public void run() {
         logger.info("Running importer...");
 
-        findRepositoryRoot(config.getResource());
+        repositoryRoot = findRepositoryRoot(config.getResource());
+        logger.debug("Repository root {}", repositoryRoot);
 
         processImport(config.getResource());
 
@@ -687,27 +688,31 @@ public class Importer implements TransferProcess {
 
     /**
      * Method to find and set the repository root from the resource uri.
+     *
+     * Note: This method is public to allow access for testing purposes.
      * @param uri the URI for the resource
-     * @throws IOException
-     * @throws FcrepoOperationFailedException
+     * @return The URI of the repository root, or the URI with path removed if neither the URI nor none of its
+     *         parent paths declare themselves fedora:RepositoryRoot.
      */
-    private void findRepositoryRoot(final URI uri) {
-        repositoryRoot = uri;
+    public URI findRepositoryRoot(final URI uri) {
+        final String s = uri.toString();
+        final URI u = s.endsWith("/") ? URI.create(s.substring(0, s.length() - 1)) : uri;
+
         try {
-            repositoryRoot = uri;
-            if (!isRepositoryRoot(uri, client(), config)) {
-                findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
-                        repositoryRoot.toString().lastIndexOf("/"))));
+            if (u.getPath() == null || u.getPath().equals("") || isRepositoryRoot(u, client(), config)) {
+                return u;
+            } else {
+                return findRepositoryRoot(URI.create(u.toString().substring(0,
+                        u.toString().lastIndexOf("/"))));
             }
         } catch (ResourceNotFoundRuntimeException ex) {
             // The targeted resource that need to be imported next
-            findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
-                    repositoryRoot.toString().lastIndexOf("/"))));
+            return findRepositoryRoot(URI.create(u.toString().substring(0,
+                    u.toString().lastIndexOf("/"))));
         } catch (final IOException ex) {
-            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
+            throw new RuntimeException("Error finding repository root " + u, ex);
         } catch (final FcrepoOperationFailedException ex) {
-            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
+            throw new RuntimeException("Error finding repository root " + u, ex);
         }
-        logger.debug("Repository root {}", repositoryRoot);
     }
 }
