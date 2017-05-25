@@ -211,7 +211,6 @@ public interface TransferProcess {
      * @throws FcrepoOperationFailedException if there is a error with Fedora
      * @return True if the URI is the root of the repository
      */
-     */
     public static boolean isRepositoryRoot(final URI uri, final FcrepoClient client, final Config config)
             throws IOException, FcrepoOperationFailedException {
         final String userName = config.getUsername();
