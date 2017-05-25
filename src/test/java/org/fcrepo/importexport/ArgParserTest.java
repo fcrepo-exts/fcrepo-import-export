@@ -72,6 +72,7 @@ public class ArgParserTest {
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
         Assert.assertFalse(config.retrieveExternal());
         Assert.assertFalse(config.retrieveInbound());
+        Assert.assertNull(config.getWriteConfig());
     }
 
     @Test
@@ -83,6 +84,16 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(true, config.retrieveExternal());
+    }
+
+    @Test
+    public void parseWriteConfig() throws Exception {
+        final String[] args = new String[]{"-m", "export",
+                                           "-d", "/tmp/rdf",
+                                           "-w", "target/sample.yml",
+                                           "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertEquals(new File("target/sample.yml"), config.getWriteConfig());
     }
 
     @Test

@@ -53,6 +53,7 @@ public class Config {
     private URI source;
     private URI destination;
     private File baseDirectory;
+    private File writeConfig;
 
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
@@ -132,6 +133,22 @@ public class Config {
      */
     public boolean isIncludeBinaries() {
         return includeBinaries;
+    }
+
+    /**
+     * Sets the location to write a sample config file.
+     * @param configFile The filename where the sample config should be written
+    **/
+    public void setWriteConfig(final String configFile) {
+        this.writeConfig = new File(configFile);
+    }
+
+    /**
+     * Gets the location to write a sample config file.
+     * @return The filename to write the config file to, or null if no config file should be written
+    **/
+    public File getWriteConfig() {
+        return writeConfig;
     }
 
     /**

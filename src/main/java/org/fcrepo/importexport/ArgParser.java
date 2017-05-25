@@ -134,6 +134,14 @@ public class ArgParser {
                 .desc("When present this flag indicates that inbound references should be exported.")
                 .required(false).build());
 
+        // Write config file
+        configOptions.addOption(Option.builder("w")
+                .longOpt("writeConfig")
+                .hasArg(true).numberOfArgs(1).argName("writeConfig")
+                .desc("When present this flag indicates that a sample config should be written at the" +
+                       " specified filename.")
+                .required(false).build());
+
         // Overwrite Tombstones
         configOptions.addOption(Option.builder("t")
                  .longOpt("overwriteTombstones")
@@ -348,6 +356,9 @@ public class ArgParser {
         config.setLegacy(cmd.hasOption("L"));
         config.setIncludeVersions(cmd.hasOption('V'));
 
+        if (cmd.getOptionValue('w') != null) {
+            config.setWriteConfig(cmd.getOptionValue('w'));
+        }
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
             config.setRdfLanguage(rdfLanguage);
@@ -398,24 +409,20 @@ public class ArgParser {
      * @param config to be persisted
      */
     private void saveConfig(final Config config) {
-        final File configFile = new File(System.getProperty("java.io.tmpdir"), CONFIG_FILE_NAME);
-
-        // Leave existing config file alone
-        if (configFile.exists()) {
-            logger.info("Configuration file exists, new file will NOT be created: {}", configFile.getPath());
-            return;
-        }
+        final File configFile = config.getWriteConfig();
 
         // Write config to file
-        try {
-            final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
-            logger.debug("YAML output is ({})", config.getMap().toString());
-            writer.write(config.getMap());
-            writer.close();
-            logger.info("Saved configuration to: {}", configFile.getPath());
+        if (configFile != null) {
+            try {
+                final YamlWriter writer = new YamlWriter(new FileWriter(configFile));
+                logger.debug("YAML output is ({})", config.getMap().toString());
+                writer.write(config.getMap());
+                writer.close();
+                logger.info("Saved configuration to: {}", configFile.getPath());
 
-        } catch (final IOException e) {
-            throw new RuntimeException("Unable to write configuration file due to: " + e.getMessage(), e);
+            } catch (final IOException e) {
+                throw new RuntimeException("Unable to write configuration file due to: " + e.getMessage(), e);
+            }
         }
     }
 
@@ -511,6 +518,8 @@ public class ArgParser {
                 c.setRetrieveExternal(parseBoolean("external", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("inbound")) {
                 c.setRetrieveInbound(parseBoolean("inbound", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("writeConfig")) {
+                c.setWriteConfig(entry.getValue());
             } else if (entry.getKey().trim().equalsIgnoreCase("overwriteTombstones")) {
                 c.setOverwriteTombstones(parseBoolean("overwriteTombstones", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("legacyMode")) {
