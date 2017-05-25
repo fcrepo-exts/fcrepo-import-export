@@ -183,6 +183,7 @@ public interface TransferProcess {
      * message (when possible) for non 2xx codes.
      * @param response the response from a REST call to Fedora
      * @param uri the URI against which the request was made
+     * @param user the user name for authorization
      */
     public static void checkValidResponse(final FcrepoResponse response, final URI uri, final String user) {
         switch (response.getStatusCode()) {
@@ -206,10 +207,10 @@ public interface TransferProcess {
      * @param uri the URI for the resource
      * @param client the FcrepoClient to query the repository
      * @param config the Config for import/export
-     * @throws IOException
-     * @throws FcrepoOperationFailedException
+     * @throws IOException If an I/O error occurs
+     * @throws FcrepoOperationFailedException If a FcrepoOperationFailedException error occurs
      */
-    public static boolean isRepositoryRoot(final URI uri, final FcrepoClient client, Config config)
+    public static boolean isRepositoryRoot(final URI uri, final FcrepoClient client, final Config config)
             throws IOException, FcrepoOperationFailedException {
         final String userName = config.getUsername();
         final String rdfLanguage = config.getRdfLanguage();

@@ -374,7 +374,7 @@ public class Exporter implements TransferProcess {
                     && !s.getPredicate().toString().equals(REPOSITORY_NAMESPACE + "hasTransactionProvider")) {
                 try (final FcrepoResponse resp = client().head(URI.create(obj.toString())).disableRedirects()
                         .perform()) {
-                    checkValidResponse(resp, uri, config.getUsername());
+                    checkValidResponse(resp, URI.create(obj.toString()), config.getUsername());
                     final List<URI> linkHeaders = resp.getLinkHeaders("type");
                     if (linkHeaders.contains(binaryURI)) {
                         removeList.add(s);
@@ -390,8 +390,8 @@ public class Exporter implements TransferProcess {
     /**
      * Method to find and set the repository root from the resource uri.
      * @param uri the URI for the resource
-     * @throws IOException
-     * @throws FcrepoOperationFailedException
+     * @throws IOException If an I/O error occurs
+     * @throws FcrepoOperationFailedException If a FcrepoOperationFailedException error occurs
      */
     private void findRepositoryRoot(final URI uri) throws IOException, FcrepoOperationFailedException {
         repositoryRoot = uri;
