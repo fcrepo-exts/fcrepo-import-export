@@ -50,7 +50,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.exporter.ExporterTest.ResponseMocker;
+import org.fcrepo.importexport.test.util.ResponseMocker;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -404,7 +404,7 @@ public class ExporterTest {
         mockResponse(resourceVersionedChild, containerLinks, new ArrayList<>(),
                 "{\"@id\":\"" + resourceVersionedChild.toString() + "\"}");
 
-        mockGetResponseError(resource2Versions, HttpStatus.SC_NOT_FOUND);
+        ResponseMocker.mockGetResponseError(client, resource2Versions, HttpStatus.SC_NOT_FOUND);
 
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);

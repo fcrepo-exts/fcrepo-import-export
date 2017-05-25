@@ -20,7 +20,7 @@ package org.fcrepo.importexport.exporter;
 import static java.util.Collections.emptyList;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.FEDORA_CREATED;
+import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
@@ -307,7 +307,7 @@ public class ExportVersionsTest {
         final String versionJson = "{\"@id\":\"" + rescUri.toString() + "\"," +
                 "\"" + HAS_VERSION.getURI() + "\":[{\"@id\":\"" + versionUri.toString() + "\"}]}," +
             "{\"@id\":\"" + versionUri.toString() + "\"," +
-                "\"" + FEDORA_CREATED.getURI() + "\":[{" +
+                "\"" + CREATED_DATE.getURI() + "\":[{" +
                     "\"@value\":\"" + timestamp + "\"," +
                     "\"@type\": \"http://www.w3.org/2001/XMLSchema#dateTime\"}]," +
                 "\"" + HAS_VERSION_LABEL.getURI() + "\":[{" +

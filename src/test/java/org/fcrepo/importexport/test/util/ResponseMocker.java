@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 
@@ -31,6 +32,8 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 /**
  * Test utility for common response mocking behaviors
@@ -80,7 +83,12 @@ public abstract class ResponseMocker {
         when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
         when(getBuilder.disableRedirects()).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
-        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes()));
+        when(getResponse.getBody()).thenAnswer(new Answer<InputStream>() {
+            @Override
+            public InputStream answer(final InvocationOnMock invocation) throws Throwable {
+                return new ByteArrayInputStream(body.getBytes());
+            }
+        });
         when(getResponse.getUrl()).thenReturn(uri);
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(getResponse.getStatusCode()).thenReturn(200);
