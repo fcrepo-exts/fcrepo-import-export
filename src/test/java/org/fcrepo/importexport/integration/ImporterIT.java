@@ -307,17 +307,6 @@ public class ImporterIT extends AbstractResourceIT {
         assertEquals(root, importer.findRepositoryRoot(restFooBar));
     }
 
-    @Test
-    public void testRepositoryRootFallback() throws Exception {
-        final URI dummy = URI.create("http://example.org:8675");
-
-        final Config config = new Config();
-        config.setMode("import");
-        final Importer importer = new Importer(config, clientBuilder);
-
-        assertEquals(dummy, importer.findRepositoryRoot(dummy));
-    }
-
     private int count(final String triples, final String triple) {
         int count = 0;
         final String[] arr = triples.split("\\n");
