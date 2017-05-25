@@ -64,7 +64,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setBaseDirectory(TARGET_DIR + File.separator + exampleID);
         config.setIncludeBinaries(true);
         config.setResource(uri);
-        config.setPredicates(new String[] { CONTAINS.toString() });
+        config.setPredicates(new String[]{CONTAINS.toString()});
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
@@ -113,6 +113,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);
+        config.setLegacy(true);
 
         // Resource doesn't exist
         assertFalse(exists(resourceURI));

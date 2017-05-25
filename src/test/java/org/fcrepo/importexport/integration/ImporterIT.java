@@ -19,6 +19,8 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
@@ -33,6 +35,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
+import org.apache.jena.graph.Graph;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -86,6 +89,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setResource(parent.toString());
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         final Exporter exporter = new Exporter(config, clientBuilder);
         exporter.run();
@@ -124,6 +128,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -151,9 +156,10 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(providedPredicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(linkFrom.toString());
-        config.setMap(new String[] { sourceServerAddress + "/", serverAddress });
+        config.setMap(new String[]{sourceServerAddress + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -191,6 +197,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -221,19 +228,22 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
-        final FcrepoResponse response = clientBuilder.build().get(parentURI).accept("text/plain").perform();
-        final String triples = IOUtils.toString(response.getBody());
-        final String memberTriple = "<" + parentURI + "> <http://pcdm.org/models#hasMember> <" + memberURI + "> .";
-        final String titleTriple = "<" + parentURI + "> <http://purl.org/dc/terms/title> "
-                + "\"foo\"^^<http://www.w3.org/2001/XMLSchema#string> .";
-        assertEquals(1, count(triples, titleTriple));
-        assertEquals(1, count(triples, memberTriple));
+        final FcrepoResponse response = clientBuilder.build().get(parentURI).accept("application/n-triples").perform();
+        final Model model = createDefaultModel();
+        model.read(response.getBody(), "", "N3");
+        response.close();
+        final Graph graph = model.getGraph();
+        assertTrue("DC title should exist. \n" + graph.toString(), graph.contains(createURI(String.valueOf(parentURI)),
+                createURI("http://purl.org/dc/terms/title"), createLiteral("foo")));
+        assertTrue("Membership triple should exist.", graph.contains(createURI(String.valueOf(parentURI)),
+                createURI("http://pcdm.org/models#hasMember"), createURI(String.valueOf(memberURI))));
     }
 
     @Test
@@ -248,6 +258,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress + "prod/asdf"});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -270,6 +281,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);

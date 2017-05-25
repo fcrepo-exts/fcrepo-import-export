@@ -17,6 +17,10 @@
  */
 package org.fcrepo.importexport.importer;
 
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -33,6 +37,9 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.jena.graph.Graph;
+import org.apache.jena.graph.Node;
+import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -44,6 +51,7 @@ import org.fcrepo.importexport.common.Config;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * @author escowles
@@ -74,6 +82,7 @@ public class ImporterTest {
     private PutBuilder externalResourceBuilder;
     private GetBuilder getBuilder;
     private HeadBuilder headBuilder;
+    private PutBuilder putBuilder;
 
     @Before
     public void setUp() throws Exception {
@@ -187,16 +196,16 @@ public class ImporterTest {
 
 
         // mock container/description interactions
-        final PutBuilder conBuilder = mock(PutBuilder.class);
+        putBuilder = mock(PutBuilder.class);
         conResponse = mock(FcrepoResponse.class);
-        when(client.put(eq(containerURI))).thenReturn(conBuilder);
-        when(client.put(eq(pairtreeURI))).thenReturn(conBuilder);
-        when(client.put(eq(finalContainerURI))).thenReturn(conBuilder);
-        when(client.put(eq(binaryDescriptionURI))).thenReturn(conBuilder);
-        when(client.put(eq(externalResourceDescriptionURI))).thenReturn(conBuilder);
-        when(conBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(conBuilder);
-        when(conBuilder.preferLenient()).thenReturn(conBuilder);
-        when(conBuilder.perform()).thenReturn(conResponse);
+        when(client.put(eq(containerURI))).thenReturn(putBuilder);
+        when(client.put(eq(pairtreeURI))).thenReturn(putBuilder);
+        when(client.put(eq(finalContainerURI))).thenReturn(putBuilder);
+        when(client.put(eq(binaryDescriptionURI))).thenReturn(putBuilder);
+        when(client.put(eq(externalResourceDescriptionURI))).thenReturn(putBuilder);
+        when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
+        when(putBuilder.preferLenient()).thenReturn(putBuilder);
+        when(putBuilder.perform()).thenReturn(conResponse);
         when(conResponse.getStatusCode()).thenReturn(201);
         when(conResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
     }
@@ -234,6 +243,33 @@ public class ImporterTest {
         final Importer importer = new Importer(containerArgs, clientBuilder);
         importer.run();
         verify(client).put(containerURI);
+    }
+
+    @Test
+    public void testLegacyModeStripsLastModified() throws Exception {
+        containerArgs.setLegacy(true);
+        final ArgumentCaptor<InputStream> streamCapture = ArgumentCaptor.forClass(InputStream.class);
+        final Importer importer = new Importer(containerArgs, clientBuilder);
+        importer.run();
+
+        verify(putBuilder).body(streamCapture.capture(), isA(String.class));
+        final Model model = createDefaultModel();
+        model.read(streamCapture.getValue(), "", "JSON-LD");
+        final Graph graph = model.getGraph();
+        assertFalse(graph.contains(Node.ANY, LAST_MODIFIED_DATE.asNode(), Node.ANY));
+    }
+
+    @Test
+    public void testDefaultModeRetainsLastModified() throws Exception {
+        final ArgumentCaptor<InputStream> streamCapture = ArgumentCaptor.forClass(InputStream.class);
+        final Importer importer = new Importer(containerArgs, clientBuilder);
+        importer.run();
+
+        verify(putBuilder).body(streamCapture.capture(), isA(String.class));
+        final Model model = createDefaultModel();
+        model.read(streamCapture.getValue(), "", "JSON-LD");
+        final Graph graph = model.getGraph();
+        assertTrue(graph.contains(Node.ANY, LAST_MODIFIED_DATE.asNode(), Node.ANY));
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)

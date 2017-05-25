@@ -47,6 +47,11 @@ public class ArgParserTest {
             "-d", "/tmp/rdf",
             "-r", "http://localhost:8080/rest/1"};
 
+    private static final String[] MINIMAL_VALID_IMPORT_ARGS = new String[]{"-m", "import",
+            "-d", "/tmp/rdf",
+            "-r", "http://localhost:8080/rest/1"};
+
+
     @Before
     public void setUp() throws Exception {
         parser = new ArgParser();
@@ -93,6 +98,22 @@ public class ArgParserTest {
     }
 
     @Test
+    public void parseLegacyModeShort() throws Exception {
+        final Config config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "-L"));
+        Assert.assertTrue(config.isImport());
+        Assert.assertTrue(config.isLegacy());
+    }
+
+    @Test
+    public void parseLegacyMode() throws Exception {
+        final Config config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "--legacyMode"));
+        Assert.assertTrue(config.isImport());
+        Assert.assertTrue(config.isLegacy());
+    }
+
+    @Test
     public void parseOverwriteTombstones() throws Exception {
         final String[] args = new String[]{"-m", "import",
                                            "-d", "/tmp/rdf",
@@ -118,14 +139,13 @@ public class ArgParserTest {
 
     @Test(expected = RuntimeException.class)
     public void parseInvalidRdfLanguage() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, new String[] {
-            "-l", "invalid/language" }));
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "invalid/language" ));
     }
 
     @Test
     public void parseBagProfile() throws Exception {
         final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-            new String[] {"-g", "default", "-G", "path/config.yaml" }));
+                "-g", "default", "-G", "path/config.yaml" ));
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
@@ -133,14 +153,12 @@ public class ArgParserTest {
 
     @Test(expected = RuntimeException.class)
     public void parseBagProfileWithNoConfigSpecified() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-            new String[] {"-g", "default"}));
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-g", "default"));
     }
 
     @Test(expected = RuntimeException.class)
     public void parseBagConfigWithNoProfileSpecified() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-            new String[] {"-G", "/path/to/bag-config.yaml"}));
+        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-G", "/path/to/bag-config.yaml"));
     }
 
     @Test
@@ -222,8 +240,7 @@ public class ArgParserTest {
 
     @Test(expected = RuntimeException.class)
     public void parseHelpWithNoOtherArgs() {
-        final String[] args = ArrayUtils.addAll(new String[] { "-h" });
-        parser.parseConfiguration(args);
+        parser.parseConfiguration(new String[] {"-h"});
     }
 
     @Test(expected = RuntimeException.class)

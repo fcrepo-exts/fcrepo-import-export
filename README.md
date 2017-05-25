@@ -29,7 +29,7 @@ The standalone import/export utility can be run in either of two ways:
 The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
 
 ```sh
-$ java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
+$ java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
 INFO 15:15:10.048 (ArgParser) Saved configuration to: /tmp/importexport.config
 INFO 15:15:10.091 (Exporter) Running exporter...
 ```
@@ -64,7 +64,7 @@ The list of RDF languages supported:
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
@@ -72,7 +72,7 @@ To then load that data into an empty Fedora repository at the same URL, run the 
 To enable the audit log, use the `-a` or `--auditLog`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --auditLog
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --auditLog
 ```
 
 You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=/some/directory`.
@@ -80,7 +80,7 @@ You can also set the audit log directory with `-Dfcrepo.log.importexport.logdir=
 To export using a predicate other than `ldp:contains`, use the `-p` or `--predicates` option with a coma-separated list of predicates:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --predicate http://pcdm.org/models#hasMember,http://www.w3.org/ns/ldp#contains
 ```
 
 To map URIs when importing into a Fedora repository running at a different URI, use the `-M` or `--map` option
@@ -88,12 +88,19 @@ to translate the URIs.  For example, if you exported from `http://localhost:8984
 into `http://example.org:8080/fedora/rest/`:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --map http://localhost:8984/rest/dev/,http://example.org:8080/fedora/rest/
+java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --map http://localhost:8984/rest/dev/,http://example.org:8080/fedora/rest/
 ```
 
 To retrieve inbound references (for example, when exporting a collection and you also want to export the members that link to the collection), use the `-i` or `--inbound` option.  When enabled, resources that are linked to or from with the specified predicates will be exported.
 
 To retrieve external content binaries (binaries on other systems linked to with the `message/external-body` content type), use the `-x` or `--external` option.  When enabled, the external binaries will be retrieved and included in the export.  When disabled, they will not be retrieved, and only pointers to them will be exported.
+
+If running against a version of fedora in which fedora:lastModified, fedora:lastModifiedBy, fedora:created and fedora:createdBy cannot be set, run the import in legacy mode.  *WARNING: the imported resources will have different values for these fields than the original resources!*
+
+```sh
+java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --legacyMode
+```
+
 
 Running the import/export utility with a BagIt support
 ------------------------------------------------------
@@ -103,7 +110,7 @@ You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag f
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
 ```
 
 Where `bagit-config.yml` looks like:
@@ -125,7 +132,7 @@ bag-info.txt:
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the APTrust profile and user supplied metadata for tag files:
 
 ```sh
-java -jar target/fcrepo-import-export-0.1.0-SNAPSHOT.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
 ```
 
 Where `bagit-config-aptrust.yml` looks like:

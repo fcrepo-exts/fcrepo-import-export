@@ -60,4 +60,9 @@ public abstract class FcrepoConstants {
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
 
     public static final String BAG_INFO_FIELDNAME = "Bag-Info";
+
+    public static final Property CREATED_DATE = createProperty(REPOSITORY_NAMESPACE + "created");
+    public static final Property CREATED_BY = createProperty(REPOSITORY_NAMESPACE + "createdBy");
+    public static final Property LAST_MODIFIED_DATE = createProperty(REPOSITORY_NAMESPACE + "lastModified");
+    public static final Property LAST_MODIFIED_BY = createProperty(REPOSITORY_NAMESPACE + "lastModifiedBy");
 }

@@ -25,11 +25,15 @@ import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
+import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
+import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
+import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
@@ -59,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -504,12 +509,29 @@ public class Importer implements TransferProcess {
         }
     }
 
+    /**
+     * Removes statements from the provided model that affect triples that need not be (and indeed
+     * cannot be) modified directly through PUT, POST or PATCH requests to fedora.
+     *
+     * Certain triples included in a resource from fedora cannot be explicitly stored, but because
+     * they're derived from other content that *can* be stored will still appear identical when the
+     * other RDF and content is ingested.  Examples include those properties that reflect innate
+     * characteristics of binary resources like file size and message digest,  Or triples that
+     * represent characteristics of rdf resources like the number of children, whether it has
+     * versions and some of the types.
+     *
+     * @param model the RDF statements about an exported resource
+     * @return the provided model updated to omit statements that may not be updated directly through
+     *         the fedora API
+     * @throws IOException
+     * @throws FcrepoOperationFailedException
+     */
     private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
         final List<Statement> remove = new ArrayList<>();
         for (final StmtIterator it = model.listStatements(); it.hasNext(); ) {
             final Statement s = it.nextStatement();
 
-            if (s.getPredicate().getNameSpace().equals(REPOSITORY_NAMESPACE)
+            if ((s.getPredicate().getNameSpace().equals(REPOSITORY_NAMESPACE) && !relaxedPredicate(s.getPredicate()))
                     || s.getSubject().getURI().endsWith("fcr:export?format=jcr/xml")
                     || s.getSubject().getURI().equals(REPOSITORY_NAMESPACE + "jcr/xml")
                     || s.getPredicate().equals(DESCRIBEDBY)
@@ -529,11 +551,29 @@ public class Importer implements TransferProcess {
         return model.remove(remove);
     }
 
+    /**
+     * RDF type URIs that have special meaning in fedora and that are managed by fedora and
+     * not eligible for modification through the fedora API.
+     * @param resource the URI resource that is part of an rdf:type statement
+     * @return true if the resource represents a type that may not be added/removed explicitly
+     */
     private boolean forbiddenType(final Resource resource) {
          return resource.getNameSpace().equals(REPOSITORY_NAMESPACE)
              || resource.getURI().equals(CONTAINER.getURI())
              || resource.getURI().equals(NON_RDF_SOURCE.getURI())
              || resource.getURI().equals(RDF_SOURCE.getURI());
+    }
+
+    /**
+     * Tests whether the provided property is one of the small subset of the predicates within the
+     * repository namespace that may be modified.  This method always returns false if the
+     * import/export configuration is set to "legacy" mode.
+     * @param p the property (predicate) to test
+     * @return true if the predicate is of the type that can be modified
+     */
+    private boolean relaxedPredicate(final Property p) {
+        return !config.isLegacy() && (p.equals(CREATED_BY) || p.equals(CREATED_DATE)
+                || p.equals(LAST_MODIFIED_BY) || p.equals(LAST_MODIFIED_DATE));
     }
 
     /**
