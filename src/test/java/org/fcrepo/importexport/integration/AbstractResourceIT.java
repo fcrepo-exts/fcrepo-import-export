@@ -50,7 +50,7 @@ import static org.junit.Assert.assertTrue;
  * @author awoods
  * @since 2016-09-01
  */
-abstract class AbstractResourceIT {
+public abstract class AbstractResourceIT {
 
     private Logger logger = logger();
 

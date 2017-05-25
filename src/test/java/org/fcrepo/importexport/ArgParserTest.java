@@ -27,9 +27,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
-import org.fcrepo.importexport.common.Config;
-
 import org.apache.commons.lang3.ArrayUtils;
+import org.fcrepo.importexport.common.Config;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -122,6 +121,17 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isImport());
         Assert.assertTrue(config.overwriteTombstones());
+    }
+
+    @Test
+    public void parseIncludeVersions() throws Exception {
+        final String[] args = new String[]{"-m", "export",
+            "-d", "/tmp/rdf",
+            "-V",
+            "-r", "http://localhost:8080/rest/1"};
+        final Config config = parser.parseConfiguration(args);
+        Assert.assertTrue(config.isExport());
+        Assert.assertTrue(config.includeVersions());
     }
 
     @Test
@@ -325,7 +335,7 @@ public class ArgParserTest {
                                             "-g", "custom-profile.yml",
                                             "-G", "custom-metadata.yml",
                                             "-p", "http://example.org/sample",
-                                            "-b", "-x", "-i", "-t", "-a"};
+                                            "-b", "-x", "-i", "-t", "-a", "-V"};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
         Assert.assertEquals("import", config.get("mode"));
         Assert.assertEquals("http://localhost:8686/rest", config.get("resource"));
@@ -340,6 +350,7 @@ public class ArgParserTest {
         Assert.assertEquals("true", config.get("inbound"));
         Assert.assertEquals("true", config.get("overwriteTombstones"));
         Assert.assertEquals("true", config.get("auditLog"));
+        Assert.assertEquals("true", config.get("versions"));
     }
 
     @Test
@@ -361,5 +372,6 @@ public class ArgParserTest {
         Assert.assertEquals("false", config.get("inbound"));
         Assert.assertEquals("false", config.get("overwriteTombstones"));
         Assert.assertEquals("false", config.get("auditLog"));
+        Assert.assertEquals("false", config.get("versions"));
     }
 }

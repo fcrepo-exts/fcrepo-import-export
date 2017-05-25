@@ -173,6 +173,7 @@ That configuration file is [Yaml](http://yaml.org) and allows for the following 
 * external: [true|false] # whether to retrieve external content binaries when exporting
 * inbound: [true|false] # whether to export inbound references when exporting
 * map: Old and new base URIs, separated by comma, to map URIs when importing.
+* versions: [true|false] # whether to export versions of resources and binaries.
 * resource: The resource to export/import
 * rdfLang: The RDF language to export into or import from
 

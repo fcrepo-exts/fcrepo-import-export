@@ -42,7 +42,6 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -202,6 +201,52 @@ public class ExporterIT extends AbstractResourceIT {
         assertFalse(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res3" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res3/res4" + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportVersions() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI res2 = URI.create(baseURI + "/res1/res2");
+        final URI binRes = URI.create(baseURI + "/res1/file");
+        final URI res1Versions = URI.create(baseURI + "/res1/fcr:versions");
+        final String versionLabel = "version1";
+
+        create(res1);
+        create(res2);
+        createBody(binRes, "binary", "text/plain");
+        createVersion(res1Versions, versionLabel);
+
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(res1);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setIncludeVersions(true);
+        config.setIncludeBinaries(true);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertTrue(new File(baseDir, "/res1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/file.binary").exists());
+        assertTrue(new File(baseDir, "/res1/file/fcr%3Ametadata" + DEFAULT_RDF_EXT).exists());
+
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/res2" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file.binary").exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file/fcr%3Ametadata" + DEFAULT_RDF_EXT).exists());
+    }
+
+    private void createVersion(final URI uri, final String label) throws FcrepoOperationFailedException {
+        clientBuilder.build().post(uri).slug(label).perform();
     }
 
     private Config exportWithCustomPredicates(final String[] predicates, final UUID uuid)

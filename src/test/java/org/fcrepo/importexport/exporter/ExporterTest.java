@@ -22,7 +22,10 @@ import static org.apache.commons.io.FileUtils.readLines;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
@@ -31,7 +34,6 @@ import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,15 +41,16 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpStatus;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-
-import org.apache.commons.io.FileUtils;
+import org.fcrepo.importexport.test.util.ResponseMocker;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -118,28 +121,9 @@ public class ExporterTest {
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final String body) throws FcrepoOperationFailedException {
-        final HeadBuilder headBuilder = mock(HeadBuilder.class);
-        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
-        when(client.head(eq(uri))).thenReturn(headBuilder);
-        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
-        when(headBuilder.perform()).thenReturn(headResponse);
-        when(headResponse.getUrl()).thenReturn(uri);
-        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
-        when(headResponse.getStatusCode()).thenReturn(200);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks);
 
-        final GetBuilder getBuilder = mock(GetBuilder.class);
-        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
-        when(client.get(eq(uri))).thenReturn(getBuilder);
-        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
-        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
-        when(getBuilder.perform()).thenReturn(getResponse);
-        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream(body.getBytes())).thenReturn(
-                new ByteArrayInputStream(body.getBytes()));
-        when(getResponse.getUrl()).thenReturn(uri);
-        when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
-        when(getResponse.getStatusCode()).thenReturn(200);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, body);
     }
 
     @Test
@@ -224,7 +208,6 @@ public class ExporterTest {
         exporter.run();
     }
 
-
     /**
      * @return
      */
@@ -282,7 +265,6 @@ public class ExporterTest {
         Assert.assertTrue(externalResourceFile.exists());
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
     }
-
 
     @Test
     public void testExportContainer() throws Exception {
@@ -387,6 +369,53 @@ public class ExporterTest {
         final List<String> customLines = readLines(customTags, UTF_8);
         Assert.assertTrue(customLines.contains("Foo : Bar"));
         Assert.assertTrue(customLines.contains("Baz : Quux"));
+    }
+
+    @Test
+    public void testExportVersionsContainers() throws Exception {
+        final String basedir = exportDirectory + "/11";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(true);
+        args.setIncludeVersions(true);
+        args.setRdfLanguage("application/ld+json");
+        args.setPredicates(predicates);
+        args.setResource(resource);
+
+        final URI resource1Versions = new URI("http://localhost:8080/rest/1/fcr:versions");
+        final URI resource1Version1 = new URI("http://localhost:8080/rest/1/fcr:versions/version1");
+        final URI resourceVersionedChild = new URI("http://localhost:8080/rest/1/fcr:versions/version1/vChild");
+        final URI resource2Versions = new URI("http://localhost:8080/rest/1/2/fcr:versions");
+
+        mockResponse(resource1Versions, new ArrayList<>(), new ArrayList<>(),
+                "[{\"@id\":\"" + resource.toString() + "\"," +
+                    "\"" + HAS_VERSION.getURI() + "\":[{\"@id\":\"" + resource1Version1.toString() + "\"}]}," +
+                "{\"@id\":\"" + resource1Version1.toString() + "\"," +
+                    "\"" + CREATED_DATE.getURI() + "\":[{" +
+                        "\"@value\":\"2017-05-16T17:35:26.608Z\"," +
+                        "\"@type\": \"http://www.w3.org/2001/XMLSchema#dateTime\"}]," +
+                    "\"" + HAS_VERSION_LABEL.getURI() + "\":[{" +
+                        "\"@value\":\"version1\"}]" +
+                "}]");
+
+        mockResponse(resource1Version1, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource.toString() + "\",\""
+                + CONTAINS.getURI() + "\":[{\"@id\":\"" + resourceVersionedChild.toString() + "\"}]}");
+        mockResponse(resourceVersionedChild, containerLinks, new ArrayList<>(),
+                "{\"@id\":\"" + resourceVersionedChild.toString() + "\"}");
+
+        ResponseMocker.mockGetResponseError(client, resource2Versions, HttpStatus.SC_NOT_FOUND);
+
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1/vChild.jsonld")));
+        Assert.assertFalse("Child not present in previous version should not appear in version export",
+                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1/2.jsonld")));
     }
 }
 

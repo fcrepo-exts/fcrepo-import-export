@@ -28,18 +28,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
 import org.slf4j.Logger;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
@@ -149,6 +148,13 @@ public class ArgParser {
                 .desc("When importing, omit certain server-managed-triples that aren't modifiable in old" +
                         " versions of fedora.")
                 .required(false).build());
+
+        // Include versions
+        configOptions.addOption(Option.builder("V")
+                 .longOpt("versions")
+                 .hasArg(false)
+                 .desc("When exporting, include versions of resources and binaries.")
+                 .required(false).build());
 
         // RDF language option
         configOptions.addOption(Option.builder("l")
@@ -340,6 +346,7 @@ public class ArgParser {
         config.setRetrieveInbound(cmd.hasOption('i'));
         config.setOverwriteTombstones(cmd.hasOption('t'));
         config.setLegacy(cmd.hasOption("L"));
+        config.setIncludeVersions(cmd.hasOption('V'));
 
         final String rdfLanguage = cmd.getOptionValue('l');
         if (rdfLanguage != null) {
@@ -508,6 +515,8 @@ public class ArgParser {
                 c.setOverwriteTombstones(parseBoolean("overwriteTombstones", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("legacyMode")) {
                 c.setLegacy(parseBoolean("legacyMode", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("versions")) {
+                c.setIncludeVersions(parseBoolean("versions", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase(BAG_PROFILE_OPTION_KEY)) {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
