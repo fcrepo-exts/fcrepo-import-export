@@ -125,6 +125,35 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(exists(resourceURI));
     }
 
+    @Test
+    public void testImportBagVerifyBinaryDigest() throws Exception {
+        final URI resourceURI = URI.create(serverAddress);
+        final URI file = URI.create(serverAddress + "image0");
+        final URI badFile = URI.create(serverAddress + "bad_file");
+        final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setIncludeBinaries(true);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setMap(new String[] { "http://localhost:8080/fcrepo/rest/", serverAddress });
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(DEFAULT_BAG_PROFILE);
+
+        // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // verify resource and good binary does exist.
+        assertTrue(exists(resourceURI));
+        assertTrue(exists(file));
+
+        // verify bad binary shouldn't be imported
+        assertFalse(exists(badFile));
+    }
 
     @Override
     protected Logger logger() {

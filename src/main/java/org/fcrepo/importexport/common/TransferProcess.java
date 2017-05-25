@@ -50,6 +50,7 @@ import org.fcrepo.client.FcrepoResponse;
 public interface TransferProcess {
 
     final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
+    final static String BAGIT_CHECKSUM_DELIMITER = "  ";
 
     /**
      * This method does the import or export
@@ -162,13 +163,14 @@ public interface TransferProcess {
      * @param baseDir the base directory in the export package
      * @return the map
      */
-    public static Map<File, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
-        final Map<File, String> sha1FileMap = new HashMap<File, String>();
+    public static Map<String, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
+        final Map<String, String> sha1FileMap = new HashMap<String, String>();
         try (final Stream<String> stream = Files.lines(manifestFile)) {
             stream.forEach(l -> {
-                final File file = Paths.get(baseDir.toURI()).resolve(Paths.get(l.split(" ")[1])).toFile();
-                final String checksum = l.split(" ")[0].trim();
-                sha1FileMap.put(file, checksum);
+                final String[] manifestTokens = l.split(BAGIT_CHECKSUM_DELIMITER);
+                final File file = Paths.get(baseDir.toURI()).resolve(Paths.get(manifestTokens[1])).toFile();
+                final String checksum = manifestTokens[0].trim();
+                sha1FileMap.put(file.getAbsolutePath(), checksum);
             });
         } catch (IOException e) {
             throw new RuntimeException("Error reading manifest: " + manifestFile.toString(), e);
