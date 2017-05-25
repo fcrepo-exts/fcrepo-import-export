@@ -688,9 +688,12 @@ public class Importer implements TransferProcess {
 
     /**
      * Method to find and set the repository root from the resource uri.
+     *
+     * Note: This method is public to allow access for testing purposes.
      * @param uri the URI for the resource
+     * @return The URI of the repository root, or the URI with path removed if neither the URI nor none of its
+     *         parent paths declare themselves fedora:RepositoryRoot.
      */
-    @VisibleForTesting
     public URI findRepositoryRoot(final URI uri) {
         final String s = uri.toString();
         final URI u = s.endsWith("/") ? URI.create(s.substring(0, s.length() - 1)) : uri;

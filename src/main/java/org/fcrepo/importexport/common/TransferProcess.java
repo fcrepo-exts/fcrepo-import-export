@@ -207,8 +207,10 @@ public interface TransferProcess {
      * @param uri the URI for the resource
      * @param client the FcrepoClient to query the repository
      * @param config the Config for import/export
-     * @throws IOException If an I/O error occurs
-     * @throws FcrepoOperationFailedException If a FcrepoOperationFailedException error occurs
+     * @throws IOException if there is a error with the network connection
+     * @throws FcrepoOperationFailedException if there is a error with Fedora
+     * @return True if the URI is the root of the repository
+     */
      */
     public static boolean isRepositoryRoot(final URI uri, final FcrepoClient client, final Config config)
             throws IOException, FcrepoOperationFailedException {
