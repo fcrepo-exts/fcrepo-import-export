@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 
 import org.fcrepo.importexport.common.Config;
 
@@ -295,5 +296,53 @@ public class ArgParserTest {
         Assert.assertFalse(config.retrieveExternal());
         Assert.assertTrue(config.isIncludeBinaries());
         Assert.assertTrue(config.overwriteTombstones());
+    }
+
+    @Test
+    public void testSerializedConfigCustom() {
+        final String[] args = new String[] {"-m", "import",
+                                            "-r", "http://localhost:8686/rest",
+                                            "-M", "http://localhost:8686/rest,http://localhost:8080/f4/rest",
+                                            "-d", "/path/to/export",
+                                            "-l", "application/ld+json",
+                                            "-g", "custom-profile.yml",
+                                            "-G", "custom-metadata.yml",
+                                            "-p", "http://example.org/sample",
+                                            "-b", "-x", "-i", "-t", "-a"};
+        final Map<String, String> config = parser.parseConfiguration(args).getMap();
+        Assert.assertEquals("import", config.get("mode"));
+        Assert.assertEquals("http://localhost:8686/rest", config.get("resource"));
+        Assert.assertEquals("http://localhost:8686/rest,http://localhost:8080/f4/rest", config.get("map"));
+        Assert.assertEquals("/path/to/export", config.get("dir"));
+        Assert.assertEquals("application/ld+json", config.get("rdfLang"));
+        Assert.assertEquals("custom-profile.yml", config.get("bag-profile"));
+        Assert.assertEquals("custom-metadata.yml", config.get("bag-config"));
+        Assert.assertEquals("http://example.org/sample", config.get("predicates"));
+        Assert.assertEquals("true", config.get("binaries"));
+        Assert.assertEquals("true", config.get("external"));
+        Assert.assertEquals("true", config.get("inbound"));
+        Assert.assertEquals("true", config.get("overwriteTombstones"));
+        Assert.assertEquals("true", config.get("auditLog"));
+    }
+
+    @Test
+    public void testSerializedConfigDefault() {
+        final String[] args = new String[] {"-m", "import",
+                                            "-r", "http://localhost:8080/rest",
+                                            "-d", "/tmp/rdf"};
+        final Map<String, String> config = parser.parseConfiguration(args).getMap();
+        Assert.assertEquals("import", config.get("mode"));
+        Assert.assertEquals("http://localhost:8080/rest", config.get("resource"));
+        Assert.assertEquals(null, config.get("map"));
+        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals("text/turtle", config.get("rdfLang"));
+        Assert.assertEquals(null, config.get("bag-profile"));
+        Assert.assertEquals(null, config.get("bag-config"));
+        Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.get("predicates"));
+        Assert.assertEquals("false", config.get("binaries"));
+        Assert.assertEquals("false", config.get("external"));
+        Assert.assertEquals("false", config.get("inbound"));
+        Assert.assertEquals("false", config.get("overwriteTombstones"));
+        Assert.assertEquals("false", config.get("auditLog"));
     }
 }
