@@ -623,7 +623,7 @@ public class Importer implements TransferProcess {
 
     private URI uriForFile(final File f) {
         // get path of file relative to the data directory
-        String relative = config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
+        String relative = config.getBaseDirectory().toURI().relativize(f.toURI()).toString();
         relative = TransferProcess.decodePath(relative);
 
         // rebase the path on the destination uri (translating source/destination if needed)
