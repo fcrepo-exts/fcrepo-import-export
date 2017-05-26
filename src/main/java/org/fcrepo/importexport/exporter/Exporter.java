@@ -64,7 +64,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
