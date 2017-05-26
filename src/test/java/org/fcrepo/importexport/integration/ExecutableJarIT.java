@@ -42,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.ArgParser;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.FileUtils;
@@ -139,7 +138,6 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
         assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + DEFAULT_RDF_EXT))
                 .exists());
-        assertTrue(new File(System.getProperty("java.io.tmpdir"), ArgParser.CONFIG_FILE_NAME).exists());
     }
 
     @Test
