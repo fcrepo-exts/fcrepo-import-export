@@ -66,8 +66,6 @@ public class ArgParser {
 
     private static final Logger logger = getLogger(ArgParser.class);
 
-    public static final String CONFIG_FILE_NAME = "importexport.yml";
-
     private static final Options configOptions = new Options();
 
     private static final Options configFileOptions = new Options();

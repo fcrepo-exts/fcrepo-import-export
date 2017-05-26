@@ -17,8 +17,6 @@
  */
 package org.fcrepo.importexport;
 
-import static java.lang.System.getProperty;
-import static org.fcrepo.importexport.ArgParser.CONFIG_FILE_NAME;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 
 import java.io.File;
@@ -204,9 +202,6 @@ public class ArgParserTest {
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(URI.create("http://localhost:8080/rest/test"), config.getResource());
-
-        Assert.assertTrue("Config file should be created!",
-                new File(getProperty("java.io.tmpdir"), CONFIG_FILE_NAME).exists());
     }
 
     @Test (expected = RuntimeException.class)
@@ -346,6 +341,7 @@ public class ArgParserTest {
                                             "-g", "custom-profile.yml",
                                             "-G", "custom-metadata.yml",
                                             "-p", "http://example.org/sample",
+                                            "-w", "target/serialized-custom.yml",
                                             "-b", "-x", "-i", "-t", "-a", "-V"};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
         Assert.assertEquals("import", config.get("mode"));
@@ -362,6 +358,8 @@ public class ArgParserTest {
         Assert.assertEquals("true", config.get("overwriteTombstones"));
         Assert.assertEquals("true", config.get("auditLog"));
         Assert.assertEquals("true", config.get("versions"));
+        Assert.assertEquals(null, config.get("writeConfig"));
+        Assert.assertTrue(new File("target/serialized-custom.yml").exists());
     }
 
     @Test
@@ -384,5 +382,6 @@ public class ArgParserTest {
         Assert.assertEquals("false", config.get("overwriteTombstones"));
         Assert.assertEquals("false", config.get("auditLog"));
         Assert.assertEquals("false", config.get("versions"));
+        Assert.assertEquals(null, config.get("writeConfig"));
     }
 }
