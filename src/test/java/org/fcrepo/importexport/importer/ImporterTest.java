@@ -181,6 +181,7 @@ public class ImporterTest {
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
+        when(binBuilder.disposition(isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -191,6 +192,7 @@ public class ImporterTest {
         when(client.put(eq(externalResourceURI))).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.body(isA(InputStream.class), isA(String.class)))
                 .thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.disposition(isA(String.class))).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
         when(externalResourceResponse.getStatusCode()).thenReturn(201);
         when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
@@ -298,6 +300,7 @@ public class ImporterTest {
         when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.disposition(isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.perform()).thenReturn(badBinResponse);
         when(badBinResponse.getStatusCode()).thenReturn(409);
         when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
