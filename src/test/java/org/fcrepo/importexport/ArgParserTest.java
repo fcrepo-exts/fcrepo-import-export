@@ -308,6 +308,8 @@ public class ArgParserTest {
     @Test
     public void retrieveConfig() {
         final File configFile = new File("src/test/resources/configs/importexport.yml");
+        final File dir = new File("/tmp/rdf");
+        final File baseDir = new File(dir, "data");
         final Config config = parser.retrieveConfig(configFile);
 
         Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.getPredicates()[0]);
@@ -315,8 +317,8 @@ public class ArgParserTest {
         Assert.assertEquals(URI.create("http://localhost:8080/rest/2"), config.getSource());
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
-        Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
-        Assert.assertEquals("/tmp/rdf", config.getMap().get("dir"));
+        Assert.assertEquals(baseDir, config.getBaseDirectory());
+        Assert.assertEquals(dir.getAbsolutePath(), config.getMap().get("dir"));
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(".ttl", config.getRdfExtension());
 
@@ -327,10 +329,11 @@ public class ArgParserTest {
 
     @Test
     public void testSerializedConfigCustom() {
+        final File baseDir = new File("/path/to/export");
         final String[] args = new String[] {"-m", "import",
                                             "-r", "http://localhost:8686/rest",
                                             "-M", "http://localhost:8686/rest,http://localhost:8080/f4/rest",
-                                            "-d", "/path/to/export",
+                                            "-d", baseDir.getAbsolutePath(),
                                             "-l", "application/ld+json",
                                             "-g", "custom-profile.yml",
                                             "-G", "custom-metadata.yml",
@@ -340,7 +343,7 @@ public class ArgParserTest {
         Assert.assertEquals("import", config.get("mode"));
         Assert.assertEquals("http://localhost:8686/rest", config.get("resource"));
         Assert.assertEquals("http://localhost:8686/rest,http://localhost:8080/f4/rest", config.get("map"));
-        Assert.assertEquals("/path/to/export", config.get("dir"));
+        Assert.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
         Assert.assertEquals("application/ld+json", config.get("rdfLang"));
         Assert.assertEquals("custom-profile.yml", config.get("bag-profile"));
         Assert.assertEquals("custom-metadata.yml", config.get("bag-config"));
@@ -355,14 +358,15 @@ public class ArgParserTest {
 
     @Test
     public void testSerializedConfigDefault() {
+        final File baseDir = new File("/tmp/rdf");
         final String[] args = new String[] {"-m", "import",
                                             "-r", "http://localhost:8080/rest",
-                                            "-d", "/tmp/rdf"};
+                                            "-d", baseDir.getAbsolutePath()};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
         Assert.assertEquals("import", config.get("mode"));
         Assert.assertEquals("http://localhost:8080/rest", config.get("resource"));
         Assert.assertEquals(null, config.get("map"));
-        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
         Assert.assertEquals("text/turtle", config.get("rdfLang"));
         Assert.assertEquals(null, config.get("bag-profile"));
         Assert.assertEquals(null, config.get("bag-config"));
