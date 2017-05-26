@@ -285,10 +285,12 @@ public class ExporterIT extends AbstractResourceIT {
         final URI col1 = URI.create(baseURI + "/col1");
         final URI obj1 = URI.create(baseURI + "/obj1");
         final URI obj2 = URI.create(baseURI + "/obj2");
+        final URI other = URI.create(baseURI + "/other");
 
         create(col1);
         createTurtle(obj1, "<> <http://example.org/custom> <" + col1.toString() + "> .");
         createTurtle(obj2, "<> <http://example.org/custom> <" + col1.toString() + "> .");
+        createTurtle(other, "<> <http://example.org/other> <" + col1.toString() + "> .");
 
         // export with custom predicates
         final Config config = new Config();
@@ -316,6 +318,10 @@ public class ExporterIT extends AbstractResourceIT {
         assertFalse(collectionModel.contains(
                 createResource(obj1.toString()),
                 createProperty("http://example.org/custom"),
+                createResource(col1.toString())));
+        assertFalse(collectionModel.contains(
+                createResource(other.toString()),
+                createProperty("http://example.org/other"),
                 createResource(col1.toString())));
     }
 

@@ -45,6 +45,7 @@ import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
+import static org.fcrepo.importexport.common.UriUtils.withSlash;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -678,10 +679,6 @@ public class Importer implements TransferProcess {
     private File directoryForContainer(final URI uri) {
         return TransferProcess.directoryForContainer(withSlash(uri), config.getSourcePath(),
                 config.getDestinationPath(), config.getBaseDirectory());
-    }
-
-    private static URI withSlash(final URI uri) {
-        return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 
     /**

@@ -33,6 +33,8 @@ import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
+import static org.fcrepo.importexport.common.UriUtils.withSlash;
+import static org.fcrepo.importexport.common.UriUtils.withoutSlash;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -317,7 +319,7 @@ public class Exporter implements TransferProcess {
             final String responseBody = IOUtils.toString(response.getBody());
             final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
                     null, config.getRdfLanguage());
-            List<URI> inboundMembers = null;
+            Set<URI> inboundMembers = null;
 
             if (!config.isIncludeBinaries() || config.retrieveInbound()) {
 
@@ -353,18 +355,17 @@ public class Exporter implements TransferProcess {
 
     }
 
-    private List<URI> filterInboundReferences(final URI uri, final Model model) {
-        final List<URI> inboundMembers = new ArrayList<>();
+    private Set<URI> filterInboundReferences(final URI uri, final Model model) {
+        final String withSlash = withSlash(uri).toString();
+        final String withoutSlash = withoutSlash(uri).toString();
+        final Set<URI> inboundMembers = new HashSet<>();
         final List<Statement> removeList = new ArrayList<>();
-        for (final String p : config.getPredicates()) {
-            final StmtIterator inbound = model.listStatements(null, createProperty(p), (RDFNode)null);
-            while (inbound.hasNext()) {
-                final Statement s = inbound.next();
-                final String subject = s.getSubject().toString();
-                if (!subject.startsWith(uri.toString())) {
-                    removeList.add(s);
-                    inboundMembers.add(URI.create(subject));
-                }
+        for (final StmtIterator inbound = model.listStatements(); inbound.hasNext(); ) {
+            final Statement s = inbound.next();
+            final String subject = s.getSubject().toString();
+            if (!subject.equals(withSlash) && !subject.equals(withoutSlash)) {
+                removeList.add(s);
+                inboundMembers.add(URI.create(subject));
             }
         }
 
@@ -372,7 +373,7 @@ public class Exporter implements TransferProcess {
         return inboundMembers;
     }
 
-    private void exportMembers(final Model model, final List<URI> inboundMembers) {
+    private void exportMembers(final Model model, final Set<URI> inboundMembers) {
         for (final String p : config.getPredicates()) {
             final NodeIterator members = model.listObjectsOfProperty(createProperty(p));
             while (members.hasNext()) {
