@@ -386,14 +386,15 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI parentURI = URI.create(uri.toString() + "/res1");
         final URI childURI = URI.create(parentURI.toString() + "/child1");
         final URI fileURI = URI.create(parentURI.toString() + "/file1");
-        final File fileContent = new File("src/test/resources/binary.txt");
+        final File binaryFile = new File("src/test/resources/binary.txt");
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
 
         final FcrepoResponse response = createBody(uri, stream, "text/turtle");
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(uri, response.getLocation());
         create(parentURI);
         create(childURI);
-        createBody(fileURI, new FileInputStream(fileContent), "text/plain");
+        createBody(fileURI, new FileInputStream(binaryFile), "text/plain");
 
         roundtrip(uri, false);
 
@@ -403,15 +404,16 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(exists(parentURI));
         assertTrue(exists(childURI));
         assertTrue(exists(fileURI));
-        assertEquals("this is some content\n", getAsString(fileURI));
+        assertEquals(binaryContent, getAsString(fileURI));
     }
 
     @Test
     public void testRoundtripOverwriteBinary() throws Exception {
         final URI fileURI = URI.create(serverAddress + UUID.randomUUID());
-        final File fileContent = new File("src/test/resources/binary.txt");
+        final File binaryFile = new File("src/test/resources/binary.txt");
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
 
-        final FcrepoResponse response = createBody(fileURI, new FileInputStream(fileContent), "text/plain");
+        final FcrepoResponse response = createBody(fileURI, new FileInputStream(binaryFile), "text/plain");
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(fileURI, response.getLocation());
 
@@ -419,7 +421,7 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that the resources have been created
         assertTrue(exists(fileURI));
-        assertEquals("this is some content\n", getAsString(fileURI));
+        assertEquals(binaryContent, getAsString(fileURI));
     }
 
     private Literal dateLiteral(final String dateString) {
