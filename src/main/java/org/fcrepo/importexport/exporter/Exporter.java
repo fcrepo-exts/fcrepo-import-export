@@ -250,7 +250,7 @@ public class Exporter implements TransferProcess {
                 final List<URI> describedby = response.getLinkHeaders("describedby");
                 exportBinary(uri, describedby, external);
             } else if (linkHeaders.contains(containerURI)) {
-                exportDescription(uri);
+                exportDescription(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
             } else {
@@ -296,7 +296,8 @@ public class Exporter implements TransferProcess {
         exportVersions(uri);
     }
 
-    private void exportDescription(final URI uri) throws FcrepoOperationFailedException, IOException {
+    private void exportDescription(final URI uri, final URI binaryURI)
+            throws FcrepoOperationFailedException, IOException {
         final File file = fileForURI(uri, null, null, config.getBaseDirectory(), config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);
@@ -332,7 +333,8 @@ public class Exporter implements TransferProcess {
                 }
 
                 if (config.retrieveInbound()) {
-                    inboundMembers = filterInboundReferences(uri, model);
+                    final URI subject = (binaryURI != null) ? binaryURI : uri;
+                    inboundMembers = filterInboundReferences(subject, model);
                 }
 
                 try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -365,6 +367,7 @@ public class Exporter implements TransferProcess {
             final String subject = s.getSubject().toString();
             if (!subject.equals(withSlash) && !subject.equals(withoutSlash)) {
                 removeList.add(s);
+                logger.trace("Filtering inbound reference: {}", s);
                 inboundMembers.add(URI.create(subject));
             }
         }
@@ -514,7 +517,7 @@ public class Exporter implements TransferProcess {
 
         if (describedby != null) {
             for (final Iterator<URI> it = describedby.iterator(); it.hasNext(); ) {
-                exportDescription(it.next());
+                exportDescription(it.next(), uri);
             }
         }
     }
