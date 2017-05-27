@@ -432,7 +432,7 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // create a binary with an RDF content type
         final FcrepoResponse response = clientBuilder.build().put(fileURI)
-                .body(new FileInputStream(binaryFile), "text/turtle").disposition("attachment").perform();
+                .body(new FileInputStream(binaryFile), "text/turtle").filename(null).perform();
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(fileURI, response.getLocation());
 

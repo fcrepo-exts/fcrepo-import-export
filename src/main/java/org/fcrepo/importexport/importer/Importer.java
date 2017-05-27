@@ -458,7 +458,7 @@ public class Importer implements TransferProcess {
         } else {
             contentStream = new FileInputStream(binaryFile);
         }
-        PutBuilder builder = client().put(binaryURI).disposition("attachment").body(contentStream, contentType);
+        PutBuilder builder = client().put(binaryURI).filename(null).body(contentStream, contentType);
         if (!external(contentType)) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
