@@ -339,11 +339,8 @@ public class ExporterIT extends AbstractResourceIT {
         config.setMode("export");
         config.setBaseDirectory(TARGET_DIR + "/" + uuid);
         config.setResource(baseURI);
-        config.setRdfExtension(DEFAULT_RDF_EXT);
-        config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setPredicates(new String[]{ CONTAINS.toString() });
         config.setIncludeBinaries(true);
         config.setRetrieveInbound(true);
 
