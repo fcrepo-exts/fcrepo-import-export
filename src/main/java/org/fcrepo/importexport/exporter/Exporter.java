@@ -68,7 +68,6 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
-
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -81,7 +80,6 @@ import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
-
 import org.slf4j.Logger;
 
 /**
@@ -204,6 +202,12 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
+        try {
+            findRepositoryRoot(config.getResource());
+        } catch (IOException | FcrepoOperationFailedException e) {
+            throw new RuntimeException("Failed to locate the root of the repository being exported", e);
+        }
+
         export(config.getResource());
         if (bag != null) {
             try {
@@ -322,10 +326,6 @@ public class Exporter implements TransferProcess {
             if (!config.isIncludeBinaries() || config.retrieveInbound()) {
 
                 if (!config.isIncludeBinaries()) {
-                    if (repositoryRoot == null) {
-                        findRepositoryRoot(config.getResource());
-                        logger.debug("Repository root {}", repositoryRoot);
-                    }
                     filterBinaryReferences(uri, model);
                 }
 
@@ -441,8 +441,9 @@ public class Exporter implements TransferProcess {
      * @throws IOException
      */
     private void exportVersions(final URI uri) throws FcrepoOperationFailedException, IOException {
-        // Do not check for versions if disabled or already exporting a version
-        if (!config.includeVersions() || uri.toString().contains(FCR_VERSIONS_PATH)) {
+        // Do not check for versions if disabled, already exporting a version, or the repo root
+        if (!config.includeVersions() || uri.toString().contains(FCR_VERSIONS_PATH)
+                || uri.equals(repositoryRoot)) {
             return;
         }
 

@@ -21,6 +21,7 @@ import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
@@ -217,6 +218,10 @@ public interface TransferProcess {
         final String rdfLanguage = config.getRdfLanguage();
         try (FcrepoResponse response = client.head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, userName);
+            // The repository root will not be a binary
+            if (response.getLinkHeaders("type").contains(URI.create(NON_RDF_SOURCE.getURI()))) {
+                return false;
+            }
             try (FcrepoResponse resp = client.get(uri).accept(rdfLanguage).disableRedirects()
                     .perform()) {
                 final Model model = createDefaultModel().read(resp.getBody(), null, rdfLanguage);

@@ -58,6 +58,7 @@ public abstract class FcrepoConstants {
     public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
     public static final Resource INBOUND_REFERENCES = createResource(REPOSITORY_NAMESPACE + "InboundReferences");
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
+    public static final Resource REPOSITORY_ROOT = createResource(REPOSITORY_NAMESPACE + "RepositoryRoot");
 
     public static final String BAG_INFO_FIELDNAME = "Bag-Info";
 
