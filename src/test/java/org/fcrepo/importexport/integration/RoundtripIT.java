@@ -424,6 +424,25 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(binaryContent, getAsString(fileURI));
     }
 
+    @Test
+    public void testRoundtripRdfBinary() throws Exception {
+        final URI fileURI = URI.create(serverAddress + UUID.randomUUID());
+        final File binaryFile = new File("src/test/resources/binary.txt");
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
+
+        // create a binary with an RDF content type
+        final FcrepoResponse response = clientBuilder.build().put(fileURI)
+                .body(new FileInputStream(binaryFile), "text/turtle").filename(null).perform();
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(fileURI, response.getLocation());
+
+        roundtrip(fileURI, true);
+
+        // verify that the resources have been created
+        assertTrue(exists(fileURI));
+        assertEquals(binaryContent, getAsString(fileURI));
+    }
+
     private Literal dateLiteral(final String dateString) {
         return createTypedLiteral(dateString, XSDdateTime);
     }
