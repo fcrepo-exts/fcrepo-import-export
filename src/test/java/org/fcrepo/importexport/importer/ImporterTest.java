@@ -183,6 +183,7 @@ public class ImporterTest {
         when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.filename(any())).thenReturn(binBuilder);
+        when(binBuilder.ifUnmodifiedSince(any())).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -194,6 +195,7 @@ public class ImporterTest {
         when(externalResourceBuilder.body(isA(InputStream.class), isA(String.class)))
                 .thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.filename(any())).thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.ifUnmodifiedSince(any())).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
         when(externalResourceResponse.getStatusCode()).thenReturn(201);
         when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
@@ -209,6 +211,7 @@ public class ImporterTest {
         when(client.put(eq(externalResourceDescriptionURI))).thenReturn(putBuilder);
         when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
         when(putBuilder.preferLenient()).thenReturn(putBuilder);
+        when(putBuilder.ifUnmodifiedSince(any())).thenReturn(putBuilder);
         when(putBuilder.perform()).thenReturn(conResponse);
         when(conResponse.getStatusCode()).thenReturn(201);
         when(conResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -302,6 +305,7 @@ public class ImporterTest {
         when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
+        when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
         when(badBinBuilder.perform()).thenReturn(badBinResponse);
         when(badBinResponse.getStatusCode()).thenReturn(409);
         when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
