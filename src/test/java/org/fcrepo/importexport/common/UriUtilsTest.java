@@ -30,7 +30,7 @@ import org.junit.Test;
 public class UriUtilsTest {
 
     private final URI withSlash = URI.create("http://localhost:8080/rest/");
-    private final URI withOutSlash = URI.create("http://localhost:8080/rest/");
+    private final URI withOutSlash = URI.create("http://localhost:8080/rest");
 
     @Test
     public void testWithSlash() throws Exception {
@@ -40,7 +40,7 @@ public class UriUtilsTest {
 
     @Test
     public void testWithoutSlash() throws Exception {
-        assertEquals(withOutSlash, UriUtils.withSlash(withSlash));
-        assertEquals(withOutSlash, UriUtils.withSlash(withOutSlash));
+        assertEquals(withOutSlash, UriUtils.withoutSlash(withSlash));
+        assertEquals(withOutSlash, UriUtils.withoutSlash(withOutSlash));
     }
 }

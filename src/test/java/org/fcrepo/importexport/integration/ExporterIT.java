@@ -21,11 +21,13 @@ import static org.apache.commons.io.FileUtils.readFileToString;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.rdf.model.ResourceFactory.createStringLiteral;
 import static org.apache.jena.riot.RDFDataMgr.loadModel;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.junit.Assert.assertEquals;
@@ -323,6 +325,37 @@ public class ExporterIT extends AbstractResourceIT {
                 createResource(other.toString()),
                 createProperty("http://example.org/other"),
                 createResource(col1.toString())));
+    }
+
+    @Test
+    public void testExportInboundFiles() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI fileURI = URI.create(baseURI + "/file9");
+        createBody(fileURI, "This is some file content", "text/plain");
+
+        // export with inbound references
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(baseURI);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setIncludeBinaries(true);
+        config.setRetrieveInbound(true);
+
+        new Exporter(config, clientBuilder).run();
+
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        final File file = new File(baseDir, "file9.binary");
+        assertTrue(file.exists());
+        final File fileDesc = new File(baseDir, "file9/fcr%3Ametadata" + DEFAULT_RDF_EXT);
+        assertTrue(fileDesc.exists());
+        final Model fileModel = loadModel(fileDesc.getAbsolutePath());
+        assertTrue(fileModel.contains(
+                createResource(fileURI.toString()),
+                HAS_MIME_TYPE,
+                createStringLiteral("text/plain")));
     }
 
     @Override
