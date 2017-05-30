@@ -139,9 +139,8 @@ public class ImporterIT extends AbstractResourceIT {
     }
 
     @Test
-    public void testImportMemberResources() throws Exception {
+    public void testImportRelatedResources() throws Exception {
         final String sourceServerAddress = "http://localhost:8080/fcrepo/rest";
-        final URI sourceURI = URI.create(sourceServerAddress + "/linkFrom");
         final URI linkFrom = URI.create(serverAddress + "linkFrom");
         final URI linkTo = URI.create(serverAddress + "linkTo");
         final URI linkToFile1 = URI.create(serverAddress + "linkTo/file1");
@@ -182,10 +181,10 @@ public class ImporterIT extends AbstractResourceIT {
     @Test
     public void testReferences() throws Exception {
         final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
-        final URI linkFrom = URI.create(serverAddress + "linkFrom");
-        final URI linkTo = URI.create(serverAddress + "linkTo");
+        final URI linkFrom = URI.create(serverAddress + "prod2/linkFrom");
+        final URI linkTo = URI.create(serverAddress + "prod2/linkTo");
         final String referencePath = TARGET_DIR + "/test-classes/sample/reference";
-        System.out.println("Importing from " + referencePath);
+        logger().debug("Importing from {}", referencePath);
 
         final Config config = new Config();
         config.setMode("import");
@@ -194,7 +193,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(predicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
+        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress + "prod2/"});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);
