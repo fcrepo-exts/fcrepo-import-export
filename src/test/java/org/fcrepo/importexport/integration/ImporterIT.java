@@ -35,16 +35,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.graph.Graph;
+import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.Importer;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
+import org.fcrepo.importexport.importer.VersionImporter;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -103,7 +102,7 @@ public class ImporterIT extends AbstractResourceIT {
         // Run the import process
         config.setMode("import");
 
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // Verify
@@ -131,7 +130,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify that the corrupted binary failed to load
@@ -161,7 +160,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify the resources exist and link to each other
@@ -199,7 +198,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify the resources exist and link to each other
@@ -230,7 +229,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
@@ -260,7 +259,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
@@ -283,7 +282,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember

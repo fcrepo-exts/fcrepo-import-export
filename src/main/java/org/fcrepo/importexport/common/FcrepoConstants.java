@@ -58,6 +58,7 @@ public abstract class FcrepoConstants {
     public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
     public static final Resource INBOUND_REFERENCES = createResource(REPOSITORY_NAMESPACE + "InboundReferences");
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
+    public static final Resource FEDORA_RESOURCE = createResource(REPOSITORY_NAMESPACE + "Resource");
     public static final Resource REPOSITORY_ROOT = createResource(REPOSITORY_NAMESPACE + "RepositoryRoot");
 
     public static final String BAG_INFO_FIELDNAME = "Bag-Info";
@@ -67,7 +68,10 @@ public abstract class FcrepoConstants {
     public static final Property LAST_MODIFIED_DATE = createProperty(REPOSITORY_NAMESPACE + "lastModified");
     public static final Property LAST_MODIFIED_BY = createProperty(REPOSITORY_NAMESPACE + "lastModifiedBy");
 
+    public static final String FCR_METADATA_PATH = "fcr:metadata";
+
     public static final String FCR_VERSIONS_PATH = "fcr:versions";
     public static final Property HAS_VERSION = createProperty(REPOSITORY_NAMESPACE + "hasVersion");
+    public static final Property HAS_VERSIONS = createProperty(REPOSITORY_NAMESPACE + "hasVersions");
     public static final Property HAS_VERSION_LABEL = createProperty(REPOSITORY_NAMESPACE + "hasVersionLabel");
 }
