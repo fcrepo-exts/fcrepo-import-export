@@ -7,9 +7,9 @@ This scenario presents the use case of a "collection" resource and one or more "
 
 **_Exporting_**
 
-When exporting the collection resource, provide the `--include` option and add the appropriate inbound predicate to the `--predicates` option.  For example, if the collection resource is `http://localhost:8080/rest/00/29/67/80/00296780-00a6-40c8-915a-57038e803ee9` and the member resources have the `info:fedora/fedora-system:def/relations-external#isMemberOfCollection` predicate:
+When exporting the collection resource, provide the `--inbound` option and add the appropriate inbound predicate to the `--predicates` option.  For example, if the collection resource is `http://localhost:8080/rest/00/29/67/80/00296780-00a6-40c8-915a-57038e803ee9` and the member resources have the `info:fedora/fedora-system:def/relations-external#isMemberOfCollection` predicate:
 ```text
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/00/29/67/80/00296780-00a6-40c8-915a-57038e803ee9 --include --predicates info:fedora/fedora-system:def/relations-external#isMemberOfCollection --dir /tmp/collection-export
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/00/29/67/80/00296780-00a6-40c8-915a-57038e803ee9 --inbound --predicates info:fedora/fedora-system:def/relations-external#isMemberOfCollection --dir /tmp/collection-export
 ```
 (plus any additional predicates or other options desired, such as `--binaries`).
 
