@@ -21,10 +21,12 @@ import static java.util.Collections.emptyList;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
+import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.isA;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
+import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -65,6 +68,7 @@ public class ExportVersionsTest {
     private final String BASE_URI = "http://localhost:8080/rest/";
     private String exportDirectory = "target/export-versions-test";
     private final String basedir = exportDirectory + "/versions";
+    private URI rootResource;
 
     private final String versionCreated = "2017-05-16T17:35:26.608Z";
     private final String versionLabel = "version1";
@@ -112,6 +116,10 @@ public class ExportVersionsTest {
         when(config.getAuditLog()).thenReturn(auditLog);
 
         exporter = new ExporterWrapper(config, clientBuilder);
+
+        rootResource = new URI("http://localhost:8080/rest");
+        mockResponse(rootResource, containerLinks, new ArrayList<>(),
+                createJson(rootResource, REPOSITORY_ROOT));
     }
 
     @After
@@ -285,8 +293,52 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version_original.jsonld")));
     }
 
+    @Test
+    public void testExportBinaryFromRepositoryRoot() throws Exception {
+        final URI binaryResc = new URI(BASE_URI + "file1");
+        final URI binaryRescMetadata = new URI(BASE_URI + "file1/fcr:metadata");
+        final URI binaryRescVersions = new URI(BASE_URI + "file1/fcr:versions");
+        final URI binaryRescVersion = new URI(BASE_URI + "file1/fcr:versions/version1");
+        final URI binaryRescMetadataVersion = new URI(BASE_URI + "file1/fcr:versions/version1/fcr:metadata");
+
+        mockResponse(binaryResc, binaryLinks, Arrays.asList(binaryRescMetadata), "binary");
+        mockResponse(binaryRescVersion, binaryLinks, Arrays.asList(binaryRescMetadataVersion), "old binary");
+
+        final List<URI> descriptionLinks = Arrays.asList(URI.create(RDF_SOURCE.getURI()));
+        mockResponse(binaryRescMetadata, descriptionLinks, Collections.emptyList(),
+                createJson(binaryRescMetadata));
+        mockResponse(binaryRescMetadataVersion, descriptionLinks, Collections.emptyList(),
+                createJson(binaryRescMetadataVersion));
+
+        final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), binaryResc,
+                binaryRescVersion, versionCreated, versionLabel));
+        mockResponse(binaryRescVersions, emptyList(), emptyList(), versionsJson);
+
+        mockResponse(rootResource, containerLinks, new ArrayList<>(),
+                createJson(rootResource, REPOSITORY_ROOT, binaryResc));
+        final URI rootVersionsUri = URI.create(rootResource.toString() + "/" + FCR_VERSIONS_PATH);
+        ResponseMocker.mockGetResponseError(client, rootVersionsUri, 500);
+
+        when(config.getResource()).thenReturn(rootResource);
+
+        exporter.run();
+
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1.binary")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1.binary")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1/fcr%3Ametadata.jsonld")));
+    }
+
     private String createJson(final URI resource, final URI... children) {
+        return createJson(resource, null, children);
+    }
+
+    private String createJson(final URI resource, final Resource type, final URI... children) {
         final StringBuilder json = new StringBuilder("{\"@id\":\"" + resource.toString() + "\"");
+        if (type != null) {
+            json.append(",\"@type\":[\"" + type.getURI() + "\"]");
+        }
         if (children != null && children.length > 0) {
             json.append(",\"" + CONTAINS.getURI() + "\":[")
                 .append(Arrays.stream(children)

@@ -113,4 +113,22 @@ public abstract class ResponseMocker {
         when(getBuilder.perform()).thenReturn(getResponse);
         when(getResponse.getStatusCode()).thenReturn(statusCode);
     }
+
+    /**
+     * Mocks an unsuccessful HEAD request response
+     * 
+     * @param client client
+     * @param uri uri of destination being mocked
+     * @param statusCode the status code for the response
+     * @throws FcrepoOperationFailedException client failures
+     */
+    public static void mockHeadResponseError(final FcrepoClient client, final URI uri, final int statusCode)
+            throws FcrepoOperationFailedException {
+        final HeadBuilder headBuilder = mock(HeadBuilder.class);
+        final FcrepoResponse response = mock(FcrepoResponse.class);
+        when(client.head(eq(uri))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
+        when(headBuilder.perform()).thenReturn(response);
+        when(response.getStatusCode()).thenReturn(statusCode);
+    }
 }
