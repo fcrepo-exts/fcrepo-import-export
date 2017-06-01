@@ -17,12 +17,12 @@
  */
 package org.fcrepo.importexport.importer;
 
+import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.client.FedoraHeaderConstants.LAST_MODIFIED;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
@@ -60,8 +60,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -108,7 +109,6 @@ public class Importer implements TransferProcess {
     private final List<URI> relatedResources = new ArrayList<>();
     private final List<URI> importedResources = new ArrayList<>();
     private URI repositoryRoot = null;
-    private Map<URI, String> placeholderLastModified;
 
     private Bag bag;
 
@@ -137,7 +137,6 @@ public class Importer implements TransferProcess {
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
-        this.placeholderLastModified = new HashMap<>();
         if (config.getBagProfile() == null) {
             this.bag = null;
             this.sha1 = null;
@@ -459,7 +458,9 @@ public class Importer implements TransferProcess {
         } else {
             contentStream = new FileInputStream(binaryFile);
         }
-        PutBuilder builder = client().put(binaryURI).filename(null).body(contentStream, contentType);
+        PutBuilder builder = client().put(binaryURI).filename(null)
+                                     .body(contentStream, contentType)
+                                     .ifUnmodifiedSince(currentTimestamp());
         if (!external(contentType)) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
@@ -470,10 +471,6 @@ public class Importer implements TransferProcess {
                 builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
                                           .getObject().toString().replaceAll(".*:",""));
             }
-        }
-        if (placeholderLastModified.get(binaryURI) != null) {
-            logger.debug("Adding If-Unmodified-Since header: {} ", placeholderLastModified.get(binaryURI));
-            builder = builder.ifUnmodifiedSince(placeholderLastModified.get(binaryURI));
         }
         return builder;
     }
@@ -493,7 +490,9 @@ public class Importer implements TransferProcess {
     }
 
     private PutBuilder containerBuilder(final URI uri, final Model model) throws FcrepoOperationFailedException {
-        PutBuilder builder = client().put(uri).body(modelToStream(model), config.getRdfLanguage());
+        PutBuilder builder = client().put(uri)
+                                     .body(modelToStream(model), config.getRdfLanguage())
+                                     .ifUnmodifiedSince(currentTimestamp());
         if (sha1FileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
             final File baseDir = config.getBaseDirectory();
@@ -502,11 +501,11 @@ public class Importer implements TransferProcess {
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
             builder = builder.digest(checksum);
         }
-        if (placeholderLastModified.get(uri) != null) {
-            logger.warn("Adding If-Unmodified-Since header: {}", placeholderLastModified.get(uri));
-            builder = builder.ifUnmodifiedSince(placeholderLastModified.get(uri));
-        }
         return builder;
+    }
+
+    private String currentTimestamp() {
+        return RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneId.of("GMT")));
     }
 
     private void deleteTombstone(final FcrepoResponse response) throws FcrepoOperationFailedException {
@@ -617,8 +616,6 @@ public class Importer implements TransferProcess {
         if (response.getStatusCode() != 201) {
             logger.error("Unexpected response when creating {} ({}): {}", uri,
                     response.getStatusCode(), response.getBody());
-        } else {
-            placeholderLastModified.put(uri, response.getHeaderValue(LAST_MODIFIED));
         }
     }
 
