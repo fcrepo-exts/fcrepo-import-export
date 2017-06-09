@@ -41,6 +41,7 @@ import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.patch.RdfWriterHelper;
 
 /**
  * @author lsitu
@@ -51,6 +52,9 @@ public interface TransferProcess {
 
     final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
     final static String BAGIT_CHECKSUM_DELIMITER = "  ";
+
+    // Used only to load patched RDF writers
+    RdfWriterHelper notUsed = new RdfWriterHelper();
 
     /**
      * This method does the import or export
