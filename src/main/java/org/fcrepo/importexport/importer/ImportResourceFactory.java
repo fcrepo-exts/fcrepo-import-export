@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
 import org.fcrepo.importexport.common.URITranslationUtil;
 import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
 
@@ -58,6 +59,16 @@ public class ImportResourceFactory {
         this.uriTranslator = uriTranslator;
     }
 
+    public ImportResource createFromUri(final URI uri) {
+        final String uriString = uri.toString();
+        final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
+        
+        final File file = TransferProcess.fileForURI(uri, config.getSourcePath(),
+                config.getDestinationPath(), config.getBaseDirectory(), config.getRdfExtension());
+        
+        return new ImportResource(id, uri, config);
+    }
+    
     /**
      * Returns a list of ImportResource objects constructed from the files present in the given directory.
      * Files/folders are grouped together into a resource based on sharing an id, which is the unsuffixed portion of

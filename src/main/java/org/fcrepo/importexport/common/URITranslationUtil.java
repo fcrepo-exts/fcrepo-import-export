@@ -45,7 +45,7 @@ public class URITranslationUtil {
      * @param f file to build URI for
      * @return URI for file
      */
-    public URI uriForFile(final File f) {
+    public static URI uriForFile(final File f, final Config config) {
         // get path of file relative to the data directory
         String relative = config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
         relative = TransferProcess.decodePath(relative);
