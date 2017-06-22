@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.integration;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
@@ -454,11 +455,13 @@ public class RoundtripIT extends AbstractResourceIT {
      */
     @Ignore
     @Test
-    public void testRoundtripNestedContainers() throws Exception {
+    public void testRoundtripNested() throws Exception {
         final URI containerURI = URI.create(serverAddress + UUID.randomUUID());
 
         // create a new nested containers
         assertEquals(SC_CREATED, clientBuilder.build().put(containerURI).perform().getStatusCode());
+        assertEquals(SC_CREATED, clientBuilder.build().post(containerURI).slug("b")
+                .body(new ByteArrayInputStream("content".getBytes("UTF-8")), "text/plain").perform().getStatusCode());
         assertEquals(SC_CREATED,  clientBuilder.build().post(containerURI).slug("a").perform().getStatusCode());
 
         final Model origModel = ModelFactory.createDefaultModel();

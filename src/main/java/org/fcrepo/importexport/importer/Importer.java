@@ -209,12 +209,11 @@ public class Importer implements TransferProcess {
         } else {
             logger.debug("Parsing membership resource in file {}", importContainerMetadataFile.getAbsolutePath());
             parseMembershipResources(importContainerMetadataFile);
+            importMembershipResources();
+            importRelatedResources();
             importFile(importContainerMetadataFile);
         }
 
-        importMembershipResources();
-
-        importRelatedResources();
     }
 
     private void discoverMembershipResources(final File dir) {
