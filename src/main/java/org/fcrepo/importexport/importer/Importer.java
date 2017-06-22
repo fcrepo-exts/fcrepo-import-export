@@ -189,22 +189,28 @@ public class Importer implements TransferProcess {
         membershipResources.clear();
         discoverMembershipResources(importContainerDirectory);
 
+        // In order to get the dates right, we need to create resources, *then* set their RDF since
+        // creation of children screws up the dates of parents.
+        try {
+            ensureExists(resource);
+        } catch (FcrepoOperationFailedException | IOException e) {
+            throw new RuntimeException("Unable to create placeholder " + resource, e);
+        }
+
+        importDirectory(importContainerDirectory);
+
         logger.debug("Importing resource {} for file {}", resource, importContainerMetadataFile.getPath());
 
         // discover the related resources in the resource being imported.
-        if (importContainerMetadataFile.exists()) {
-            logger.debug("Parsing membership resource in file {}", importContainerMetadataFile.getAbsolutePath());
-            parseMembershipResources(importContainerMetadataFile);
-        }
-
         if (!importContainerMetadataFile.exists()) {
             logger.debug("No container exists in the metadata directory {} for the requested resource {},"
                     + " importing all contained resources instead.", importContainerMetadataFile.getPath(),
                     config.getResource());
         } else {
+            logger.debug("Parsing membership resource in file {}", importContainerMetadataFile.getAbsolutePath());
+            parseMembershipResources(importContainerMetadataFile);
             importFile(importContainerMetadataFile);
         }
-        importDirectory(importContainerDirectory);
 
         importMembershipResources();
 

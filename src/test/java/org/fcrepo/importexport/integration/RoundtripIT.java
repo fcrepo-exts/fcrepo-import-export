@@ -26,15 +26,21 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.graph.Graph;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -441,6 +447,39 @@ public class RoundtripIT extends AbstractResourceIT {
         // verify that the resources have been created
         assertTrue(exists(fileURI));
         assertEquals(binaryContent, getAsString(fileURI));
+    }
+
+    /*
+     * This won't work until 4.7.4 is released to support relaxed server managed triples.
+     */
+    @Ignore
+    @Test
+    public void testRoundtripNestedContainers() throws Exception {
+        final URI containerURI = URI.create(serverAddress + UUID.randomUUID());
+
+        // create a new nested containers
+        assertEquals(SC_CREATED, clientBuilder.build().put(containerURI).perform().getStatusCode());
+        assertEquals(SC_CREATED,  clientBuilder.build().post(containerURI).slug("a").perform().getStatusCode());
+
+        final Model origModel = ModelFactory.createDefaultModel();
+        origModel.read(
+                clientBuilder.build().get(containerURI).accept("application/n-triples").perform().getBody(), "", "N3");
+
+        roundtrip(containerURI, true);
+
+        final Model roundtrippedModel = ModelFactory.createDefaultModel();
+        roundtrippedModel.read(
+                clientBuilder.build().get(containerURI).accept("application/n-triples").perform().getBody(), "", "N3");
+        final Graph roundtrippedGraph = roundtrippedModel.getGraph();
+
+        final ExtendedIterator<Triple> originalTripleIt = origModel.getGraph().find(Node.ANY, Node.ANY, Node.ANY);
+        while (originalTripleIt.hasNext()) {
+            final Triple t = originalTripleIt.next();
+            assertTrue("Roundtripped resource should contain triple " + t + "!", roundtrippedGraph.contains(t));
+            roundtrippedGraph.delete(t);
+        }
+        assertTrue("Triples round in roundtripped resource that weren't in original!\n" + roundtrippedGraph,
+                roundtrippedGraph.isEmpty());
     }
 
     private Literal dateLiteral(final String dateString) {
