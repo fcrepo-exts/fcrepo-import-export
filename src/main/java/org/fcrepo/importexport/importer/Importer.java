@@ -362,10 +362,6 @@ public class Importer implements TransferProcess {
                     }
                 }
 
-                if (model.contains(null, RDF_TYPE, createResource(REPOSITORY_NAMESPACE + "RepositoryRoot"))) {
-                    logger.debug("Skipping import of repository root.");
-                    return;
-                }
                 final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
                 if (binaryResources.hasNext()) {
                     if (!config.isIncludeBinaries()) {
@@ -500,9 +496,8 @@ public class Importer implements TransferProcess {
                                      .ifUnmodifiedSince(currentTimestamp());
         if (sha1FileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
-            final File baseDir = config.getBaseDirectory();
             final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
-            final String checksum = sha1FileMap.get(containerFile);
+            final String checksum = sha1FileMap.get(containerFile.getAbsolutePath());
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
             builder = builder.digest(checksum);
         }
