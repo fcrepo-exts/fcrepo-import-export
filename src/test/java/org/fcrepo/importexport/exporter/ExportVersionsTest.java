@@ -20,13 +20,13 @@ package org.fcrepo.importexport.exporter;
 import static java.util.Collections.emptyList;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
+import static org.fcrepo.importexport.test.util.JsonLdResponse.addVersionJson;
+import static org.fcrepo.importexport.test.util.JsonLdResponse.createJson;
+import static org.fcrepo.importexport.test.util.JsonLdResponse.joinJsonArray;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.isA;
@@ -41,11 +41,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
-import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -328,44 +326,5 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1.binary")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1/fcr%3Ametadata.jsonld")));
-    }
-
-    private String createJson(final URI resource, final URI... children) {
-        return createJson(resource, null, children);
-    }
-
-    private String createJson(final URI resource, final Resource type, final URI... children) {
-        final StringBuilder json = new StringBuilder("{\"@id\":\"" + resource.toString() + "\"");
-        if (type != null) {
-            json.append(",\"@type\":[\"" + type.getURI() + "\"]");
-        }
-        if (children != null && children.length > 0) {
-            json.append(",\"" + CONTAINS.getURI() + "\":[")
-                .append(Arrays.stream(children)
-                    .map(child -> "{\"@id\":\"" + child.toString()  + "\"}")
-                    .collect(Collectors.joining(",")))
-                .append(']');
-        }
-        json.append('}');
-        return json.toString();
-    }
-
-    private String joinJsonArray(final List<String> array) {
-        return "[" + String.join(",", array) + "]";
-    }
-
-    private List<String> addVersionJson(final List<String> versions, final URI rescUri, final URI versionUri,
-            final String label, final String timestamp) {
-        final String versionJson = "{\"@id\":\"" + rescUri.toString() + "\"," +
-                "\"" + HAS_VERSION.getURI() + "\":[{\"@id\":\"" + versionUri.toString() + "\"}]}," +
-            "{\"@id\":\"" + versionUri.toString() + "\"," +
-                "\"" + CREATED_DATE.getURI() + "\":[{" +
-                    "\"@value\":\"" + timestamp + "\"," +
-                    "\"@type\": \"http://www.w3.org/2001/XMLSchema#dateTime\"}]," +
-                "\"" + HAS_VERSION_LABEL.getURI() + "\":[{" +
-                    "\"@value\":\"" + label + " \"}]" +
-            "}";
-        versions.add(versionJson);
-        return versions;
     }
 }
