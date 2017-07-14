@@ -155,7 +155,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(providedPredicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(linkFrom.toString());
-        config.setMap(new String[]{sourceServerAddress + "/", serverAddress});
+        config.setMap(new String[]{sourceServerAddress, serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);
@@ -193,7 +193,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(predicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress + "prod2/"});
+        config.setMap(new String[]{sourceURI.toString(), serverAddress + "prod2/"});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);
@@ -224,7 +224,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setPredicates(predicates);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setResource(serverAddress);
-        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
+        config.setMap(new String[]{sourceURI.toString(), serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);

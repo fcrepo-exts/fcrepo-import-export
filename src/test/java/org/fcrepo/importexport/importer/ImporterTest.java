@@ -76,6 +76,7 @@ public class ImporterTest {
     private URI containerURI;
     private URI pairtreeURI;
     private URI finalContainerURI;
+    private URI repositoryRootURI;
     private File binaryFilesDir;
     private File externalFilesDir;
 
@@ -93,6 +94,7 @@ public class ImporterTest {
         externalResourceURI  = new URI("http://example.org:9999/rest/ext1");
         externalResourceDescriptionURI = new URI("http://example.org:9999/rest/ext1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
+        repositoryRootURI = new URI("http://example.org:9999/rest");
 
         binaryFilesDir = new File("src/test/resources/sample/binary");
         binaryArgs = new Config();
@@ -204,6 +206,7 @@ public class ImporterTest {
         // mock container/description interactions
         putBuilder = mock(PutBuilder.class);
         conResponse = mock(FcrepoResponse.class);
+        when(client.put(eq(repositoryRootURI))).thenReturn(putBuilder);
         when(client.put(eq(containerURI))).thenReturn(putBuilder);
         when(client.put(eq(pairtreeURI))).thenReturn(putBuilder);
         when(client.put(eq(finalContainerURI))).thenReturn(putBuilder);
@@ -306,6 +309,7 @@ public class ImporterTest {
         when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
         when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
+        when(badBinBuilder.preferLenient()).thenReturn(badBinBuilder);
         when(badBinBuilder.perform()).thenReturn(badBinResponse);
         when(badBinResponse.getStatusCode()).thenReturn(409);
         when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
