@@ -67,7 +67,7 @@ public class ChronologicalImportResourceIteratorTest {
         when(config.getResource()).thenReturn(restUri);
 
         when(restResource.getUri()).thenReturn(restUri);
-        when(rescFactory.createFromUri(eq(restUri))).thenReturn(restResource);
+        when(rescFactory.createFromUri(eq(restUri), any(File.class))).thenReturn(restResource);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class ChronologicalImportResourceIteratorTest {
         final File directory = new File("src/test/resources/sample/container");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        when(rescFactory.createFromUri(eq(resourceUri))).thenReturn(impResource);
+        when(rescFactory.createFromUri(eq(resourceUri), any(File.class))).thenReturn(impResource);
         when(impResource.getUri()).thenReturn(resourceUri);
 
         rescIt = new ChronologicalImportResourceIterator(config, rescFactory);
@@ -95,7 +95,7 @@ public class ChronologicalImportResourceIteratorTest {
         final File directory = new File("src/test/resources/sample/binary");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        when(rescFactory.createFromUri(eq(resourceUri))).thenReturn(impResource);
+        when(rescFactory.createFromUri(eq(resourceUri), any(File.class))).thenReturn(impResource);
         when(impResource.getUri()).thenReturn(resourceUri);
 
         rescIt = new ChronologicalImportResourceIterator(config, rescFactory);
@@ -112,6 +112,8 @@ public class ChronologicalImportResourceIteratorTest {
 
     @Test
     public void testVersions() throws Exception {
+        when(config.includeVersions()).thenReturn(true);
+
         final URI con1Uri = new URI("http://localhost:8080/fcrepo/rest/con1");
         final URI con1VOriginalUri = new URI(
                 "http://localhost:8080/fcrepo/rest/con1/fcr:versions/version_original");
@@ -126,10 +128,10 @@ public class ChronologicalImportResourceIteratorTest {
         final File directory = new File("src/test/resources/sample/versioned");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        when(rescFactory.createFromUri(any(URI.class))).thenAnswer(new Answer<ImportResource>() {
+        when(rescFactory.createFromUri(any(URI.class), any(File.class))).thenAnswer(new Answer<ImportResource>() {
             @Override
             public ImportResource answer(InvocationOnMock invocation) throws Throwable {
-                ImportResource resc = mock(ImportResource.class);
+                final ImportResource resc = mock(ImportResource.class);
                 when(resc.getUri()).thenReturn(invocation.getArgumentAt(0, URI.class));
                 return resc;
             }
@@ -143,6 +145,35 @@ public class ChronologicalImportResourceIteratorTest {
         assertEquals(con2VOriginalUri, rescIt.next().getUri());
         assertEquals(con1V1Uri, rescIt.next().getUri());
         assertEquals(bin1V1Uri, rescIt.next().getUri());
+        assertEquals(con1Uri, rescIt.next().getUri());
+        assertEquals(bin1Uri, rescIt.next().getUri());
+
+        assertFalse(rescIt.hasNext());
+    }
+
+    @Test
+    public void testExcludeVersions() throws Exception {
+        when(config.includeVersions()).thenReturn(false);
+
+        final URI con1Uri = new URI("http://localhost:8080/fcrepo/rest/con1");
+        final URI bin1Uri = new URI("http://localhost:8080/fcrepo/rest/con1/bin1");
+
+        final File directory = new File("src/test/resources/sample/versioned");
+        when(config.getBaseDirectory()).thenReturn(directory);
+
+        when(rescFactory.createFromUri(any(URI.class), any(File.class))).thenAnswer(new Answer<ImportResource>() {
+            @Override
+            public ImportResource answer(final InvocationOnMock invocation) throws Throwable {
+                final ImportResource resc = mock(ImportResource.class);
+                when(resc.getUri()).thenReturn(invocation.getArgumentAt(0, URI.class));
+                return resc;
+            }
+        });
+
+        rescIt = new ChronologicalImportResourceIterator(config, rescFactory);
+
+        assertTrue(rescIt.hasNext());
+
         assertEquals(con1Uri, rescIt.next().getUri());
         assertEquals(bin1Uri, rescIt.next().getUri());
 

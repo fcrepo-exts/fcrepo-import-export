@@ -32,13 +32,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import org.apache.jena.datatypes.xsd.XSDDateTime;
 import org.apache.jena.rdf.model.Model;
@@ -60,8 +57,8 @@ import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
 public class ChronologicalImportResourceIterator implements Iterator<ImportResource> {
 
     private final Config config;
-    private final List<URI> sortedUris;
-    private Iterator<URI> uriIt;
+    private final ChronologicalUriExtractingFileVisitor treeWalker;
+    private Iterator<ChronologicalResource> rescIt;
 
     private ImportResourceFactory rescFactory;
 
@@ -70,24 +67,23 @@ public class ChronologicalImportResourceIterator implements Iterator<ImportResou
         this.config = config;
         this.rescFactory = rescFactory;
 
-        ChronologicalUriExtractingFileVisitor treeWalker = new ChronologicalUriExtractingFileVisitor(this.config);
+        this.treeWalker = new ChronologicalUriExtractingFileVisitor(this.config);
         Files.walkFileTree(config.getBaseDirectory().toPath(), treeWalker);
-        sortedUris = treeWalker.getSortedUris();
     }
 
     @Override
     public boolean hasNext() {
-        if (uriIt == null) {
-            uriIt = sortedUris.iterator();
+        if (rescIt == null) {
+            rescIt = treeWalker.getSortedResources().iterator();
         }
-        return uriIt.hasNext();
+        return rescIt.hasNext();
     }
 
     @Override
     public ImportResource next() {
-        URI nextUri = uriIt.next();
+        final ChronologicalResource nextResc = rescIt.next();
 
-        return rescFactory.createFromUri(nextUri);
+        return rescFactory.createFromUri(nextResc.uri, nextResc.metadataFile);
     }
 
     private static Model parseStream(final InputStream in, final Config config) throws IOException {
@@ -99,40 +95,59 @@ public class ChronologicalImportResourceIterator implements Iterator<ImportResou
         return mapper.getModel();
     }
 
+    private class ChronologicalResource {
+        public long modified;
+        public URI uri;
+        public File metadataFile;
+        
+        public ChronologicalResource(long modified, URI uri, File metadataFile) {
+            super();
+            this.modified = modified;
+            this.uri = uri;
+            this.metadataFile = metadataFile;
+        }
+    }
+    
     private class ChronologicalUriExtractingFileVisitor extends SimpleFileVisitor<Path> {
-        private List<Entry<Long, URI>> createUriList;
+        private List<ChronologicalResource> resources;
         private final Config config;
 
         public ChronologicalUriExtractingFileVisitor(final Config config) {
-            createUriList = new ArrayList<>();
+            resources = new ArrayList<>();
             this.config = config;
         }
 
-        public List<URI> getSortedUris() {
-            return createUriList.stream()
-                .sorted(new Comparator<Entry<Long, URI>>() {
-                    @Override
-                    public int compare(Entry<Long, URI> o1, Entry<Long, URI> o2) {
-                        return o1.getKey().compareTo(o2.getKey());
-                    }
-                })
-                .map(entry -> entry.getValue())
-                .collect(Collectors.toList());
+        public List<ChronologicalResource> getSortedResources() {
+            resources.sort(new Comparator<ChronologicalResource>() {
+                @Override
+                public int compare(ChronologicalResource o1, ChronologicalResource o2) {
+                    return new Long(o1.modified).compareTo(o2.modified);
+                }
+            });
+            return resources;
         }
 
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+            // Skip over files other than descriptions
             if (!file.toString().endsWith(config.getRdfExtension())) {
                 return CONTINUE;
             }
 
+            // Skip over the details of versions as they are not treated as resources
             if (file.toString().endsWith("fcr%3Aversions" + config.getRdfExtension())) {
                 return CONTINUE;
             }
+            
+            // If versioning is excluded then skip all past versions of resources
+            if (!config.includeVersions() && file.toString().contains("fcr%3Aversions")) {
+                return CONTINUE;
+            }
 
-            File rdfFile = file.toFile();
-            Model model = parseStream(new FileInputStream(rdfFile), config);
+            final File rdfFile = file.toFile();
+            final Model model = parseStream(new FileInputStream(rdfFile), config);
 
+            // Determine the URI for this resource depending on if it is a binary or not
             final URI resourceUri;
             final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
             if (binaryResources.hasNext()) {
@@ -141,14 +156,16 @@ public class ChronologicalImportResourceIterator implements Iterator<ImportResou
                 resourceUri = URITranslationUtil.uriForFile(rdfFile, config);
             }
 
-            Resource resc = model.getResource(resourceUri.toString());
-            Statement stmt = resc.getProperty(FcrepoConstants.LAST_MODIFIED_DATE);
+            // Store the resource along with its last modified date for sorting later
+            final Resource resc = model.getResource(resourceUri.toString());
+            final Statement stmt = resc.getProperty(FcrepoConstants.LAST_MODIFIED_DATE);
             if (stmt == null) {
-                createUriList.add(new SimpleEntry<>(0L, resourceUri));
+                // No modified date, store with 0 for sorting
+                resources.add(new ChronologicalResource(0L, resourceUri, rdfFile));
             } else {
                 final XSDDateTime created = (XSDDateTime) stmt.getLiteral().getValue();
                 final long createdMillis = created.asCalendar().getTimeInMillis();
-                createUriList.add(new SimpleEntry<>(createdMillis, resourceUri));
+                resources.add(new ChronologicalResource(createdMillis, resourceUri, rdfFile));
             }
 
             return CONTINUE;
