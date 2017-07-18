@@ -42,6 +42,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
+import static org.fcrepo.importexport.common.FcrepoConstants.VERSION_RESOURCE;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
@@ -62,13 +63,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -88,7 +91,6 @@ import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.common.URITranslationUtil;
 import org.slf4j.Logger;
 
 import gov.loc.repository.bagit.domain.Bag;
@@ -109,12 +111,11 @@ public class VersionImporter implements TransferProcess{
     private static final Logger logger = getLogger(VersionImporter.class);
     private Config config;
     protected FcrepoClientBuilder clientBuilder;
-    private final URITranslationUtil uriTranslator;
 
-    private ImportResourceFactory importRescFactory;
+    private final ImportResourceFactory importRescFactory;
     private Logger importLogger;
-
-    private FcrepoClient client;
+    
+    final Map<String, String> versionedLabels;
 
     private Bag bag;
     private MessageDigest sha1;
@@ -130,13 +131,13 @@ public class VersionImporter implements TransferProcess{
      * @param clientBuilder
      */
     public VersionImporter(final Config config, final FcrepoClientBuilder clientBuilder) {
-        this.uriTranslator = new URITranslationUtil(config);
 
-        importRescFactory = new ImportResourceFactory(config, uriTranslator);
+        importRescFactory = new ImportResourceFactory(config);
 
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
+        this.versionedLabels = new HashMap<>();
 
         if (config.getBagProfile() == null) {
             this.bag = null;
@@ -174,11 +175,59 @@ public class VersionImporter implements TransferProcess{
         importLogger.info("Finished import... {} resources imported", successCount.get());
     }
 
+    final private static Pattern versionUriPattern = Pattern.compile("(.+)/fcr:versions/([^/]+)(/.+)?");
+    
     private void processImport(final URI resource) {
         final URI parentUri = parent(resource);
         final File importContainerDirectory = directoryForContainer(parentUri);
+        
+        try {
+            final Iterator<ImportResource> rescIt = new ChronologicalImportResourceIterator(
+                    config, importRescFactory);
+            while (rescIt.hasNext()) {
+                final ImportResource impResc = rescIt.next();
+                final String uri = impResc.getUri().toString();
+                
+                // For versioned resources need to translate it into a non-version prior to import
+                if (impResc.hasVersions()) {
+                    final Matcher versionUriMatcher = versionUriPattern.matcher(uri);
+                    final String label;
+                    
+                    // Get a variation on uri which does not contain version info
+                    String nonVersionUri;
+                    if (versionUriMatcher.matches()) {
+                        nonVersionUri = versionUriMatcher.group(1);
+                        if (versionUriMatcher.group(3) != null) {
+                            nonVersionUri += versionUriMatcher.group(3);
+                        }
+                        label = versionUriMatcher.group(2);
+                    } else {
+                        nonVersionUri = uri;
+                        label = null;
+                    }
+                    
+                    if (versionedLabels.containsKey(nonVersionUri)) {
+                        // TODO delete removed resources
+                        // create snapshot of versioned resource using previously registered label
+                        createVersion(URI.create(nonVersionUri), versionedLabels.get(nonVersionUri));
+                    }
+                    
+                    // storing version label for snapshot later
+                    if (label == null) {
+                        versionedLabels.remove(nonVersionUri);
+                    } else {
+                        versionedLabels.put(nonVersionUri, label);
+                    }
+                }
+                
+                importResource(impResc);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("", e);
+        }
+        
 
-        importDirectory(importContainerDirectory);
+        // importDirectory(importContainerDirectory);
     }
 
     private void importDirectory(final File directory) {
@@ -200,22 +249,31 @@ public class VersionImporter implements TransferProcess{
     }
 
     private void importContainerResource(final ImportResource resc) {
-        final Set<URI> previousResourceUris = null;
-        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
-            // update description for containers other than root
-            if (!isSkippableContainer(resc)) {
-                importDescription(resc);
-            }
-
-            final File subDirectory = resc.getDirectory();
-            if (subDirectory != null && subDirectory.exists()) {
-                importDirectory(subDirectory);
-            }
-
-            if (resc.isVersion()) {
-                createVersion(resc.getUri(), version.getId());
-            }
+        if (!isSkippableContainer(resc)) {
+            importDescription(resc);
         }
+//        
+//        final File subDirectory = resc.getDirectory();
+//        if (subDirectory != null && subDirectory.exists()) {
+//            importDirectory(subDirectory);
+//        }
+//        
+//        final Set<URI> previousResourceUris = null;
+//        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
+//            // update description for containers other than root
+//            if (!isSkippableContainer(resc)) {
+//                importDescription(resc);
+//            }
+//
+//            final File subDirectory = resc.getDirectory();
+//            if (subDirectory != null && subDirectory.exists()) {
+//                importDirectory(subDirectory);
+//            }
+//
+//            if (resc.isVersion()) {
+//                createVersion(resc.getUri(), version.getId());
+//            }
+//        }
     }
 
     private boolean isSkippableContainer(final ImportResource impResource) {
@@ -229,35 +287,46 @@ public class VersionImporter implements TransferProcess{
         if (!config.isIncludeBinaries()) {
             return;
         }
-
-        String previousChecksum = null;
-        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
-            try {
-                // check to see if the checksum has changed since previous version
-                final String currentChecksum = getBinaryChecksum(resc);
-                if (!currentChecksum.equals(previousChecksum)) {
-                    // Import the modified binary
-                    importBinaryFile(resc);
-                }
-
-                // update metadata
-                importDescription(resc);
-
-                if (resc.isVersion()) {
-                    createVersion(resc.getUri(), version.getId());
-                }
-
-                previousChecksum = currentChecksum;
-            } catch (RuntimeException e) {
-                logger.error("Failed to import binary {}", resc.getUri(), e);
-            }
+        
+        try {
+            importBinaryFile(resc);
+            
+            // update metadata
+            importDescription(resc);
+        } catch (Exception e) {
+            logger.warn("Failed to import {}", resc.getBinary().getAbsolutePath());
         }
+
+//        String previousChecksum = null;
+//        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
+//            try {
+//                // check to see if the checksum has changed since previous version
+//                final String currentChecksum = getBinaryChecksum(resc);
+//                if (!currentChecksum.equals(previousChecksum)) {
+//                    // Import the modified binary
+//                    importBinaryFile(resc);
+//                }
+//
+//                // update metadata
+//                importDescription(resc);
+//
+//                if (resc.isVersion()) {
+//                    createVersion(resc.getUri(), version.getId());
+//                }
+//
+//                previousChecksum = currentChecksum;
+//            } catch (RuntimeException e) {
+//                logger.error("Failed to import binary {}", resc.getUri(), e);
+//            }
+//        }
     }
 
     private void createVersion(final URI uri, final String label) {
         final URI versionsUri = addRelativePath(uri, FCR_VERSIONS_PATH);
         try {
-            final FcrepoResponse response = client().post(versionsUri).slug(label).perform();
+            final FcrepoResponse response = client().post(versionsUri)
+                    .slug(label)
+                    .perform();
 
             if (response.getStatusCode() == 201) {
                 logger.info("Created version {} of {}", label, uri);
@@ -274,8 +343,8 @@ public class VersionImporter implements TransferProcess{
 
     private void importDescription(final ImportResource resc) {
         final Model model = resc.getModel();
-        final URI destinationUri = resc.getUri();
-        final String descriptionPath = resc.getMetadataFile().getAbsolutePath();
+        final URI destinationUri = resc.getMappedUri();
+        final String descriptionPath = resc.getDescriptionFile().getAbsolutePath();
         try {
             final FcrepoResponse response = client().put(resc.getDescriptionUri())
                     .body(modelToStream(sanitize(model)), config.getRdfLanguage())
@@ -310,7 +379,7 @@ public class VersionImporter implements TransferProcess{
     }
 
     private void importBinaryFile(final ImportResource resc) {
-        final URI binaryURI = resc.getUri();
+        final URI binaryURI = resc.getMappedUri();
         final Model model = resc.getModel();
         final String contentType = model
                 .getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
@@ -586,8 +655,13 @@ public class VersionImporter implements TransferProcess{
     }
 
     private static Model parseStream(final InputStream in, final Config config) throws IOException {
-        final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(config.getSource(),
-                                                                           config.getDestination());
+        final SubjectMappingStreamRDF mapper;
+        if (config.includeVersions()) {
+            mapper = new VersionSubjectMappingStreamRDF(config.getSource(), config.getDestination());
+        } else {
+            mapper = new SubjectMappingStreamRDF(config.getSource(), config.getDestination());
+        }
+
         try (final InputStream in2 = in) {
             RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
         }
@@ -598,25 +672,28 @@ public class VersionImporter implements TransferProcess{
         private final Config config;
 
         private final String id;
-        private final List<File> files;
         private final URI uri;
+        private URI mappedUri;
         private URI descriptionUri;
         private Model model;
         private Resource resource;
         private boolean isVersion;
+        private File binary;
+        private File descriptionFile;
 
         /**
          * Construct new ImportResource
          * 
          * @param id
          * @param uri
+         * @param descriptionFile
          * @param config
          */
-        public ImportResource(final String id, final URI uri, final Config config) {
+        public ImportResource(final String id, final URI uri, final File descriptionFile, final Config config) {
             this.id = id;
             this.config = config;
-            this.files = new ArrayList<>();
             this.uri = uri;
+            this.descriptionFile = descriptionFile;
         }
 
         /**
@@ -629,12 +706,29 @@ public class VersionImporter implements TransferProcess{
         }
 
         /**
-         * Get the URI for this resource
+         * Get the original URI for this resource
          * 
          * @return
          */
         public URI getUri() {
             return uri;
+        }
+
+        /**
+         * Get the URI for this resource remapped for the destination repository
+         * 
+         * @return
+         */
+        public URI getMappedUri() {
+            if (mappedUri == null) {
+                Resource resc = getResource();
+                if (resc == null) {
+                    return uri;
+                }
+                mappedUri = URI.create(resc.getURI());
+            }
+            
+            return mappedUri;
         }
 
         /**
@@ -645,30 +739,12 @@ public class VersionImporter implements TransferProcess{
         public URI getDescriptionUri() {
             if (descriptionUri == null) {
                 if (isBinary()) {
-                    descriptionUri = addRelativePath(uri, FCR_METADATA_PATH);
+                    descriptionUri = addRelativePath(getMappedUri(), FCR_METADATA_PATH);
                 } else {
-                    descriptionUri = uri;
+                    descriptionUri = getMappedUri();
                 }
             }
             return descriptionUri;
-        }
-
-        /**
-         * Get a list of all files associated with this resource
-         * 
-         * @return
-         */
-        public List<File> getFiles() {
-            return files;
-        }
-
-        /**
-         * Associate a file with this resource.
-         * 
-         * @param file
-         */
-        public void addFile(final File file) {
-            files.add(file);
         }
 
         /**
@@ -677,7 +753,7 @@ public class VersionImporter implements TransferProcess{
          * @return
          */
         public boolean isBinary() {
-            return getBinary() != null;
+            return getBinary().exists();
         }
 
         /**
@@ -686,10 +762,24 @@ public class VersionImporter implements TransferProcess{
          * @return the binary for this resource or null if not found
          */
         public File getBinary() {
-            return files.stream()
-                    .filter(f -> f.getName().equals(id + BINARY_EXTENSION)
-                            || f.getName().equals(id + EXTERNAL_RESOURCE_EXTENSION))
-                    .findFirst().orElse(null);
+            if (binary == null) {
+                binary = TransferProcess.fileForURI(uri, config.getSourcePath(),
+                        config.getDestinationPath(), config.getBaseDirectory(), BINARY_EXTENSION);
+                if (!binary.exists()) {
+                    binary = TransferProcess.fileForURI(uri, config.getSourcePath(),
+                            config.getDestinationPath(), config.getBaseDirectory(), EXTERNAL_RESOURCE_EXTENSION);
+                }
+            }
+            return binary;
+        }
+        
+        /**
+         * Get the file containing metadata for this resource
+         * 
+         * @return
+         */
+        public File getDescriptionFile() {
+            return descriptionFile;
         }
 
         /**
@@ -698,10 +788,8 @@ public class VersionImporter implements TransferProcess{
          * @return
          */
         public File getDirectory() {
-            return files.stream()
-                    .filter(File::isDirectory)
-                    .findFirst()
-                    .orElse(null);
+            return TransferProcess.fileForURI(uri, config.getSourcePath(),
+                    config.getDestinationPath(), config.getBaseDirectory(), "");
         }
 
         /**
@@ -711,7 +799,7 @@ public class VersionImporter implements TransferProcess{
          */
         public Model getModel() {
             if (model == null) {
-                final File mdFile = getMetadataFile();
+                final File mdFile = getDescriptionFile();
                 if (mdFile == null) {
                     return null;
                 }
@@ -724,23 +812,7 @@ public class VersionImporter implements TransferProcess{
             return model;
         }
 
-        /**
-         * Get the file containing metadata for this resource
-         * 
-         * @return
-         */
-        public File getMetadataFile() {
-            if (isBinary()) {
-                // For a file, retrieve the fcr:metadata file from its subdirectory
-                return Arrays.stream(getDirectory().listFiles())
-                        .filter(f -> f.getName().endsWith(config.getRdfExtension()))
-                        .findFirst().orElse(null);
-            }
-            // For containers, find the model file
-            return files.stream()
-                    .filter(f -> f.getName().equals(id + config.getRdfExtension()))
-                    .findFirst().orElse(null);
-        }
+
 
         /**
          * Get the resource representing this ImportResource from its model
@@ -753,7 +825,7 @@ public class VersionImporter implements TransferProcess{
                 if (model == null) {
                     return null;
                 }
-                resource = model.getResource(uri.toString());
+                resource = model.listResourcesWithProperty(RDF_TYPE).next();
             }
             return resource;
         }
@@ -801,7 +873,8 @@ public class VersionImporter implements TransferProcess{
          */
         public boolean hasVersions() {
             final Resource resc = getResource();
-            return resc.hasProperty(HAS_VERSIONS) && getVersionsFile().exists();
+            return resc.hasProperty(RDF_TYPE, VERSION_RESOURCE)
+                    || (resc.hasProperty(HAS_VERSIONS) && getVersionsFile().exists());
         }
 
         private List<String> extractOrderedVersionLabels(final File versionsFile) {
