@@ -17,24 +17,14 @@
  */
 package org.fcrepo.importexport.importer;
 
-import static java.util.Arrays.stream;
-import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
-
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.TransferProcess;
-import org.fcrepo.importexport.common.URITranslationUtil;
 import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
 
 /**
@@ -46,7 +36,6 @@ import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
 public class ImportResourceFactory {
 
     private final Config config;
-    private final URITranslationUtil uriTranslator;
 
     /**
      * Default constructor
@@ -54,19 +43,15 @@ public class ImportResourceFactory {
      * @param config
      * @param uriTranslator
      */
-    public ImportResourceFactory(final Config config, final URITranslationUtil uriTranslator) {
+    public ImportResourceFactory(final Config config) {
         this.config = config;
-        this.uriTranslator = uriTranslator;
     }
 
-    public ImportResource createFromUri(final URI uri) {
+    public ImportResource createFromUri(final URI uri, final File descriptionFile) {
         final String uriString = uri.toString();
         final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
         
-        final File file = TransferProcess.fileForURI(uri, config.getSourcePath(),
-                config.getDestinationPath(), config.getBaseDirectory(), config.getRdfExtension());
-        
-        return new ImportResource(id, uri, config);
+        return new ImportResource(id, uri, descriptionFile, config);
     }
     
     /**
@@ -78,28 +63,29 @@ public class ImportResourceFactory {
      * @return
      */
     public List<ImportResource> createFromDirectory(final File directory) {
-        final Pattern resourceIdPattern = Pattern.compile("(.+?)(\\" + EXTERNAL_RESOURCE_EXTENSION +
-                "|\\" + BINARY_EXTENSION + "|\\" + config.getRdfExtension() + ")?");
+//        final Pattern resourceIdPattern = Pattern.compile("(.+?)(\\" + EXTERNAL_RESOURCE_EXTENSION +
+//                "|\\" + BINARY_EXTENSION + "|\\" + config.getRdfExtension() + ")?");
+//
+//        // Associate all files/directories that comprise a resource together
+//        final Map<String, ImportResource> resourceMap = new HashMap<>();
+//        stream(directory.listFiles()).forEach(f -> {
+//            final Matcher matcher = resourceIdPattern.matcher(f.getName());
+//            if (matcher.matches()) {
+//                final String id = matcher.group(1);
+//                ImportResource resc = resourceMap.get(id);
+//                if (resc == null) {
+//                    // build the uri for this resource with the de-extensioned filename
+//                    final URI uri = URITranslationUtil.uriForFile(new File(f.getParentFile(), id), config);
+//
+//                    resc = new ImportResource(id, uri, config);
+//                    resourceMap.put(id, resc);
+//                }
+//                resc.addFile(f);
+//            }
+//        });
 
-        // Associate all files/directories that comprise a resource together
-        final Map<String, ImportResource> resourceMap = new HashMap<>();
-        stream(directory.listFiles()).forEach(f -> {
-            final Matcher matcher = resourceIdPattern.matcher(f.getName());
-            if (matcher.matches()) {
-                final String id = matcher.group(1);
-                ImportResource resc = resourceMap.get(id);
-                if (resc == null) {
-                    // build the uri for this resource with the de-extensioned filename
-                    final URI uri = uriTranslator.uriForFile(new File(f.getParentFile(), id));
-
-                    resc = new ImportResource(id, uri, config);
-                    resourceMap.put(id, resc);
-                }
-                resc.addFile(f);
-            }
-        });
-
-        return new ArrayList<>(resourceMap.values());
+        //return new ArrayList<>(resourceMap.values());
+        return null;
     }
 
     /**

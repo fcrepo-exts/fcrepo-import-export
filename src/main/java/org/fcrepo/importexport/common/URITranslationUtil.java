@@ -26,18 +26,7 @@ import java.net.URI;
  * @author bbpennel
  *
  */
-public class URITranslationUtil {
-
-    private final Config config;
-
-    /**
-     * Construct a uri translation util
-     * 
-     * @param config
-     */
-    public URITranslationUtil(final Config config) {
-        this.config = config;
-    }
+public abstract class URITranslationUtil {
 
     /**
      * Builds the repository URI for the given file
