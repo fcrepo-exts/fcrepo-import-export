@@ -18,21 +18,20 @@
 package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.graph.Factory.createDefaultGraph;
-import static org.apache.jena.rdf.model.ModelFactory.createModelForGraph;
 import static org.apache.jena.graph.NodeFactory.createURI;
+import static org.apache.jena.rdf.model.ModelFactory.createModelForGraph;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.net.URI;
-
-import org.apache.jena.rdf.model.Model;
-import org.slf4j.Logger;
 
 import org.apache.jena.atlas.lib.Sink;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.lang.SinkTriplesToGraph;
 import org.apache.jena.riot.system.StreamRDFBase;
+import org.slf4j.Logger;
 
 /**
  * StreamRDF implementation that maps URIs to a specified destination URI.
@@ -43,8 +42,8 @@ import org.apache.jena.riot.system.StreamRDFBase;
 public class SubjectMappingStreamRDF extends StreamRDFBase {
     private static final Logger logger = getLogger(SubjectMappingStreamRDF.class);
 
-    private final String sourceURI;
-    private final String destinationURI;
+    protected final String sourceURI;
+    protected final String destinationURI;
     private final Graph graph;
     private final Sink<Triple> sink;
 
@@ -65,7 +64,7 @@ public class SubjectMappingStreamRDF extends StreamRDFBase {
         sink.send(Triple.create(rebase(t.getSubject()), t.getPredicate(), rebase(t.getObject())));
     }
 
-    private Node rebase(final Node node) {
+    protected Node rebase(final Node node) {
         if (node.isURI() && sourceURI != null && destinationURI != null
                 && node.getURI().startsWith(sourceURI)) {
             return createURI(node.getURI().replaceFirst(sourceURI, destinationURI));
