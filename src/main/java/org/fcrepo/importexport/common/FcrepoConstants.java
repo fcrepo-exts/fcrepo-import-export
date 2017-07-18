@@ -60,6 +60,7 @@ public abstract class FcrepoConstants {
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
     public static final Resource FEDORA_RESOURCE = createResource(REPOSITORY_NAMESPACE + "Resource");
     public static final Resource REPOSITORY_ROOT = createResource(REPOSITORY_NAMESPACE + "RepositoryRoot");
+    public static final Resource VERSION_RESOURCE = createResource(REPOSITORY_NAMESPACE + "Version");
 
     public static final String BAG_INFO_FIELDNAME = "Bag-Info";
 
