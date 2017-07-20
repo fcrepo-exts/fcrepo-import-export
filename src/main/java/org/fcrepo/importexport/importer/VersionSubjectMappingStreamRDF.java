@@ -18,7 +18,7 @@
 package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.graph.NodeFactory.createURI;
-import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
+import static org.fcrepo.importexport.common.URITranslationUtil.remapResourceUri;
 
 import java.net.URI;
 
@@ -46,14 +46,8 @@ public class VersionSubjectMappingStreamRDF extends SubjectMappingStreamRDF {
     protected Node rebase(final Node node) {
         if (node.isURI()) {
             // Replace uri base and strip out versions path
-            String rebasedNodeUri = node.getURI();
-            if (rebasedNodeUri.contains(FCR_VERSIONS_PATH)) {
-                rebasedNodeUri = rebasedNodeUri.replaceFirst("/fcr:versions/[^/]+", "");
-            }
-            if (sourceURI != null && destinationURI != null
-                    && node.getURI().startsWith(sourceURI)) {
-                rebasedNodeUri = rebasedNodeUri.replaceFirst(sourceURI, destinationURI);
-            }
+            String rebasedNodeUri = remapResourceUri(node.getURI(), sourceURI, destinationURI);
+
             if (!rebasedNodeUri.equals(node.getURI())) {
                 return createURI(rebasedNodeUri);
             }

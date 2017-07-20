@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
+import org.fcrepo.importexport.importer.VersionImporter.ImportVersion;
 
 /**
  * Factory which produces {@link ImportResource} objects
@@ -47,11 +48,18 @@ public class ImportResourceFactory {
         this.config = config;
     }
 
-    public ImportResource createFromUri(final URI uri, final File descriptionFile) {
+    public ImportResource createFromUri(final URI uri, final File descriptionFile, final long lastModified) {
         final String uriString = uri.toString();
         final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
         
-        return new ImportResource(id, uri, descriptionFile, config);
+        return new ImportResource(id, uri, descriptionFile, lastModified, config);
+    }
+    
+    public ImportVersion createImportVersion(final URI uri, final long timestamp) {
+        final String uriString = uri.toString();
+        final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
+        
+        return new ImportVersion(id, uri, timestamp, config);
     }
     
     /**

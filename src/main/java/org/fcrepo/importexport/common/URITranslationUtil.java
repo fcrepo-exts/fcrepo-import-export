@@ -17,6 +17,8 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
+
 import java.io.File;
 import java.net.URI;
 
@@ -79,5 +81,39 @@ public abstract class URITranslationUtil {
     private static String baseURI(final URI uri) {
         final String base = uri.toString().replaceFirst(uri.getPath() + "$", "");
         return (base.endsWith("/")) ? base : base + "/";
+    }
+
+    /**
+     * Remaps the given uri to its expected uri within the destination repository
+     * 
+     * @param uri resource uri
+     * @param sourceURI source uri
+     * @param destinationURI destination base uri
+     * @return remapped resource uri
+     */
+    public static URI remapResourceUri(final URI uri, final URI sourceURI, final URI destinationURI) {
+        return URI.create(remapResourceUri(uri.toString(), sourceURI == null ? null : sourceURI.toString(),
+                destinationURI == null ? null : destinationURI.toString()));
+    }
+
+    /**
+     * Remaps the given uri to its expected uri within the destination repository
+     * 
+     * @param uri resource uri
+     * @param sourceURI source uri
+     * @param destinationURI destination base uri
+     * @return remapped resource uri
+     */
+    public static String remapResourceUri(final String uri, final String sourceURI, final String destinationURI) {
+        String remapped = uri;
+        if (remapped.contains(FCR_VERSIONS_PATH)) {
+            remapped = remapped.replaceFirst("/fcr:versions/[^/]+", "");
+        }
+        if (sourceURI != null && destinationURI != null
+                && uri.startsWith(sourceURI)) {
+            remapped = remapped.replaceFirst(sourceURI, destinationURI);
+        }
+        
+        return remapped;
     }
 }
