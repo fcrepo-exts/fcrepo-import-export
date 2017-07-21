@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.URITranslationUtil;
-import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
 import org.junit.Before;
 import org.mockito.Mock;
 

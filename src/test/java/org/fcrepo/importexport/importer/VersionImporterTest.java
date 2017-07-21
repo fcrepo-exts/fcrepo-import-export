@@ -20,6 +20,7 @@ package org.fcrepo.importexport.importer;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
@@ -306,5 +307,54 @@ public class VersionImporterTest {
 
         // verify that the checksum from the manifest-sha1 file is used
         verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"));
+    }
+
+    @Test
+    public void testRepositoryRoot() throws FcrepoOperationFailedException {
+        final Config config = new Config();
+        config.setMode("import");
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+
+        // when the uri is the repository root
+        final URI rest = URI.create("http://example.org:2222/rest");
+        mockGet(rest, REPOSITORY_NAMESPACE + "RepositoryRoot");
+        assertEquals(rest, importer.findRepositoryRoot(rest));
+    }
+
+    @Test
+    public void testRepositoryRootChild() throws FcrepoOperationFailedException {
+        final Config config = new Config();
+        config.setMode("import");
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+
+        // when the uri is a child of the repository root
+        final URI rest = URI.create("http://example.org:3333/rest");
+        final URI child = URI.create("http://example.org:3333/rest/child");
+        mockGet(rest, REPOSITORY_NAMESPACE + "RepositoryRoot");
+        mockGet(child, REPOSITORY_NAMESPACE + "Resource");
+        assertEquals(rest, importer.findRepositoryRoot(rest));
+    }
+
+    @Test
+    public void testRepositoryRootFallback() throws FcrepoOperationFailedException {
+        final Config config = new Config();
+        config.setMode("import");
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+
+        // when the uri has no path
+        final URI dummy = URI.create("http://example.org:4444");
+        assertEquals(dummy, importer.findRepositoryRoot(dummy));
+    }
+
+    private void mockGet(final URI uri, final String type) throws FcrepoOperationFailedException {
+        final GetBuilder getBuilder = mock(GetBuilder.class);
+        final FcrepoResponse getResponse = mock(FcrepoResponse.class);
+        when(client.get(eq(uri))).thenReturn(getBuilder);
+        when(getBuilder.accept(isA(String.class))).thenReturn(getBuilder);
+        when(getBuilder.disableRedirects()).thenReturn(getBuilder);
+        when(getBuilder.perform()).thenReturn(getResponse);
+        when(getResponse.getStatusCode()).thenReturn(200);
+        when(getResponse.getBody()).thenReturn(new ByteArrayInputStream((
+            "<" + uri.toString() + "> a <" + type + "> .").getBytes()));
     }
 }

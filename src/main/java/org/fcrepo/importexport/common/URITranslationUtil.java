@@ -34,6 +34,7 @@ public abstract class URITranslationUtil {
      * Builds the repository URI for the given file
      * 
      * @param f file to build URI for
+     * @param config config
      * @return URI for file
      */
     public static URI uriForFile(final File f, final Config config) {

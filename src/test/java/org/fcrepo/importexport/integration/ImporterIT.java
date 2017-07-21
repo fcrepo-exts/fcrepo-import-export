@@ -298,7 +298,7 @@ public class ImporterIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("import");
-        final Importer importer = new Importer(config, clientBuilder);
+        final VersionImporter importer = new VersionImporter(config, clientBuilder);
 
         assertEquals(root, importer.findRepositoryRoot(rest));
         assertEquals(root, importer.findRepositoryRoot(restFoo));

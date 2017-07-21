@@ -33,9 +33,6 @@ import java.io.File;
 import java.net.URI;
 
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.importer.VersionImporter.ImportEvent;
-import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
-import org.fcrepo.importexport.importer.VersionImporter.ImportVersion;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

@@ -18,22 +18,15 @@
 package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
-import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.FCR_METADATA_PATH;
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSIONS;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
@@ -42,7 +35,6 @@ import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
-import static org.fcrepo.importexport.common.FcrepoConstants.VERSION_RESOURCE;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
@@ -61,27 +53,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.datatypes.xsd.XSDDateTime;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.riot.RDFDataMgr;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoClient.FcrepoClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -127,8 +111,8 @@ public class VersionImporter implements TransferProcess{
     /**
      * Construct an importer
      * 
-     * @param config
-     * @param clientBuilder
+     * @param config config
+     * @param clientBuilder fcrepo client builder
      */
     public VersionImporter(final Config config, final FcrepoClientBuilder clientBuilder) {
 
@@ -175,69 +159,26 @@ public class VersionImporter implements TransferProcess{
         importLogger.info("Finished import... {} resources imported", successCount.get());
     }
 
-    final private static Pattern versionUriPattern = Pattern.compile("(.+)/fcr:versions/([^/]+)(/.+)?");
-    
     private void processImport(final URI resource) {
-        final URI parentUri = parent(resource);
-        final File importContainerDirectory = directoryForContainer(parentUri);
+        // final URI parentUri = parent(resource);
+        // final File importContainerDirectory = directoryForContainer(parentUri);
         
         try {
-            final Iterator<ImportResource> rescIt = new ChronologicalImportResourceIterator(
+            final Iterator<ImportEvent> rescIt = new ChronologicalImportEventIterator(
                     config, importRescFactory);
             while (rescIt.hasNext()) {
-                final ImportResource impResc = rescIt.next();
-                final String uri = impResc.getUri().toString();
+                final ImportEvent impEvent = rescIt.next();
                 
-                // For versioned resources need to translate it into a non-version prior to import
-                if (impResc.hasVersions()) {
-                    final Matcher versionUriMatcher = versionUriPattern.matcher(uri);
-                    final String label;
-                    
-                    // Get a variation on uri which does not contain version info
-                    String nonVersionUri;
-                    if (versionUriMatcher.matches()) {
-                        nonVersionUri = versionUriMatcher.group(1);
-                        if (versionUriMatcher.group(3) != null) {
-                            nonVersionUri += versionUriMatcher.group(3);
-                        }
-                        label = versionUriMatcher.group(2);
-                    } else {
-                        nonVersionUri = uri;
-                        label = null;
-                    }
-                    
-                    if (versionedLabels.containsKey(nonVersionUri)) {
-                        // TODO delete removed resources
-                        // create snapshot of versioned resource using previously registered label
-                        createVersion(URI.create(nonVersionUri), versionedLabels.get(nonVersionUri));
-                    }
-                    
-                    // storing version label for snapshot later
-                    if (label == null) {
-                        versionedLabels.remove(nonVersionUri);
-                    } else {
-                        versionedLabels.put(nonVersionUri, label);
-                    }
+                if (impEvent instanceof ImportResource) {
+                    importResource((ImportResource) impEvent);
+                } else if (impEvent instanceof ImportVersion) {
+                    ImportVersion version = (ImportVersion) impEvent;
+                    createVersion(version.getMappedUri(), version.getLabel());
                 }
-                
-                importResource(impResc);
             }
         } catch (IOException e) {
             throw new RuntimeException("", e);
         }
-        
-
-        // importDirectory(importContainerDirectory);
-    }
-
-    private void importDirectory(final File directory) {
-        // Group the files/directories in this directory up into resource entities
-        final List<ImportResource> importResources = importRescFactory.createFromDirectory(directory);
-
-        // Import each resource
-        importResources.forEach(importResc -> {
-            importResource(importResc);
-        });
     }
 
     private void importResource(final ImportResource resc) {
@@ -252,28 +193,6 @@ public class VersionImporter implements TransferProcess{
         if (!isSkippableContainer(resc)) {
             importDescription(resc);
         }
-//        
-//        final File subDirectory = resc.getDirectory();
-//        if (subDirectory != null && subDirectory.exists()) {
-//            importDirectory(subDirectory);
-//        }
-//        
-//        final Set<URI> previousResourceUris = null;
-//        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
-//            // update description for containers other than root
-//            if (!isSkippableContainer(resc)) {
-//                importDescription(resc);
-//            }
-//
-//            final File subDirectory = resc.getDirectory();
-//            if (subDirectory != null && subDirectory.exists()) {
-//                importDirectory(subDirectory);
-//            }
-//
-//            if (resc.isVersion()) {
-//                createVersion(resc.getUri(), version.getId());
-//            }
-//        }
     }
 
     private boolean isSkippableContainer(final ImportResource impResource) {
@@ -296,29 +215,6 @@ public class VersionImporter implements TransferProcess{
         } catch (Exception e) {
             logger.warn("Failed to import {}", resc.getBinary().getAbsolutePath());
         }
-
-//        String previousChecksum = null;
-//        for (final ImportResource version : importRescFactory.createVersionResourceList(resc)) {
-//            try {
-//                // check to see if the checksum has changed since previous version
-//                final String currentChecksum = getBinaryChecksum(resc);
-//                if (!currentChecksum.equals(previousChecksum)) {
-//                    // Import the modified binary
-//                    importBinaryFile(resc);
-//                }
-//
-//                // update metadata
-//                importDescription(resc);
-//
-//                if (resc.isVersion()) {
-//                    createVersion(resc.getUri(), version.getId());
-//                }
-//
-//                previousChecksum = currentChecksum;
-//            } catch (RuntimeException e) {
-//                logger.error("Failed to import binary {}", resc.getUri(), e);
-//            }
-//        }
     }
 
     private void createVersion(final URI uri, final String label) {
@@ -407,43 +303,6 @@ public class VersionImporter implements TransferProcess{
             }
         } catch (FcrepoOperationFailedException | IOException e) {
            throw new RuntimeException("Error while importing " + binaryFile.getAbsolutePath(), e);
-        }
-    }
-
-    @Deprecated
-    private FcrepoResponse importBinary(final URI binaryURI, final File binaryFile, final Model model)
-            throws FcrepoOperationFailedException, IOException {
-        final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        // final File binaryFile =  fileForBinaryURI(binaryURI, external(contentType));
-        final FcrepoResponse binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
-        if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
-            logger.info("Imported binary: {}", binaryURI);
-            importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
-            successCount.incrementAndGet();
-
-            final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
-            return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
-                .preferLenient().perform();
-        } else if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
-            deleteTombstone(binaryResponse);
-            return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
-        } else {
-            logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
-                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
-            return null;
-        }
-    }
-
-    private String getBinaryChecksum(final ImportResource resc) {
-        final File binaryFile = resc.getBinary();
-        final URI binaryURI = resc.getUri();
-        if (sha1FileMap != null) {
-            // Use the bagIt checksum
-            final String checksum = sha1FileMap.get(binaryFile.getAbsolutePath());
-            logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
-            return checksum;
-        } else {
-            return resc.getResource().getProperty(HAS_MESSAGE_DIGEST).getResource().getURI().replaceAll(".*:","");
         }
     }
 
@@ -595,11 +454,6 @@ public class VersionImporter implements TransferProcess{
         return new ByteArrayInputStream(buf.toByteArray());
     }
 
-    private static String baseURI(final URI uri) {
-        final String base = uri.toString().replaceFirst(uri.getPath() + "$", "");
-        return (base.endsWith("/")) ? base : base + "/";
-    }
-
     private File fileForBinaryURI(final URI uri, final boolean external) {
         if (external) {
             return fileForExternalResources(uri, config.getSourcePath(), config.getDestinationPath(),
@@ -619,304 +473,37 @@ public class VersionImporter implements TransferProcess{
         return contentType.startsWith("message/external-body");
     }
 
-    private File directoryForContainer(final URI uri) {
-        return TransferProcess.directoryForContainer(withSlash(uri), config.getSourcePath(),
-                config.getDestinationPath(), config.getBaseDirectory());
-    }
-
     private static URI withSlash(final URI uri) {
         return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 
     /**
      * Method to find and set the repository root from the resource uri.
+     *
+     * Note: This method is public to allow access for testing purposes.
      * @param uri the URI for the resource
-     * @throws IOException
-     * @throws FcrepoOperationFailedException
+     * @return The URI of the repository root, or the URI with path removed if neither the URI nor none of its
+     *         parent paths declare themselves fedora:RepositoryRoot.
      */
-    private void findRepositoryRoot(final URI uri) {
-        repositoryRoot = uri;
+    public URI findRepositoryRoot(final URI uri) {
+        final String s = uri.toString();
+        final URI u = s.endsWith("/") ? URI.create(s.substring(0, s.length() - 1)) : uri;
+
         try {
-            repositoryRoot = uri;
-            if (!isRepositoryRoot(uri, client(), config)) {
-                findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
-                        repositoryRoot.toString().lastIndexOf("/"))));
+            if (u.getPath() == null || u.getPath().equals("") || isRepositoryRoot(u, client(), config)) {
+                return u;
+            } else {
+                return findRepositoryRoot(URI.create(u.toString().substring(0,
+                        u.toString().lastIndexOf("/"))));
             }
         } catch (ResourceNotFoundRuntimeException ex) {
             // The targeted resource that need to be imported next
-            findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
-                    repositoryRoot.toString().lastIndexOf("/"))));
+            return findRepositoryRoot(URI.create(u.toString().substring(0,
+                    u.toString().lastIndexOf("/"))));
         } catch (final IOException ex) {
-            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
+            throw new RuntimeException("Error finding repository root " + u, ex);
         } catch (final FcrepoOperationFailedException ex) {
-            throw new RuntimeException("Error finding repository root " + repositoryRoot, ex);
-        }
-        logger.debug("Repository root {}", repositoryRoot);
-    }
-
-    private static Model parseStream(final InputStream in, final Config config) throws IOException {
-        final SubjectMappingStreamRDF mapper;
-        if (config.includeVersions()) {
-            mapper = new VersionSubjectMappingStreamRDF(config.getSource(), config.getDestination());
-        } else {
-            mapper = new SubjectMappingStreamRDF(config.getSource(), config.getDestination());
-        }
-
-        try (final InputStream in2 = in) {
-            RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
-        }
-        return mapper.getModel();
-    }
-
-    public static class ImportResource {
-        private final Config config;
-
-        private final String id;
-        private final URI uri;
-        private URI mappedUri;
-        private URI descriptionUri;
-        private Model model;
-        private Resource resource;
-        private boolean isVersion;
-        private File binary;
-        private File descriptionFile;
-
-        /**
-         * Construct new ImportResource
-         * 
-         * @param id
-         * @param uri
-         * @param descriptionFile
-         * @param config
-         */
-        public ImportResource(final String id, final URI uri, final File descriptionFile, final Config config) {
-            this.id = id;
-            this.config = config;
-            this.uri = uri;
-            this.descriptionFile = descriptionFile;
-        }
-
-        /**
-         * Get Id for this resource
-         * 
-         * @return
-         */
-        public String getId() {
-            return id;
-        }
-
-        /**
-         * Get the original URI for this resource
-         * 
-         * @return
-         */
-        public URI getUri() {
-            return uri;
-        }
-
-        /**
-         * Get the URI for this resource remapped for the destination repository
-         * 
-         * @return
-         */
-        public URI getMappedUri() {
-            if (mappedUri == null) {
-                Resource resc = getResource();
-                if (resc == null) {
-                    return uri;
-                }
-                mappedUri = URI.create(resc.getURI());
-            }
-            
-            return mappedUri;
-        }
-
-        /**
-         * Get the URI for metadata for this resource
-         * 
-         * @return
-         */
-        public URI getDescriptionUri() {
-            if (descriptionUri == null) {
-                if (isBinary()) {
-                    descriptionUri = addRelativePath(getMappedUri(), FCR_METADATA_PATH);
-                } else {
-                    descriptionUri = getMappedUri();
-                }
-            }
-            return descriptionUri;
-        }
-
-        /**
-         * Test if this resource is a binary
-         * 
-         * @return
-         */
-        public boolean isBinary() {
-            return getBinary().exists();
-        }
-
-        /**
-         * Get the binary file for this resource
-         * 
-         * @return the binary for this resource or null if not found
-         */
-        public File getBinary() {
-            if (binary == null) {
-                binary = TransferProcess.fileForURI(uri, config.getSourcePath(),
-                        config.getDestinationPath(), config.getBaseDirectory(), BINARY_EXTENSION);
-                if (!binary.exists()) {
-                    binary = TransferProcess.fileForURI(uri, config.getSourcePath(),
-                            config.getDestinationPath(), config.getBaseDirectory(), EXTERNAL_RESOURCE_EXTENSION);
-                }
-            }
-            return binary;
-        }
-        
-        /**
-         * Get the file containing metadata for this resource
-         * 
-         * @return
-         */
-        public File getDescriptionFile() {
-            return descriptionFile;
-        }
-
-        /**
-         * Get the directory for subpaths belonging to this resource
-         * 
-         * @return
-         */
-        public File getDirectory() {
-            return TransferProcess.fileForURI(uri, config.getSourcePath(),
-                    config.getDestinationPath(), config.getBaseDirectory(), "");
-        }
-
-        /**
-         * Get the model containing properties assigned to this resource
-         * 
-         * @return
-         */
-        public Model getModel() {
-            if (model == null) {
-                final File mdFile = getDescriptionFile();
-                if (mdFile == null) {
-                    return null;
-                }
-                try {
-                    model = parseStream(new FileInputStream(mdFile), config);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to read model for " + id, e);
-                }
-            }
-            return model;
-        }
-
-
-
-        /**
-         * Get the resource representing this ImportResource from its model
-         * 
-         * @return
-         */
-        public Resource getResource() {
-            if (resource == null) {
-                final Model model = getModel();
-                if (model == null) {
-                    return null;
-                }
-                resource = model.listResourcesWithProperty(RDF_TYPE).next();
-            }
-            return resource;
-        }
-
-        /**
-         * Return true if this resource is a version
-         * 
-         * @return
-         */
-        public boolean isVersion() {
-            return isVersion;
-        }
-
-        /**
-         * Setter for isVersion property
-         * 
-         * @param isVersion value to set
-         */
-        public void setIsVersion(final boolean isVersion) {
-            this.isVersion = isVersion;
-        }
-
-        /**
-         * Get the file containing version info for this resource.
-         * 
-         * @return
-         */
-        private File getVersionsFile() {
-            return new File(getDirectory(), VERSIONS_FILENAME + config.getRdfExtension());
-        }
-
-        /**
-         * Get the directory containing versions of this resource
-         * 
-         * @return
-         */
-        public File getVersionsDirectory() {
-            return new File(getDirectory(), VERSIONS_FILENAME);
-        }
-
-        /**
-         * Return true if this resource is versioned
-         * 
-         * @return
-         */
-        public boolean hasVersions() {
-            final Resource resc = getResource();
-            return resc.hasProperty(RDF_TYPE, VERSION_RESOURCE)
-                    || (resc.hasProperty(HAS_VERSIONS) && getVersionsFile().exists());
-        }
-
-        private List<String> extractOrderedVersionLabels(final File versionsFile) {
-            try {
-                final Model versionsModel = parseStream(new FileInputStream(versionsFile), config);
-
-                final List<Entry<Long, String>> versions = new ArrayList<>();
-                versionsModel.listObjectsOfProperty(HAS_VERSION).forEachRemaining(v -> {
-                    final Resource versionResc = v.asResource();
-                    final XSDDateTime created = (XSDDateTime) versionResc
-                            .getProperty(CREATED_DATE).getLiteral().getValue();
-                    final long createdMillis = created.asCalendar().getTimeInMillis();
-
-                    final String versionLabel = versionResc.getProperty(HAS_VERSION_LABEL).getString();
-
-                    versions.add(new SimpleEntry<>(createdMillis, versionLabel));
-                });
-
-                return versions.stream()
-                        .sorted((v1, v2) -> Long.compare(v1.getKey(), v2.getKey()))
-                        .map(v -> v.getValue())
-                        .collect(Collectors.toList());
-
-            } catch (IOException ex) {
-                throw new RuntimeException(
-                        "Error reading or parsing " + versionsFile.getAbsolutePath() + ": " + ex.toString(), ex);
-            }
-        }
-
-        /**
-         * Get the labels of all versions of this resource, in chronological order.
-         * 
-         * @return
-         */
-        public List<String> getVersionLabels() {
-            if (!hasVersions()) {
-                return Collections.emptyList();
-            }
-
-            final File versionsFile = getVersionsFile();
-            // Get a list of version labels ordered chronologically
-            return extractOrderedVersionLabels(versionsFile);
+            throw new RuntimeException("Error finding repository root " + u, ex);
         }
     }
 }

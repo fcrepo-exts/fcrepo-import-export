@@ -18,16 +18,14 @@
 package org.fcrepo.importexport.importer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
+import static org.fcrepo.importexport.common.ModelUtils.mapRdfStream;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -46,14 +44,9 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.riot.RDFDataMgr;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.FcrepoConstants;
 import org.fcrepo.importexport.common.URITranslationUtil;
-import org.fcrepo.importexport.importer.VersionImporter.ImportEvent;
-import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
-import org.fcrepo.importexport.importer.VersionImporter.ImportVersion;
 import org.slf4j.Logger;
 
 /**
@@ -155,15 +148,6 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         return false;
     }
 
-    private static Model parseStream(final InputStream in, final Config config) throws IOException {
-        final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(config.getSource(),
-                                                                           config.getDestination());
-        try (final InputStream in2 = in) {
-            RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
-        }
-        return mapper.getModel();
-    }
-
     private class ChronologicalUriExtractingFileVisitor extends SimpleFileVisitor<Path> {
 
         private List<ImportEvent> resources;
@@ -211,7 +195,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             }
 
             final File rdfFile = file.toFile();
-            final Model model = parseStream(new FileInputStream(rdfFile), config);
+            final Model model = mapRdfStream(new FileInputStream(rdfFile), config);
 
             // Determine the URI for this resource depending on if it is a binary or not
             final URI resourceUri;
@@ -226,7 +210,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             final Resource resc = model.getResource(resourceUri.toString());
             final Statement stmt = resc.getProperty(FcrepoConstants.LAST_MODIFIED_DATE);
             final boolean isVersion = resc.hasProperty(RDF_TYPE, FcrepoConstants.VERSION_RESOURCE);
-            final List<String> digests = getMessageDigests(resc);
+//            final List<String> digests = getMessageDigests(resc);
 
             final long lastModified = stmt == null ? 0L : getTimestampFromProperty(stmt);
 
@@ -238,22 +222,22 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             return CONTINUE;
         }
 
-        private List<String> getMessageDigests(final Resource resc) {
-            StmtIterator stmtIt = resc.listProperties(HAS_MESSAGE_DIGEST);
-            List<String> digests = new ArrayList<>();
-
-            while (stmtIt.hasNext()) {
-                Statement stmt = stmtIt.next();
-                digests.add(stmt.getObject().toString());
-            }
-            if (digests.size() == 0) {
-                return null;
-            }
-            return digests;
-        }
+//        private List<String> getMessageDigests(final Resource resc) {
+//            StmtIterator stmtIt = resc.listProperties(HAS_MESSAGE_DIGEST);
+//            List<String> digests = new ArrayList<>();
+//
+//            while (stmtIt.hasNext()) {
+//                Statement stmt = stmtIt.next();
+//                digests.add(stmt.getObject().toString());
+//            }
+//            if (digests.size() == 0) {
+//                return null;
+//            }
+//            return digests;
+//        }
 
         private void addVersionEvents(final File versionsFile) throws IOException {
-            final Model model = parseStream(new FileInputStream(versionsFile), config);
+            final Model model = mapRdfStream(new FileInputStream(versionsFile), config);
 
             ResIterator vRescIt = model.listResourcesWithProperty(FcrepoConstants.CREATED_DATE);
             while (vRescIt.hasNext()) {

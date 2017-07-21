@@ -19,14 +19,8 @@ package org.fcrepo.importexport.importer;
 
 import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.importer.VersionImporter.ImportResource;
-import org.fcrepo.importexport.importer.VersionImporter.ImportVersion;
 
 /**
  * Factory which produces {@link ImportResource} objects
@@ -41,87 +35,38 @@ public class ImportResourceFactory {
     /**
      * Default constructor
      * 
-     * @param config
-     * @param uriTranslator
+     * @param config config
      */
     public ImportResourceFactory(final Config config) {
         this.config = config;
     }
 
+    /**
+     * Creates an ImportResource event from the given resource uri and description file
+     * 
+     * @param uri original uri of the resource
+     * @param descriptionFile description of the resource
+     * @param lastModified last modified timestamp of resource
+     * @return the ImportResource
+     */
     public ImportResource createFromUri(final URI uri, final File descriptionFile, final long lastModified) {
         final String uriString = uri.toString();
         final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
-        
+
         return new ImportResource(id, uri, descriptionFile, lastModified, config);
     }
-    
+
+    /**
+     * Creates an ImportVersion event for the resource identified by uri
+     * 
+     * @param uri original uri of the versioned resource 
+     * @param timestamp created timestamp of the version
+     * @return the ImportVersion
+     */
     public ImportVersion createImportVersion(final URI uri, final long timestamp) {
         final String uriString = uri.toString();
         final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
-        
+
         return new ImportVersion(id, uri, timestamp, config);
-    }
-    
-    /**
-     * Returns a list of ImportResource objects constructed from the files present in the given directory.
-     * Files/folders are grouped together into a resource based on sharing an id, which is the unsuffixed portion of
-     * the filename.
-     * 
-     * @param directory directory whose children will be aggregated to created ImportResource objects.
-     * @return
-     */
-    public List<ImportResource> createFromDirectory(final File directory) {
-//        final Pattern resourceIdPattern = Pattern.compile("(.+?)(\\" + EXTERNAL_RESOURCE_EXTENSION +
-//                "|\\" + BINARY_EXTENSION + "|\\" + config.getRdfExtension() + ")?");
-//
-//        // Associate all files/directories that comprise a resource together
-//        final Map<String, ImportResource> resourceMap = new HashMap<>();
-//        stream(directory.listFiles()).forEach(f -> {
-//            final Matcher matcher = resourceIdPattern.matcher(f.getName());
-//            if (matcher.matches()) {
-//                final String id = matcher.group(1);
-//                ImportResource resc = resourceMap.get(id);
-//                if (resc == null) {
-//                    // build the uri for this resource with the de-extensioned filename
-//                    final URI uri = URITranslationUtil.uriForFile(new File(f.getParentFile(), id), config);
-//
-//                    resc = new ImportResource(id, uri, config);
-//                    resourceMap.put(id, resc);
-//                }
-//                resc.addFile(f);
-//            }
-//        });
-
-        //return new ArrayList<>(resourceMap.values());
-        return null;
-    }
-
-    /**
-     * Create a list of ImportResources containing all versions present for the given ImportResource, including the
-     * resource itself
-     * 
-     * @param resource
-     * @return
-     */
-    public List<ImportResource> createVersionResourceList(final ImportResource resource) {
-        if (!config.includeVersions() || !resource.hasVersions()) {
-            return Arrays.asList(resource);
-        }
-
-        final List<ImportResource> unorderedVersions = createFromDirectory(resource.getVersionsDirectory());
-
-        final List<String> orderedLabels = resource.getVersionLabels();
-
-        // Order the previous versions by the order of the labels
-        final List<ImportResource> versions = orderedLabels.stream()
-                .map(label -> unorderedVersions.stream()
-                        .filter(version -> version.getId().equals(label))
-                        .findFirst().get())
-                .peek(v -> v.setIsVersion(true))
-                .collect(Collectors.toCollection(ArrayList::new));
-        // Add the base resource as the last version
-        versions.add(resource);
-
-        return versions;
     }
 }
