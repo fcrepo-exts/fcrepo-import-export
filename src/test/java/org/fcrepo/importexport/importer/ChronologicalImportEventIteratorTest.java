@@ -106,7 +106,7 @@ public class ChronologicalImportEventIteratorTest {
         final File directory = new File("src/test/resources/sample/container");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        rescIt = new ChronologicalImportEventIterator(config, rescFactory);
+        rescIt = new ChronologicalImportEventIterator(directory, config, rescFactory);
 
         assertTrue(rescIt.hasNext());
         final ImportEvent resc = rescIt.next();
@@ -121,7 +121,7 @@ public class ChronologicalImportEventIteratorTest {
         final File directory = new File("src/test/resources/sample/binary");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        rescIt = new ChronologicalImportEventIterator(config, rescFactory);
+        rescIt = new ChronologicalImportEventIterator(directory, config, rescFactory);
 
         assertTrue(rescIt.hasNext());
 
@@ -151,7 +151,7 @@ public class ChronologicalImportEventIteratorTest {
         final File directory = new File("src/test/resources/sample/versioned");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        rescIt = new ChronologicalImportEventIterator(config, rescFactory);
+        rescIt = new ChronologicalImportEventIterator(directory, config, rescFactory);
 
         assertTrue(rescIt.hasNext());
 
@@ -183,7 +183,7 @@ public class ChronologicalImportEventIteratorTest {
         final File directory = new File("src/test/resources/sample/versioned");
         when(config.getBaseDirectory()).thenReturn(directory);
 
-        rescIt = new ChronologicalImportEventIterator(config, rescFactory);
+        rescIt = new ChronologicalImportEventIterator(directory, config, rescFactory);
 
         assertTrue(rescIt.hasNext());
 
@@ -209,7 +209,7 @@ public class ChronologicalImportEventIteratorTest {
         final URI child1VOriginalUri = new URI(
                 "http://localhost:8080/rest/v_con1/fcr:versions/version_original/child1");
 
-        rescIt = new ChronologicalImportEventIterator(config, rescFactory);
+        rescIt = new ChronologicalImportEventIterator(directory, config, rescFactory);
 
         assertTrue(rescIt.hasNext());
 
@@ -226,6 +226,27 @@ public class ChronologicalImportEventIteratorTest {
 
         assertEquals(child1Uri, rescIt.next().getUri());
 
+        assertFalse(rescIt.hasNext());
+    }
+
+    @Test
+    public void testStartingDirectoryDifferentFromBase() throws Exception {
+        when(config.getRdfExtension()).thenReturn(".ttl");
+        when(config.getRdfLanguage()).thenReturn("text/turtle");
+        
+        final File baseDirectory = new File("src/test/resources/sample/mapped");
+        when(config.getBaseDirectory()).thenReturn(baseDirectory);
+        
+        final File startingDirectory = new File("src/test/resources/sample/mapped/rest/dev/");
+        
+        final URI con1Uri = new URI("http://localhost:8080/rest/dev/asdf");
+        
+        rescIt = new ChronologicalImportEventIterator(startingDirectory, config, rescFactory);
+        
+        assertTrue(rescIt.hasNext());
+        
+        assertEquals(con1Uri, rescIt.next().getUri());
+        
         assertFalse(rescIt.hasNext());
     }
 }

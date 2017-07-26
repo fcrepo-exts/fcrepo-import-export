@@ -72,7 +72,9 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.BinaryImportException;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.ResourceGoneRuntimeException;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
@@ -152,7 +154,7 @@ public class VersionImporter implements TransferProcess{
     public void run() {
         logger.info("Running importer...");
 
-        findRepositoryRoot(config.getResource());
+        repositoryRoot = findRepositoryRoot(config.getResource());
 
         processImport(config.getResource());
 
@@ -160,12 +162,13 @@ public class VersionImporter implements TransferProcess{
     }
 
     private void processImport(final URI resource) {
-        // final URI parentUri = parent(resource);
-        // final File importContainerDirectory = directoryForContainer(parentUri);
+        final URI parentUri = parent(resource);
+        final File importContainerMetadataFile = fileForContainerURI(resource);
+        final File importContainerDirectory = importContainerMetadataFile.getParentFile();
         
         try {
             final Iterator<ImportEvent> rescIt = new ChronologicalImportEventIterator(
-                    config, importRescFactory);
+                    importContainerDirectory, config, importRescFactory);
             while (rescIt.hasNext()) {
                 final ImportEvent impEvent = rescIt.next();
                 
@@ -176,12 +179,14 @@ public class VersionImporter implements TransferProcess{
                     createVersion(version.getMappedUri(), version.getLabel());
                 }
             }
+        } catch (FcrepoOperationFailedException e) {
+            throw new RuntimeException("Failed to import", e);
         } catch (IOException e) {
             throw new RuntimeException("", e);
         }
     }
 
-    private void importResource(final ImportResource resc) {
+    private void importResource(final ImportResource resc) throws FcrepoOperationFailedException, IOException {
         if (resc.isBinary()) {
             importBinaryResource(resc);
         } else {
@@ -189,9 +194,18 @@ public class VersionImporter implements TransferProcess{
         }
     }
 
-    private void importContainerResource(final ImportResource resc) {
+    private void importContainerResource(final ImportResource resc) throws FcrepoOperationFailedException {
         if (!isSkippableContainer(resc)) {
-            importDescription(resc);
+            try {
+                importDescription(resc);
+            } catch (ResourceGoneRuntimeException e) {
+                if (config.overwriteTombstones()) {
+                    deleteTombstone(e.getResourceUri(), e.getTombstone());
+                    importDescription(resc);
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -202,18 +216,22 @@ public class VersionImporter implements TransferProcess{
                 || resource.hasProperty(RDF_TYPE, PAIRTREE);
     }
 
-    private void importBinaryResource(final ImportResource resc) {
+    private void importBinaryResource(final ImportResource resc) throws FcrepoOperationFailedException, IOException {
         if (!config.isIncludeBinaries()) {
             return;
         }
-        
+
         try {
             importBinaryFile(resc);
-            
             // update metadata
             importDescription(resc);
-        } catch (Exception e) {
-            logger.warn("Failed to import {}", resc.getBinary().getAbsolutePath());
+        } catch (ResourceGoneRuntimeException e) {
+            deleteTombstone(e.getResourceUri(), e.getTombstone());
+
+            importBinaryFile(resc);
+            importDescription(resc);
+        } catch (BinaryImportException e) {
+            logger.error(e.getMessage());
         }
     }
 
@@ -250,6 +268,8 @@ public class VersionImporter implements TransferProcess{
                 importLogger.error("Error importing {} to {}, 401 Unauthorized",
                         descriptionPath, destinationUri);
                 throw new AuthenticationRequiredRuntimeException();
+            } else if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
+                throw new ResourceGoneRuntimeException(response);
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 final String message = "Error while importing " + descriptionPath + " ("
                         + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
@@ -274,35 +294,29 @@ public class VersionImporter implements TransferProcess{
         }
     }
 
-    private void importBinaryFile(final ImportResource resc) {
+    private void importBinaryFile(final ImportResource resc) throws FcrepoOperationFailedException, IOException {
         final URI binaryURI = resc.getMappedUri();
         final Model model = resc.getModel();
         final String contentType = model
                 .getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
         final File binaryFile = resc.getBinary();
         FcrepoResponse binaryResponse;
-        try {
-            binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
+        binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
 
-            if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
-                // Collided with tombstone, cleanup and try again
-                deleteTombstone(binaryResponse);
-                binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
-            }
+        if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
+            throw new ResourceGoneRuntimeException(binaryResponse);
+        }
 
-            // Check for success importing file
-            if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
-                logger.info("Imported binary: {}", binaryURI);
-                importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
-                successCount.incrementAndGet();
-            } else {
-                // Failed to import file, throw exception
-                final String message = String.format("Error while importing %s (%s): %s", binaryFile.getAbsolutePath(),
-                        binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
-                throw new RuntimeException(message);
-            }
-        } catch (FcrepoOperationFailedException | IOException e) {
-           throw new RuntimeException("Error while importing " + binaryFile.getAbsolutePath(), e);
+        // Check for success importing file
+        if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
+            logger.info("Imported binary: {}", binaryURI);
+            importLogger.info("import {} to {}", binaryFile.getAbsolutePath(), binaryURI);
+            successCount.incrementAndGet();
+        } else {
+            // Failed to import file, throw exception
+            final String message = String.format("Error while importing %s (%s): %s", binaryFile.getAbsolutePath(),
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
+            throw new BinaryImportException(message);
         }
     }
 
@@ -329,17 +343,17 @@ public class VersionImporter implements TransferProcess{
         return builder;
     }
 
-    private void deleteTombstone(final FcrepoResponse response) throws FcrepoOperationFailedException {
-        final URI tombstone = response.getLinkHeaders("hasTombstone").get(0);
+    private void deleteTombstone(final URI rescUri, final URI tombstone) throws FcrepoOperationFailedException {
         if (tombstone != null) {
             client().delete(tombstone).perform();
         } else {
-            String uri = response.getUrl().toString();
+            String uri = rescUri.toString();
             if (uri.endsWith("/")) {
                 uri = uri.substring(0, uri.length() - 1);
             }
             final URI parent = URI.create(uri.substring(0, uri.lastIndexOf("/", uri.length() - 1)));
-            deleteTombstone(client().head(parent).perform());
+            final FcrepoResponse response = client().head(parent).perform();
+            deleteTombstone(parent, response.getLinkHeaders("hasTombstone").get(0));
         }
     }
 
@@ -467,6 +481,11 @@ public class VersionImporter implements TransferProcess{
     private File fileForContainerURI(final URI uri) {
         return fileForURI(withSlash(uri), config.getSourcePath(), config.getDestinationPath(),
                 config.getBaseDirectory(), config.getRdfExtension());
+    }
+
+    private File directoryForContainer(final URI uri) {
+        return TransferProcess.directoryForContainer(withSlash(uri), config.getSourcePath(),
+                config.getDestinationPath(), config.getBaseDirectory());
     }
 
     private boolean external(final String contentType) {

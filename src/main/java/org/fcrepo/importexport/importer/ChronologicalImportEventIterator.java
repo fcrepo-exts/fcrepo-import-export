@@ -65,13 +65,13 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
 
     private ImportResourceFactory rescFactory;
 
-    public ChronologicalImportEventIterator(final Config config, final ImportResourceFactory rescFactory)
+    public ChronologicalImportEventIterator(final File importBaseDirectory, final Config config, final ImportResourceFactory rescFactory)
             throws IOException {
         this.config = config;
         this.rescFactory = rescFactory;
 
         this.treeWalker = new ChronologicalUriExtractingFileVisitor(this.config);
-        Files.walkFileTree(config.getBaseDirectory().toPath(), treeWalker);
+        Files.walkFileTree(importBaseDirectory.toPath(), treeWalker);
     }
 
     @Override

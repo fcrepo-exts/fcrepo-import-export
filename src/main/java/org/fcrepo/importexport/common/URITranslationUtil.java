@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
+import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 
 import java.io.File;
 import java.net.URI;
@@ -116,5 +117,14 @@ public abstract class URITranslationUtil {
         }
         
         return remapped;
+    }
+    
+    public static File fileForUri(final URI uri, final Config config) {
+        return fileForURI(withSlash(uri), config.getSourcePath(), config.getDestinationPath(),
+                config.getBaseDirectory(), config.getRdfExtension());
+    }
+    
+    private static URI withSlash(final URI uri) {
+        return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 }

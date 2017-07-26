@@ -74,6 +74,7 @@ public class ImportVersionsTest {
     private Config config;
     
     private URI binaryURI;
+    private URI binaryMDURI;
     private URI containerURI;
     private URI container2URI;
     
@@ -90,6 +91,7 @@ public class ImportVersionsTest {
         containerURI  = new URI("http://localhost:8080/fcrepo/rest/con1");
         container2URI  = new URI("http://localhost:8080/fcrepo/rest/con1/con2");
         binaryURI  = new URI("http://localhost:8080/fcrepo/rest/con1/bin1");
+        binaryMDURI  = new URI("http://localhost:8080/fcrepo/rest/con1/bin1/fcr:metadata");
         
         when(clientBuilder.build()).thenReturn(client);
         
@@ -128,6 +130,7 @@ public class ImportVersionsTest {
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
         ResponseMocker.mockPutResponse(client, binaryURI);
+        ResponseMocker.mockPutResponse(client, binaryMDURI);
         ResponseMocker.mockPostResponse(client, versionUri);
         
         final VersionImporter importer = new VersionImporter(config, clientBuilder);
@@ -148,6 +151,7 @@ public class ImportVersionsTest {
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
         ResponseMocker.mockPutResponse(client, binaryURI);
+        ResponseMocker.mockPutResponse(client, binaryMDURI);
         final PostBuilder versionBuilder = ResponseMocker.mockPostResponse(client, versionUri);
         
         final VersionImporter importer = new VersionImporter(config, clientBuilder);

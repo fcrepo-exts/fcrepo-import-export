@@ -24,6 +24,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 
@@ -44,7 +46,7 @@ public class VersionSubjectMappingStreamRDFTest {
     private final String RDF_LANG = "text/turtle";
     private final RDFFormat RDF_FORMAT = RDFFormat.TURTLE_PRETTY;
 
-    private VersionSubjectMappingStreamRDF mapper;
+    private SubjectMappingStreamRDF mapper;
 
     private URI sourceUri;
     private URI destinationUri;
@@ -64,6 +66,27 @@ public class VersionSubjectMappingStreamRDFTest {
         final Model mappedModel = mapModel(model);
         final Resource mappedResc = mappedModel.listResourcesWithProperty(RDF_TYPE).next();
 
+        assertEquals(mappedRescUri, mappedResc.getURI());
+    }
+
+    @Test
+    public void testRemapBaseFromFile() throws Exception {
+        final String mappedRescUri = "http://localhost:64199/fcrepo/rest/prod2";
+        
+        sourceUri = URI.create("http://localhost:8080/rest/dev/asdf");
+        destinationUri = URI.create(mappedRescUri);
+        
+        File mFile = new File("src/test/resources/sample/mapped/rest/dev/asdf.ttl");
+        mapper = new SubjectMappingStreamRDF(sourceUri, destinationUri);
+        
+        final Model mappedModel;
+        try (final InputStream in2 = new FileInputStream(mFile)) {
+            RDFDataMgr.parse(mapper, in2, contentTypeToLang(RDF_LANG));
+        }
+        mappedModel = mapper.getModel();
+        
+        final Resource mappedResc = mappedModel.listResourcesWithProperty(RDF_TYPE).next();
+        
         assertEquals(mappedRescUri, mappedResc.getURI());
     }
 

@@ -112,11 +112,11 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
+    @Test
     public void testCorruptedBinary() throws Exception {
         final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
         final URI binaryURI = URI.create("http://localhost:8080/fcrepo/rest/bin1");
         final String referencePath = TARGET_DIR + "/test-classes/sample/corrupted";
-        System.out.println("Importing from " + referencePath);
 
         final Config config = new Config();
         config.setMode("import");
