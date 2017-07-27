@@ -20,7 +20,7 @@ import org.fcrepo.importexport.common.TransferProcess;
 
 /**
  * An event for importing a resource
- * 
+ *
  * @author bbpennel
  *
  */
@@ -35,22 +35,23 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Construct new ImportResource
-     * 
+     *
      * @param id id
      * @param uri uri of resource
      * @param descriptionFile description file for resource
-     * @param timestamp last modified timestamp for resource
+     * @param created created timestamp
+     * @param lastModified last modified timestamp for resource
      * @param config config
      */
-    public ImportResource(final String id, final URI uri, final File descriptionFile, final long timestamp,
+    public ImportResource(final String id, final URI uri, final File descriptionFile, final long created, final long lastModified,
             final Config config) {
-        super(id, uri, timestamp, config);
+        super(id, uri, created, lastModified, config);
         this.descriptionFile = descriptionFile;
     }
 
     /**
      * Get the URI for metadata for this resource
-     * 
+     *
      * @return uri of the RDF endpoint for resource
      */
     public URI getDescriptionUri() {
@@ -66,7 +67,7 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Test if this resource is a binary
-     * 
+     *
      * @return true if resource is a binary
      */
     public boolean isBinary() {
@@ -75,7 +76,7 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Get the binary file for this resource
-     * 
+     *
      * @return the binary for this resource or null if not found
      */
     public File getBinary() {
@@ -89,10 +90,10 @@ public class ImportResource extends ImportEvent {
         }
         return binary;
     }
-    
+
     /**
      * Get the file containing metadata for this resource
-     * 
+     *
      * @return returns the file containing this resource's description
      */
     public File getDescriptionFile() {
@@ -101,7 +102,7 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Get the model containing properties assigned to this resource
-     * 
+     *
      * @return model containing properties assigned to this resource
      */
     public Model getModel() {
@@ -123,7 +124,7 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Get the resource representing this ImportResource from its model
-     * 
+     *
      * @return rdf resource for this resource
      */
     public Resource getResource() {
@@ -139,7 +140,7 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Return true if this resource is a Version
-     * 
+     *
      * @return true if this resource is a Version
      */
     public boolean isVersion() {
@@ -148,10 +149,19 @@ public class ImportResource extends ImportEvent {
 
     /**
      * Setter for isVersion property
-     * 
+     *
      * @param isVersion value to set
      */
     public void setIsVersion(final boolean isVersion) {
         this.isVersion = isVersion;
+    }
+
+    @Override
+    public long getTimestamp() {
+        if (isVersion()) {
+            return lastModified;
+        } else {
+            return created;
+        }
     }
 }

@@ -50,14 +50,14 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 /**
- * 
+ *
  * @author bbpennel
  *
  */
 public class ImportVersionsTest {
 
     private URI rootResource;
-    
+
     @Mock
     private FcrepoClient client;
     @Mock
@@ -70,35 +70,35 @@ public class ImportVersionsTest {
     private PutBuilder binBuilder;
     @Mock
     private PutBuilder containerBuilder;
-    
+
     private Config config;
-    
+
     private URI binaryURI;
     private URI binaryMDURI;
     private URI containerURI;
     private URI container2URI;
-    
+
     private String[] predicates = new String[]{ CONTAINS.toString() };
     private List<URI> containerLinks =
             Arrays.asList(URI.create(CONTAINER.getURI()));
     private List<URI> binaryLinks =
             Arrays.asList(URI.create(NON_RDF_SOURCE.getURI()));
-    
+
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        
+
         containerURI  = new URI("http://localhost:8080/fcrepo/rest/con1");
         container2URI  = new URI("http://localhost:8080/fcrepo/rest/con1/con2");
         binaryURI  = new URI("http://localhost:8080/fcrepo/rest/con1/bin1");
         binaryMDURI  = new URI("http://localhost:8080/fcrepo/rest/con1/bin1/fcr:metadata");
-        
+
         when(clientBuilder.build()).thenReturn(client);
-        
+
         rootResource = new URI("http://localhost:8080/rest");
         mockResponse(rootResource, containerLinks, new ArrayList<>(),
                 createJson(rootResource, REPOSITORY_ROOT));
-        
+
         config = new Config();
         config.setMode("import");
         config.setIncludeVersions(true);
@@ -106,14 +106,14 @@ public class ImportVersionsTest {
         config.setRdfLanguage("application/ld+json");
         config.setBaseDirectory("src/test/resources/sample/versioned");
         config.setResource(rootResource);
-        
+
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         when(client.head(isA(URI.class))).thenReturn(headBuilder);
         when(headBuilder.disableRedirects()).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
         when(headResponse.getStatusCode()).thenReturn(200);
     }
-    
+
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final String body) throws FcrepoOperationFailedException {
         ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks);
@@ -124,18 +124,18 @@ public class ImportVersionsTest {
     @Test
     public void testImportVersionsOff() throws Exception {
         config.setIncludeVersions(false);
-        
+
         final URI versionUri = URI.create(containerURI.toString() + "/" + FCR_VERSIONS_PATH);
-        
+
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
         ResponseMocker.mockPutResponse(client, binaryURI);
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         ResponseMocker.mockPostResponse(client, versionUri);
-        
+
         final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
-        
+
         // Container should only be updated for head version
         verify(client).put(eq(containerURI));
         verify(client, never()).put(eq(container2URI));
@@ -143,54 +143,54 @@ public class ImportVersionsTest {
         // no versions should have been created
         verify(client, never()).post(versionUri);
     }
-    
+
     @Test
     public void testImportVersions() throws Exception {
         final URI versionUri = URI.create(containerURI.toString() + "/" + FCR_VERSIONS_PATH);
-        
+
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
         ResponseMocker.mockPutResponse(client, binaryURI);
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         final PostBuilder versionBuilder = ResponseMocker.mockPostResponse(client, versionUri);
-        
+
         final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
-        
+
         // Container should have been updated for every version
         verify(client, times(3)).put(eq(containerURI));
         verify(client).put(eq(container2URI));
         verify(client, times(2)).put(eq(binaryURI));
         // Verify that the correct number of new versions were created
         verify(client, times(2)).post(versionUri);
-        
+
         verify(versionBuilder).slug("version_1");
         verify(versionBuilder).slug("version_original");
     }
-    
+
     @Test
     public void testVersionsOnWithoutVersionedResources() throws Exception {
         config.setBaseDirectory("src/test/resources/sample/container");
-        
+
         containerURI  = new URI("http://localhost:8080/rest/con1");
         ResponseMocker.mockPutResponse(client, containerURI);
         final URI versionUri = URI.create(containerURI.toString() + "/" + FCR_VERSIONS_PATH);
-        
+
         final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
-        
+
         verify(client).put(eq(containerURI));
         // Ensuring that no versions are created
         verify(client, never()).post(versionUri);
     }
-    
+
     @Test
     public void testBinarySameAcrossVersions() throws Exception {
-        
+
     }
-    
+
     @Test
     public void testBinaryDiffersAcrossVersions() throws Exception {
-        
+
     }
 }

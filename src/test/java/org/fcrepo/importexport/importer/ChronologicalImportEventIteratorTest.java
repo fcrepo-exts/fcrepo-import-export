@@ -69,9 +69,10 @@ public class ChronologicalImportEventIteratorTest {
         when(config.getResource()).thenReturn(restUri);
 
         when(restResource.getUri()).thenReturn(restUri);
-        when(rescFactory.createFromUri(eq(restUri), any(File.class), anyLong())).thenReturn(restResource);
+        when(rescFactory.createFromUri(eq(restUri), any(File.class), anyLong(), anyLong()))
+            .thenReturn(restResource);
 
-        when(rescFactory.createFromUri(any(URI.class), any(File.class), anyLong()))
+        when(rescFactory.createFromUri(any(URI.class), any(File.class), anyLong(), anyLong()))
             .thenAnswer(new Answer<ImportResource>() {
                 @Override
                 public ImportResource answer(InvocationOnMock invocation) throws Throwable {
@@ -81,7 +82,9 @@ public class ChronologicalImportEventIteratorTest {
                     when(resc.getUri()).thenReturn(uri);
                     when(resc.getMappedUri()).thenReturn(mappedUri);
                     when(resc.isVersion()).thenReturn(true);
-                    when(resc.getTimestamp()).thenReturn(invocation.getArgumentAt(2, Long.class));
+//                    when(resc.getTimestamp()).thenReturn(invocation.getArgumentAt(3, Long.class));
+                    when(resc.getLastModified()).thenReturn(invocation.getArgumentAt(3, Long.class));
+                    when(resc.getCreated()).thenReturn(invocation.getArgumentAt(2, Long.class));
                     return resc;
                 }
             });
@@ -233,20 +236,20 @@ public class ChronologicalImportEventIteratorTest {
     public void testStartingDirectoryDifferentFromBase() throws Exception {
         when(config.getRdfExtension()).thenReturn(".ttl");
         when(config.getRdfLanguage()).thenReturn("text/turtle");
-        
+
         final File baseDirectory = new File("src/test/resources/sample/mapped");
         when(config.getBaseDirectory()).thenReturn(baseDirectory);
-        
+
         final File startingDirectory = new File("src/test/resources/sample/mapped/rest/dev/");
-        
+
         final URI con1Uri = new URI("http://localhost:8080/rest/dev/asdf");
-        
+
         rescIt = new ChronologicalImportEventIterator(startingDirectory, config, rescFactory);
-        
+
         assertTrue(rescIt.hasNext());
-        
+
         assertEquals(con1Uri, rescIt.next().getUri());
-        
+
         assertFalse(rescIt.hasNext());
     }
 }

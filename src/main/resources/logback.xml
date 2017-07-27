@@ -41,7 +41,7 @@
   <logger name="org.fcrepo.importexport.audit" additivity="false" level="${fcrepo.log.importexport.audit:-INFO}">
     <appender-ref ref="SIFT"/>
   </logger>
-  <root level="WARN">
+  <root level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

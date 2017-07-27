@@ -47,13 +47,15 @@ public class ImportResourceFactory {
      * @param uri original uri of the resource
      * @param descriptionFile description of the resource
      * @param lastModified last modified timestamp of resource
+     * @param created timestamp resource was created
      * @return the ImportResource
      */
-    public ImportResource createFromUri(final URI uri, final File descriptionFile, final long lastModified) {
+    public ImportResource createFromUri(final URI uri, final File descriptionFile, final long created,
+            final long lastModified) {
         final String uriString = uri.toString();
         final String id = uriString.substring(uriString.lastIndexOf('/') + 1);
 
-        return new ImportResource(id, uri, descriptionFile, lastModified, config);
+        return new ImportResource(id, uri, descriptionFile, created, lastModified, config);
     }
 
     /**

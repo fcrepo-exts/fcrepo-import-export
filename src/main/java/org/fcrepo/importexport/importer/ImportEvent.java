@@ -18,13 +18,16 @@ public abstract class ImportEvent {
     protected final URI uri;
     protected final URI mappedUri;
     protected final Config config;
-    protected final long timestamp;
+    protected final long lastModified;
+    protected final long created;
 
-    public ImportEvent(final String id, final URI uri, final long timestamp, final Config config) {
+    public ImportEvent(final String id, final URI uri, final long created, final long lastModified,
+            final Config config) {
         this.id = id;
         this.config = config;
         this.uri = uri;
-        this.timestamp = timestamp;
+        this.created = created;
+        this.lastModified = lastModified;
         this.mappedUri = remapResourceUri(uri, config.getSource(), config.getDestination());
     }
 
@@ -55,10 +58,24 @@ public abstract class ImportEvent {
         return mappedUri;
     }
 
+    
     /**
-     * @return the timestamp
+     * @return the lastModified timestamp
      */
-    public long getTimestamp() {
-        return timestamp;
+    public long getLastModified() {
+        return lastModified;
     }
+
+    
+    /**
+     * @return the created timestamp
+     */
+    public long getCreated() {
+        return created;
+    }
+
+    /**
+     * @return the comparable timestamp for this resource
+     */
+    public abstract long getTimestamp();
 }

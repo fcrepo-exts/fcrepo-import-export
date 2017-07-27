@@ -18,8 +18,12 @@
 package org.fcrepo.importexport.importer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
+import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSIONS;
+import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
+import static org.fcrepo.importexport.common.FcrepoConstants.VERSION_RESOURCE;
 import static org.fcrepo.importexport.common.ModelUtils.mapRdfStream;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -45,13 +49,12 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.FcrepoConstants;
 import org.fcrepo.importexport.common.URITranslationUtil;
 import org.slf4j.Logger;
 
 /**
- * Iterates through resources in chronological order based on last modified timestamp 
- * 
+ * Iterates through resources in chronological order based on last modified timestamp
+ *
  * @author bbpennel
  *
  */
@@ -85,6 +88,10 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             } else {
                 eventQueue = getImportEventQueue(eventList);
             }
+
+            eventQueue.forEach(e -> {
+                System.out.println(e.getUri() + " " + e.getClass().getName());
+            });
         }
         return eventQueue.size() > 0;
     }
@@ -107,7 +114,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         long previousLastModified = -1;
         for (int i = 0; i < eventList.size(); i++) {
             final ImportEvent event = eventList.get(i);
-            
+
             if (event instanceof ImportVersion) {
                 logger.debug("Registering creation of version {} for resource {} to queue",
                         ((ImportVersion) event).getLabel(), event.getMappedUri());
@@ -123,7 +130,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
                 logger.debug("Adding resource for import to queue: {}", resc.getUri());
                 events.add(event);
             }
-            
+
             previousLastModified = event.getTimestamp();
         }
 
@@ -133,10 +140,22 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
     private boolean isUnmodified(final ImportResource resc, final int index,
             final List<ImportEvent> eventList) {
         for (int i = index - 1; i >= 0; i--) {
-            final ImportEvent olderResc = eventList.get(i);
+            final ImportEvent olderEvent = eventList.get(i);
+            if (!(olderEvent instanceof ImportResource)) {
+                continue;
+            }
 
-            if (olderResc.getTimestamp() != resc.getTimestamp()) {
-                return false;
+            final ImportResource olderResc = (ImportResource) olderEvent;
+
+            // For versioned resources, use last modified date to determine if the same
+            if (olderResc.isVersion() || resc.isVersion()) {
+                if (olderResc.getLastModified() != resc.getLastModified()) {
+                    return false;
+                }
+            } else {
+                if (olderResc.getCreated() != resc.getCreated()) {
+                    return false;
+                }
             }
 
             // Consider the object to be unchanged if last modified matches and same destination uri
@@ -164,7 +183,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
 
                 @Override
                 public int compare(ImportEvent o1, ImportEvent o2) {
-                    int compareModified = new Long(o1.getTimestamp()).compareTo(o2.getTimestamp());
+                    final int compareModified = new Long(o1.getTimestamp()).compareTo(o2.getTimestamp());
                     // When time equal, tiebreak by filename
                     if (compareModified == 0) {
                         return o1.getUri().compareTo(o2.getUri());
@@ -208,13 +227,18 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
 
             // Store the resource along with its last modified date for sorting later
             final Resource resc = model.getResource(resourceUri.toString());
-            final Statement stmt = resc.getProperty(FcrepoConstants.LAST_MODIFIED_DATE);
-            final boolean isVersion = resc.hasProperty(RDF_TYPE, FcrepoConstants.VERSION_RESOURCE);
+            final Statement lastModStmt = resc.getProperty(LAST_MODIFIED_DATE);
+            final Statement createdStmt = resc.getProperty(CREATED_DATE);
+            boolean isVersion = resc.hasProperty(RDF_TYPE, VERSION_RESOURCE);
+            if (!isVersion) {
+                isVersion = resc.hasProperty(HAS_VERSIONS);
+            }
 //            final List<String> digests = getMessageDigests(resc);
 
-            final long lastModified = stmt == null ? 0L : getTimestampFromProperty(stmt);
+            final long lastModified = lastModStmt == null ? 0L : getTimestampFromProperty(lastModStmt);
+            final long created = createdStmt == null ? 0L : getTimestampFromProperty(createdStmt);
 
-            ImportResource impResc = rescFactory.createFromUri(resourceUri, rdfFile, lastModified);
+            ImportResource impResc = rescFactory.createFromUri(resourceUri, rdfFile, created, lastModified);
             impResc.setIsVersion(isVersion);
 
             resources.add(impResc);
@@ -239,10 +263,10 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         private void addVersionEvents(final File versionsFile) throws IOException {
             final Model model = mapRdfStream(new FileInputStream(versionsFile), config);
 
-            ResIterator vRescIt = model.listResourcesWithProperty(FcrepoConstants.CREATED_DATE);
+            ResIterator vRescIt = model.listResourcesWithProperty(CREATED_DATE);
             while (vRescIt.hasNext()) {
                 final Resource vResc = vRescIt.next();
-                final long time = getTimestampFromProperty(vResc.getProperty(FcrepoConstants.CREATED_DATE));
+                final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
 
                 final ImportVersion impVersion = rescFactory.createImportVersion(URI.create(vResc.getURI()), time);
                 resources.add(impVersion);
