@@ -18,14 +18,13 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
-import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 
 import java.io.File;
 import java.net.URI;
 
 /**
  * Utility for creating or manipulating uris
- * 
+ *
  * @author bbpennel
  *
  */
@@ -33,7 +32,7 @@ public abstract class URITranslationUtil {
 
     /**
      * Builds the repository URI for the given file
-     * 
+     *
      * @param f file to build URI for
      * @param config config
      * @return URI for file
@@ -60,7 +59,7 @@ public abstract class URITranslationUtil {
 
     /**
      * Adds relative path to uri
-     * 
+     *
      * @param uri base uri
      * @param path relative path to add
      * @return joined uri
@@ -87,7 +86,7 @@ public abstract class URITranslationUtil {
 
     /**
      * Remaps the given uri to its expected uri within the destination repository
-     * 
+     *
      * @param uri resource uri
      * @param sourceURI source uri
      * @param destinationURI destination base uri
@@ -100,7 +99,7 @@ public abstract class URITranslationUtil {
 
     /**
      * Remaps the given uri to its expected uri within the destination repository
-     * 
+     *
      * @param uri resource uri
      * @param sourceURI source uri
      * @param destinationURI destination base uri
@@ -115,16 +114,7 @@ public abstract class URITranslationUtil {
                 && uri.startsWith(sourceURI)) {
             remapped = remapped.replaceFirst(sourceURI, destinationURI);
         }
-        
+
         return remapped;
-    }
-    
-    public static File fileForUri(final URI uri, final Config config) {
-        return fileForURI(withSlash(uri), config.getSourcePath(), config.getDestinationPath(),
-                config.getBaseDirectory(), config.getRdfExtension());
-    }
-    
-    private static URI withSlash(final URI uri) {
-        return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 }

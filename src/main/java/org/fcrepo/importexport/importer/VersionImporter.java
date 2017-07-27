@@ -98,9 +98,9 @@ public class VersionImporter implements TransferProcess{
     private Config config;
     protected FcrepoClientBuilder clientBuilder;
 
-    private final ImportResourceFactory importRescFactory;
+    private final ImportEventFactory importRescFactory;
     private Logger importLogger;
-    
+
     final Map<String, String> versionedLabels;
 
     private Bag bag;
@@ -112,13 +112,13 @@ public class VersionImporter implements TransferProcess{
 
     /**
      * Construct an importer
-     * 
+     *
      * @param config config
      * @param clientBuilder fcrepo client builder
      */
     public VersionImporter(final Config config, final FcrepoClientBuilder clientBuilder) {
 
-        importRescFactory = new ImportResourceFactory(config);
+        importRescFactory = new ImportEventFactory(config);
 
         this.config = config;
         this.clientBuilder = clientBuilder;
@@ -165,17 +165,17 @@ public class VersionImporter implements TransferProcess{
         final URI parentUri = parent(resource);
         final File importContainerMetadataFile = fileForContainerURI(resource);
         final File importContainerDirectory = importContainerMetadataFile.getParentFile();
-        
+
         try {
             final Iterator<ImportEvent> rescIt = new ChronologicalImportEventIterator(
                     importContainerDirectory, config, importRescFactory);
             while (rescIt.hasNext()) {
                 final ImportEvent impEvent = rescIt.next();
-                
+
                 if (impEvent instanceof ImportResource) {
                     importResource((ImportResource) impEvent);
                 } else if (impEvent instanceof ImportVersion) {
-                    ImportVersion version = (ImportVersion) impEvent;
+                    final ImportVersion version = (ImportVersion) impEvent;
                     createVersion(version.getMappedUri(), version.getLabel());
                 }
             }

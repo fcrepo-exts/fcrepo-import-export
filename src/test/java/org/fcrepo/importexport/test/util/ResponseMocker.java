@@ -40,7 +40,7 @@ import org.mockito.stubbing.Answer;
 
 /**
  * Test utility for common response mocking behaviors
- * 
+ *
  * @author bbpennel
  *
  */
@@ -48,11 +48,12 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks a successful HEAD request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param typeLinks type links
      * @param describedbyLinks described by links
+     * @return the HeadBuilder
      * @throws FcrepoOperationFailedException client failures
      */
     public static HeadBuilder mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
@@ -72,12 +73,13 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks a successful GET request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param typeLinks type links
      * @param describedbyLinks described by links
      * @param body body of response
+     * @return the GetBuilder
      * @throws FcrepoOperationFailedException client failures
      */
     public static GetBuilder mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
@@ -104,10 +106,11 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks an unsuccessful GET request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param statusCode the status code for the response
+     * @return the GetBuilder
      * @throws FcrepoOperationFailedException client failures
      */
     public static GetBuilder mockGetResponseError(final FcrepoClient client, final URI uri, final int statusCode)
@@ -125,10 +128,11 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks an unsuccessful HEAD request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param statusCode the status code for the response
+     * @return the HeadBuilder
      * @throws FcrepoOperationFailedException client failures
      */
     public static HeadBuilder mockHeadResponseError(final FcrepoClient client, final URI uri, final int statusCode)
@@ -143,7 +147,16 @@ public abstract class ResponseMocker {
         return headBuilder;
     }
 
-    public static PutBuilder mockPutResponse(final FcrepoClient client, final URI uri) throws FcrepoOperationFailedException {
+    /**
+     * Create a mock PUT response
+     *
+     * @param client client
+     * @param uri uri
+     * @return the PutBuilder
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static PutBuilder mockPutResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
         final PutBuilder putBuilder = mock(PutBuilder.class);
         final FcrepoResponse response = mock(FcrepoResponse.class);
         when(client.put(eq(uri))).thenReturn(putBuilder);
@@ -156,7 +169,16 @@ public abstract class ResponseMocker {
         return putBuilder;
     }
 
-    public static PostBuilder mockPostResponse(final FcrepoClient client, final URI uri) throws FcrepoOperationFailedException {
+    /**
+     * Create a mock POST response
+     *
+     * @param client client
+     * @param uri uri
+     * @return the PostBuilder
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static PostBuilder mockPostResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
         final PostBuilder postBuilder = mock(PostBuilder.class);
         final FcrepoResponse response = mock(FcrepoResponse.class);
         when(client.post(eq(uri))).thenReturn(postBuilder);

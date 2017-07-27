@@ -36,7 +36,7 @@ import org.mockito.Mock;
 public class ImportResourceFactoryTest {
     private final String URI_BASE = "http://example.com/";
 
-    private ImportResourceFactory factory;
+    private ImportEventFactory factory;
 
     @Mock
     private URITranslationUtil uriTranslator;
@@ -50,7 +50,7 @@ public class ImportResourceFactoryTest {
 
         when(config.getRdfExtension()).thenReturn(".jsonld");
 
-        factory = new ImportResourceFactory(config);
+        factory = new ImportEventFactory(config);
     }
 
 //    @Test

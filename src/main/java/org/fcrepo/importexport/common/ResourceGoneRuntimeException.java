@@ -23,7 +23,7 @@ import org.fcrepo.client.FcrepoResponse;
 
 /**
  * Exception thrown when a resource is gone, and checks to see if the resource has a tombstone
- * 
+ *
  * @author bbpennel
  */
 public class ResourceGoneRuntimeException extends RuntimeException {
@@ -32,6 +32,11 @@ public class ResourceGoneRuntimeException extends RuntimeException {
     final URI resourceUri;
     final URI tombstone;
 
+    /**
+     * Constructor
+     *
+     * @param response Response which triggered the exception
+     */
     public ResourceGoneRuntimeException(final FcrepoResponse response) {
         tombstone = response.getLinkHeaders("hasTombstone").get(0);
         resourceUri = response.getUrl();

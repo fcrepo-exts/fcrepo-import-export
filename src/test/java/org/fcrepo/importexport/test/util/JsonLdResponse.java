@@ -1,3 +1,20 @@
+/*
+ * Licensed to DuraSpace under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * DuraSpace licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except in
+ * compliance with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.fcrepo.importexport.test.util;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -12,11 +29,13 @@ import java.util.stream.Collectors;
 
 import org.apache.jena.rdf.model.Resource;
 
+/**
+ * Helpers for constructing json ld responses in tests.
+ *
+ * @author bbpennel
+ *
+ */
 public abstract class JsonLdResponse {
-
-    public JsonLdResponse() {
-        // TODO Auto-generated constructor stub
-    }
 
     public static String createJson(final URI resource, final URI... children) {
         return createJson(resource, null, children);
@@ -41,7 +60,7 @@ public abstract class JsonLdResponse {
     public static String joinJsonArray(final List<String> array) {
         return "[" + String.join(",", array) + "]";
     }
-    
+
     public static List<String> addVersionJson(final List<String> versions, final URI rescUri, final URI versionUri,
             final String label, final String timestamp) {
         final String versionJson = "{\"@id\":\"" + rescUri.toString() + "\"," +

@@ -37,7 +37,7 @@ import org.apache.jena.riot.RDFFormat;
 import org.junit.Test;
 
 /**
- * 
+ *
  * @author bbpennel
  *
  */
@@ -72,21 +72,21 @@ public class VersionSubjectMappingStreamRDFTest {
     @Test
     public void testRemapBaseFromFile() throws Exception {
         final String mappedRescUri = "http://localhost:64199/fcrepo/rest/prod2";
-        
+
         sourceUri = URI.create("http://localhost:8080/rest/dev/asdf");
         destinationUri = URI.create(mappedRescUri);
-        
-        File mFile = new File("src/test/resources/sample/mapped/rest/dev/asdf.ttl");
+
+        final File mFile = new File("src/test/resources/sample/mapped/rest/dev/asdf.ttl");
         mapper = new SubjectMappingStreamRDF(sourceUri, destinationUri);
-        
+
         final Model mappedModel;
         try (final InputStream in2 = new FileInputStream(mFile)) {
             RDFDataMgr.parse(mapper, in2, contentTypeToLang(RDF_LANG));
         }
         mappedModel = mapper.getModel();
-        
+
         final Resource mappedResc = mappedModel.listResourcesWithProperty(RDF_TYPE).next();
-        
+
         assertEquals(mappedRescUri, mappedResc.getURI());
     }
 
@@ -152,7 +152,7 @@ public class VersionSubjectMappingStreamRDFTest {
         assertEquals(mappedRescUri, mappedResc.getURI());
     }
 
-    private Model makeModelWithResource(String uri) {
+    private Model makeModelWithResource(final String uri) {
         final Model model = ModelFactory.createDefaultModel();
         final Resource resc = model.getResource(uri);
         resc.addProperty(RDF_TYPE, FEDORA_RESOURCE);
@@ -160,7 +160,7 @@ public class VersionSubjectMappingStreamRDFTest {
         return model;
     }
 
-    private Model mapModel(Model model) throws Exception {
+    private Model mapModel(final Model model) throws Exception {
         try (final ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             RDFDataMgr.write(bos, model, RDF_FORMAT);
             try (final InputStream in2 = new ByteArrayInputStream(bos.toByteArray())) {

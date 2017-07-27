@@ -23,27 +23,27 @@ import java.net.URI;
 import org.fcrepo.importexport.common.Config;
 
 /**
- * Factory which produces {@link ImportResource} objects
- * 
+ * Factory which produces {@link ImportEvent} objects
+ *
  * @author bbpennel
  *
  */
-public class ImportResourceFactory {
+public class ImportEventFactory {
 
     private final Config config;
 
     /**
      * Default constructor
-     * 
+     *
      * @param config config
      */
-    public ImportResourceFactory(final Config config) {
+    public ImportEventFactory(final Config config) {
         this.config = config;
     }
 
     /**
      * Creates an ImportResource event from the given resource uri and description file
-     * 
+     *
      * @param uri original uri of the resource
      * @param descriptionFile description of the resource
      * @param lastModified last modified timestamp of resource
@@ -60,8 +60,8 @@ public class ImportResourceFactory {
 
     /**
      * Creates an ImportVersion event for the resource identified by uri
-     * 
-     * @param uri original uri of the versioned resource 
+     *
+     * @param uri original uri of the versioned resource
      * @param timestamp created timestamp of the version
      * @return the ImportVersion
      */

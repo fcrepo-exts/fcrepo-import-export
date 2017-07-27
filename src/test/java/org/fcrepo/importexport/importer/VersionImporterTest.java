@@ -353,23 +353,23 @@ public class VersionImporterTest {
         final URI rootURI = URI.create("http://example.org:9999/prod");
         final URI sourceURI = URI.create("http://localhost:8080/rest/dev/asdf");
         final URI resourceURI = URI.create("http://example.org:9999/prod/asdf");
-        
+
         mockGet(rootURI, FcrepoConstants.REPOSITORY_ROOT.getURI());
         ResponseMocker.mockHeadResponseError(client, resourceURI, 404);
-        
+
         ResponseMocker.mockPutResponse(client, resourceURI);
-        
-        Config config = new Config();
+
+        final Config config = new Config();
         config.setMode("import");
         config.setBaseDirectory("src/test/resources/sample/mapped");
         config.setIncludeBinaries(false);
         config.setRdfLanguage("text/turtle");
         config.setResource(resourceURI);
         config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
-        
+
         final VersionImporter importer = new VersionImporter(config, clientBuilder);
         importer.run();
-        
+
         verify(client).put(resourceURI);
     }
 

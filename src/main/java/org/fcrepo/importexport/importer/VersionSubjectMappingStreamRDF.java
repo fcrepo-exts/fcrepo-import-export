@@ -29,7 +29,7 @@ import org.apache.jena.graph.Node;
  *
  * @author escowles
  * @author bbpennel
- * 
+ *
  */
 public class VersionSubjectMappingStreamRDF extends SubjectMappingStreamRDF {
 
@@ -46,7 +46,7 @@ public class VersionSubjectMappingStreamRDF extends SubjectMappingStreamRDF {
     protected Node rebase(final Node node) {
         if (node.isURI()) {
             // Replace uri base and strip out versions path
-            String rebasedNodeUri = remapResourceUri(node.getURI(), sourceURI, destinationURI);
+            final String rebasedNodeUri = remapResourceUri(node.getURI(), sourceURI, destinationURI);
 
             if (!rebasedNodeUri.equals(node.getURI())) {
                 return createURI(rebasedNodeUri);

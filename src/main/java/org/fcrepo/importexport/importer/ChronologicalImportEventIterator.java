@@ -53,7 +53,7 @@ import org.fcrepo.importexport.common.URITranslationUtil;
 import org.slf4j.Logger;
 
 /**
- * Iterates through resources in chronological order based on last modified timestamp
+ * Iterates through a deduplicated set of resources in chronological order based on timestamp
  *
  * @author bbpennel
  *
@@ -66,12 +66,20 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
     private final ChronologicalUriExtractingFileVisitor treeWalker;
     private Queue<ImportEvent> eventQueue;
 
-    private ImportResourceFactory rescFactory;
+    private ImportEventFactory eventFactory;
 
-    public ChronologicalImportEventIterator(final File importBaseDirectory, final Config config, final ImportResourceFactory rescFactory)
-            throws IOException {
+    /**
+     * Constructs a new ChronologicalImportEventIterator from the given base directory
+     *
+     * @param importBaseDirectory base directory where resources are extracted from
+     * @param config config
+     * @param eventFactory factory which creates import events
+     * @throws IOException thrown if unable to walk the base directory
+     */
+    public ChronologicalImportEventIterator(final File importBaseDirectory, final Config config,
+            final ImportEventFactory eventFactory) throws IOException {
         this.config = config;
-        this.rescFactory = rescFactory;
+        this.eventFactory = eventFactory;
 
         this.treeWalker = new ChronologicalUriExtractingFileVisitor(this.config);
         Files.walkFileTree(importBaseDirectory.toPath(), treeWalker);
@@ -80,7 +88,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
     @Override
     public boolean hasNext() {
         if (eventQueue == null) {
-            List<ImportEvent> eventList = treeWalker.getSortedResources();
+            final List<ImportEvent> eventList = treeWalker.getSortedResources();
 
             // Remove resources which are in multiple versions but are unchanged
             if (config.includeVersions()) {
@@ -88,10 +96,6 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             } else {
                 eventQueue = getImportEventQueue(eventList);
             }
-
-            eventQueue.forEach(e -> {
-                System.out.println(e.getUri() + " " + e.getClass().getName());
-            });
         }
         return eventQueue.size() > 0;
     }
@@ -101,7 +105,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         return eventQueue.remove();
     }
 
-    private Queue<ImportEvent> getImportEventQueue(List<ImportEvent> eventList) {
+    private Queue<ImportEvent> getImportEventQueue(final List<ImportEvent> eventList) {
         final Queue<ImportEvent> events = new ArrayDeque<>();
         events.addAll(eventList);
 
@@ -182,7 +186,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             resources.sort(new Comparator<ImportEvent>() {
 
                 @Override
-                public int compare(ImportEvent o1, ImportEvent o2) {
+                public int compare(final ImportEvent o1, final ImportEvent o2) {
                     final int compareModified = new Long(o1.getTimestamp()).compareTo(o2.getTimestamp());
                     // When time equal, tiebreak by filename
                     if (compareModified == 0) {
@@ -238,7 +242,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             final long lastModified = lastModStmt == null ? 0L : getTimestampFromProperty(lastModStmt);
             final long created = createdStmt == null ? 0L : getTimestampFromProperty(createdStmt);
 
-            ImportResource impResc = rescFactory.createFromUri(resourceUri, rdfFile, created, lastModified);
+            final ImportResource impResc = eventFactory.createFromUri(resourceUri, rdfFile, created, lastModified);
             impResc.setIsVersion(isVersion);
 
             resources.add(impResc);
@@ -263,12 +267,12 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         private void addVersionEvents(final File versionsFile) throws IOException {
             final Model model = mapRdfStream(new FileInputStream(versionsFile), config);
 
-            ResIterator vRescIt = model.listResourcesWithProperty(CREATED_DATE);
+            final ResIterator vRescIt = model.listResourcesWithProperty(CREATED_DATE);
             while (vRescIt.hasNext()) {
                 final Resource vResc = vRescIt.next();
                 final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
 
-                final ImportVersion impVersion = rescFactory.createImportVersion(URI.create(vResc.getURI()), time);
+                final ImportVersion impVersion = eventFactory.createImportVersion(URI.create(vResc.getURI()), time);
                 resources.add(impVersion);
             }
         }

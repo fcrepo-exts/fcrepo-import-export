@@ -52,7 +52,7 @@ public class ChronologicalImportEventIteratorTest {
     private Config config;
 
     @Mock
-    private ImportResourceFactory rescFactory;
+    private ImportEventFactory rescFactory;
 
     @Mock
     private ImportResource impResource;
@@ -75,7 +75,7 @@ public class ChronologicalImportEventIteratorTest {
         when(rescFactory.createFromUri(any(URI.class), any(File.class), anyLong(), anyLong()))
             .thenAnswer(new Answer<ImportResource>() {
                 @Override
-                public ImportResource answer(InvocationOnMock invocation) throws Throwable {
+                public ImportResource answer(final InvocationOnMock invocation) throws Throwable {
                     final ImportResource resc = mock(ImportResource.class);
                     final URI uri = invocation.getArgumentAt(0, URI.class);
                     final URI mappedUri = remapResourceUri(uri, null, null);
@@ -92,7 +92,7 @@ public class ChronologicalImportEventIteratorTest {
         when(rescFactory.createImportVersion(any(URI.class), anyLong()))
             .thenAnswer(new Answer<ImportVersion>() {
                 @Override
-                public ImportVersion answer(InvocationOnMock invocation) throws Throwable {
+                public ImportVersion answer(final InvocationOnMock invocation) throws Throwable {
                     final ImportVersion resc = mock(ImportVersion.class);
                     when(resc.getUri()).thenReturn(invocation.getArgumentAt(0, URI.class));
                     when(resc.getMappedUri()).thenReturn(invocation.getArgumentAt(0, URI.class));
@@ -160,13 +160,13 @@ public class ChronologicalImportEventIteratorTest {
 
         assertEquals(con1VOriginalUri, rescIt.next().getUri());
         assertEquals(con2VOriginalUri, rescIt.next().getUri());
-        ImportEvent version1 = rescIt.next();
+        final ImportEvent version1 = rescIt.next();
         assertTrue("Expected version creation event", version1 instanceof ImportVersion);
         assertEquals(con1VOriginalUri, version1.getUri());
 
         assertEquals(con1V1Uri, rescIt.next().getUri());
         assertEquals(bin1V1Uri, rescIt.next().getUri());
-        ImportEvent version2 = rescIt.next();
+        final ImportEvent version2 = rescIt.next();
         assertTrue("Expected version creation event", version2 instanceof ImportVersion);
         assertEquals(con1V1Uri, version2.getUri());
 
@@ -219,11 +219,11 @@ public class ChronologicalImportEventIteratorTest {
         assertEquals(con1Uri, rescIt.next().getUri());
         assertEquals(child1VOriginalUri, rescIt.next().getUri());
 
-        ImportEvent versionOriginal = rescIt.next();
+        final ImportEvent versionOriginal = rescIt.next();
         assertTrue("Expected version creation event", versionOriginal instanceof ImportVersion);
         assertEquals(con1VOriginalUri, versionOriginal.getUri());
 
-        ImportEvent versionUnmod = rescIt.next();
+        final ImportEvent versionUnmod = rescIt.next();
         assertTrue("Expected version creation event", versionUnmod instanceof ImportVersion);
         assertEquals(con1VUnmodUri, versionUnmod.getUri());
 
