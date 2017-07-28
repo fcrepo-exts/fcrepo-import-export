@@ -114,17 +114,17 @@ public class ImporterIT extends AbstractResourceIT {
 
     @Test
     public void testCorruptedBinary() throws Exception {
-        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
-        final URI binaryURI = URI.create("http://localhost:8080/fcrepo/rest/bin1");
+        final URI sourceURI = URI.create("http://localhost:8080/rest");
+        final URI binaryDestination = URI.create(serverAddress + "rest/bin1");
         final String referencePath = TARGET_DIR + "/test-classes/sample/corrupted";
 
         final Config config = new Config();
         config.setMode("import");
         config.setIncludeBinaries(true);
         config.setBaseDirectory(referencePath);
-        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setRdfLanguage("application/ld+json");
         config.setResource(serverAddress);
-        config.setMap(new String[]{sourceURI.toString(), serverAddress});
+        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);
@@ -134,7 +134,7 @@ public class ImporterIT extends AbstractResourceIT {
         importer.run();
 
         // verify that the corrupted binary failed to load
-        assertFalse(resourceExists(binaryURI));
+        assertFalse(resourceExists(binaryDestination));
     }
 
     @Test

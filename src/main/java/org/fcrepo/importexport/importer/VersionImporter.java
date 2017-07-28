@@ -159,7 +159,6 @@ public class VersionImporter implements TransferProcess{
     }
 
     private void processImport(final URI resource) {
-        final URI parentUri = parent(resource);
         final File importContainerMetadataFile = fileForContainerURI(resource);
         final File importContainerDirectory = importContainerMetadataFile.getParentFile();
 

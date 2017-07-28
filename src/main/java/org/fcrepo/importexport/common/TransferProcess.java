@@ -215,7 +215,6 @@ public interface TransferProcess {
             throws IOException, FcrepoOperationFailedException {
         final String userName = config.getUsername();
         final String rdfLanguage = config.getRdfLanguage();
-        System.out.println("Checking if repo root is " + uri);
         try (FcrepoResponse response = client.head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, userName);
             // The repository root will not be a binary
