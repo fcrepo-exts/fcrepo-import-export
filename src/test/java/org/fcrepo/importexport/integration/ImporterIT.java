@@ -43,7 +43,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
-import org.fcrepo.importexport.importer.VersionImporter;
+import org.fcrepo.importexport.importer.Importer;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -102,7 +102,7 @@ public class ImporterIT extends AbstractResourceIT {
         // Run the import process
         config.setMode("import");
 
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // Verify
@@ -130,7 +130,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify that the corrupted binary failed to load
@@ -160,7 +160,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify the resources exist and link to each other
@@ -198,7 +198,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify the resources exist and link to each other
@@ -229,7 +229,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
@@ -259,7 +259,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
@@ -282,7 +282,7 @@ public class ImporterIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // run import
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // verify one title and one hasMember
@@ -298,7 +298,7 @@ public class ImporterIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("import");
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
 
         assertEquals(root, importer.findRepositoryRoot(rest));
         assertEquals(root, importer.findRepositoryRoot(restFoo));

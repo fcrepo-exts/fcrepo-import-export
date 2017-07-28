@@ -133,7 +133,7 @@ public class ImportVersionsTest {
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         ResponseMocker.mockPostResponse(client, versionUri);
 
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // Container should only be updated for head version
@@ -154,7 +154,7 @@ public class ImportVersionsTest {
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         final PostBuilder versionBuilder = ResponseMocker.mockPostResponse(client, versionUri);
 
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         // Container should have been updated for every version
@@ -176,7 +176,7 @@ public class ImportVersionsTest {
         ResponseMocker.mockPutResponse(client, containerURI);
         final URI versionUri = URI.create(containerURI.toString() + "/" + FCR_VERSIONS_PATH);
 
-        final VersionImporter importer = new VersionImporter(config, clientBuilder);
+        final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
         verify(client).put(eq(containerURI));

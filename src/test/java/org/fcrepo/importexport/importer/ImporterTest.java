@@ -19,18 +19,16 @@ package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -50,7 +48,8 @@ import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-
+import org.fcrepo.importexport.common.FcrepoConstants;
+import org.fcrepo.importexport.test.util.ResponseMocker;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -182,7 +181,6 @@ public class ImporterTest {
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
-        when(binBuilder.filename(any())).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -193,7 +191,6 @@ public class ImporterTest {
         when(client.put(eq(externalResourceURI))).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.body(isA(InputStream.class), isA(String.class)))
                 .thenReturn(externalResourceBuilder);
-        when(externalResourceBuilder.filename(any())).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
         when(externalResourceResponse.getStatusCode()).thenReturn(201);
         when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
@@ -301,7 +298,6 @@ public class ImporterTest {
         when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
         when(badBinBuilder.perform()).thenReturn(badBinResponse);
         when(badBinResponse.getStatusCode()).thenReturn(409);
         when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
@@ -350,6 +346,31 @@ public class ImporterTest {
         // when the uri has no path
         final URI dummy = URI.create("http://example.org:4444");
         assertEquals(dummy, importer.findRepositoryRoot(dummy));
+    }
+
+    @Test
+    public void testResourceAndBaseDiffer() throws Exception {
+        final URI rootURI = URI.create("http://example.org:9999/prod");
+        final URI sourceURI = URI.create("http://localhost:8080/rest/dev/asdf");
+        final URI resourceURI = URI.create("http://example.org:9999/prod/asdf");
+
+        mockGet(rootURI, FcrepoConstants.REPOSITORY_ROOT.getURI());
+        ResponseMocker.mockHeadResponseError(client, resourceURI, 404);
+
+        ResponseMocker.mockPutResponse(client, resourceURI);
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory("src/test/resources/sample/mapped");
+        config.setIncludeBinaries(false);
+        config.setRdfLanguage("text/turtle");
+        config.setResource(resourceURI);
+        config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
+
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        verify(client).put(resourceURI);
     }
 
     private void mockGet(final URI uri, final String type) throws FcrepoOperationFailedException {
