@@ -31,39 +31,29 @@ import org.fcrepo.importexport.common.Config;
  */
 public abstract class ImportEvent {
 
-    protected final String id;
     protected final URI uri;
     protected final URI mappedUri;
     protected final Config config;
     protected final long lastModified;
     protected final long created;
+    protected long timestamp;
 
     /**
      * Constructs an ImportEvent
      *
-     * @param id id for event
      * @param uri uri of the resource affected by the event
      * @param created created timestamp
      * @param lastModified last modified timestamp
      * @param config config
      */
-    public ImportEvent(final String id, final URI uri, final long created, final long lastModified,
+    public ImportEvent(final URI uri, final long created, final long lastModified,
             final Config config) {
-        this.id = id;
         this.config = config;
         this.uri = uri;
         this.created = created;
         this.lastModified = lastModified;
+        this.timestamp = created;
         this.mappedUri = remapResourceUri(uri, config.getSource(), config.getDestination());
-    }
-
-    /**
-     * Get Id for this resource
-     *
-     * @return the id
-     */
-    public String getId() {
-        return id;
     }
 
     /**
@@ -103,5 +93,19 @@ public abstract class ImportEvent {
     /**
      * @return the comparable timestamp for this resource
      */
-    public abstract long getTimestamp();
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    /**
+     * @param timestamp the timestamp to set
+     */
+    public void setTimestamp(final long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    @Override
+    public String toString() {
+        return uri.toString();
+    }
 }

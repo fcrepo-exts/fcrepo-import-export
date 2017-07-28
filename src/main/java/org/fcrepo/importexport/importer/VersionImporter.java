@@ -98,7 +98,6 @@ public class VersionImporter implements TransferProcess{
     private Config config;
     protected FcrepoClientBuilder clientBuilder;
 
-    private final ImportEventFactory importRescFactory;
     private Logger importLogger;
 
     final Map<String, String> versionedLabels;
@@ -117,8 +116,6 @@ public class VersionImporter implements TransferProcess{
      * @param clientBuilder fcrepo client builder
      */
     public VersionImporter(final Config config, final FcrepoClientBuilder clientBuilder) {
-
-        importRescFactory = new ImportEventFactory(config);
 
         this.config = config;
         this.clientBuilder = clientBuilder;
@@ -168,7 +165,7 @@ public class VersionImporter implements TransferProcess{
 
         try {
             final Iterator<ImportEvent> rescIt = new ChronologicalImportEventIterator(
-                    importContainerDirectory, config, importRescFactory);
+                    importContainerDirectory, config);
             while (rescIt.hasNext()) {
                 final ImportEvent impEvent = rescIt.next();
 

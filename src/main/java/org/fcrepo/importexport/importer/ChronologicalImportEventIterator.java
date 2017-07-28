@@ -19,11 +19,9 @@ package org.fcrepo.importexport.importer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSIONS;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
-import static org.fcrepo.importexport.common.FcrepoConstants.VERSION_RESOURCE;
 import static org.fcrepo.importexport.common.ModelUtils.mapRdfStream;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -39,8 +37,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 import org.apache.jena.datatypes.xsd.XSDDateTime;
@@ -53,7 +53,12 @@ import org.fcrepo.importexport.common.URITranslationUtil;
 import org.slf4j.Logger;
 
 /**
- * Iterates through a deduplicated set of resources in chronological order based on timestamp
+ * Iterates through a deduplicated set of import events in chronological order based on timestamp
+ *
+ * Generates the list of events from the configured import directory. Events are either resource import or version
+ * creation events. They are sorted chronologically by timestamp, using the created timestamp for the original
+ * version of the resource, or the last modified timestamp for subsequent versions. Unmodified versions of a
+ * resource are also deduplicated if another version with the same last modified timestamp is present.
  *
  * @author bbpennel
  *
@@ -63,40 +68,31 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
     private static final Logger logger = getLogger(ChronologicalImportEventIterator.class);
 
     private final Config config;
-    private final ChronologicalUriExtractingFileVisitor treeWalker;
     private Queue<ImportEvent> eventQueue;
-
-    private ImportEventFactory eventFactory;
+    final File importBaseDirectory;
 
     /**
      * Constructs a new ChronologicalImportEventIterator from the given base directory
      *
      * @param importBaseDirectory base directory where resources are extracted from
      * @param config config
-     * @param eventFactory factory which creates import events
-     * @throws IOException thrown if unable to walk the base directory
      */
-    public ChronologicalImportEventIterator(final File importBaseDirectory, final Config config,
-            final ImportEventFactory eventFactory) throws IOException {
+    public ChronologicalImportEventIterator(final File importBaseDirectory, final Config config) {
         this.config = config;
-        this.eventFactory = eventFactory;
-
-        this.treeWalker = new ChronologicalUriExtractingFileVisitor(this.config);
-        Files.walkFileTree(importBaseDirectory.toPath(), treeWalker);
+        this.importBaseDirectory = importBaseDirectory;
     }
 
     @Override
     public boolean hasNext() {
         if (eventQueue == null) {
-            final List<ImportEvent> eventList = treeWalker.getSortedResources();
-
-            // Remove resources which are in multiple versions but are unchanged
-            if (config.includeVersions()) {
-                eventQueue = getImportEventQueueWithVersions(eventList);
-            } else {
-                eventQueue = getImportEventQueue(eventList);
+            try {
+                eventQueue = generateEventQueue();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to read resources for import from specified directory "
+                        + importBaseDirectory, e);
             }
         }
+
         return eventQueue.size() > 0;
     }
 
@@ -105,97 +101,104 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         return eventQueue.remove();
     }
 
-    private Queue<ImportEvent> getImportEventQueue(final List<ImportEvent> eventList) {
+    /**
+     * Generates the list of events from the configured import directory. Events are either resource import or version
+     * creation events. They are sorted chronologically by timestamp, using the created timestamp for the original
+     * version of the resource, or the last modified timestamp for subsequent versions. Unmodified versions of a
+     * resource are also deduplicated if another version with the same last modified timestamp is present.
+     *
+     * @throws IOException thrown if the directory cannot be walked
+     */
+    private Queue<ImportEvent> generateEventQueue() throws IOException {
+        final ChronologicalUriExtractingFileVisitor treeWalker =
+                new ChronologicalUriExtractingFileVisitor(this.config);
+        Files.walkFileTree(importBaseDirectory.toPath(), treeWalker);
+
+        // Retrieve list of events from the configured directory
+        final List<ImportEvent> eventList = treeWalker.getEvents();
+
+        // If including versions, then remove unmodified duplicates and setup sort keys
+        if (config.includeVersions()) {
+            final Map<String, List<ImportResource>> resourcesGroupedByUri = treeWalker.getResourcesGroupedByUri();
+            prepareResources(eventList, resourcesGroupedByUri);
+        }
+
+        // Sort the events
+        sortEventsChronologically(eventList);
+
         final Queue<ImportEvent> events = new ArrayDeque<>();
         events.addAll(eventList);
 
         return events;
     }
 
-    private Queue<ImportEvent> getImportEventQueueWithVersions(final List<ImportEvent> eventList) {
-        final Queue<ImportEvent> events = new ArrayDeque<>();
+    private void prepareResources(final List<ImportEvent> eventList,
+            final Map<String, List<ImportResource>> resourcesGroupedByUri) {
 
-        long previousLastModified = -1;
-        for (int i = 0; i < eventList.size(); i++) {
-            final ImportEvent event = eventList.get(i);
-
-            if (event instanceof ImportVersion) {
-                logger.debug("Registering creation of version {} for resource {} to queue",
-                        ((ImportVersion) event).getLabel(), event.getMappedUri());
-                events.add(event);
-                continue;
+        resourcesGroupedByUri.entrySet().forEach(uriGroup -> {
+            final List<ImportResource> rescGroup = uriGroup.getValue();
+            if (rescGroup.size() <= 1) {
+                return;
             }
 
-            final ImportResource resc = (ImportResource) event;
-            if (resc.getTimestamp() == previousLastModified && resc.isVersion()
-                    && isUnmodified(resc, i, eventList)) {
-                // Repeat timestamp and is a versioned resource, and is unmodified, so skip importing this iteration
-            } else {
-                logger.debug("Adding resource for import to queue: {}", resc.getUri());
-                events.add(event);
+            // Sort the versions of this resource by last modified
+            rescGroup.sort(new Comparator<ImportEvent>() {
+                @Override
+                public int compare(final ImportEvent o1, final ImportEvent o2) {
+                    return new Long(o1.getLastModified()).compareTo(o2.getLastModified());
+                }
+            });
+
+            // Remove unmodified resources and switch sort key to last modified for all versions after original
+            for (int i = 1; i < rescGroup.size(); i++) {
+                final ImportResource resc = rescGroup.get(i);
+                final long previousLastModified = rescGroup.get(i - 1).getLastModified();
+
+                // Remove the unmodified resource from the total event list
+                if (resc.getLastModified() == previousLastModified) {
+                    eventList.remove(resc);
+                } else {
+                    resc.setTimestamp(resc.getLastModified());
+                }
             }
-
-            previousLastModified = event.getTimestamp();
-        }
-
-        return events;
+        });
     }
 
-    private boolean isUnmodified(final ImportResource resc, final int index,
-            final List<ImportEvent> eventList) {
-        for (int i = index - 1; i >= 0; i--) {
-            final ImportEvent olderEvent = eventList.get(i);
-            if (!(olderEvent instanceof ImportResource)) {
-                continue;
+    /**
+     * Sorts the events list chronologically by timestamp
+     *
+     * @param eventList
+     */
+    private List<ImportEvent> sortEventsChronologically(final List<ImportEvent> eventList) {
+        eventList.sort(new Comparator<ImportEvent>() {
+            @Override
+            public int compare(final ImportEvent o1, final ImportEvent o2) {
+                return new Long(o1.getTimestamp()).compareTo(o2.getTimestamp());
             }
+        });
 
-            final ImportResource olderResc = (ImportResource) olderEvent;
-
-            // For versioned resources, use last modified date to determine if the same
-            if (olderResc.isVersion() || resc.isVersion()) {
-                if (olderResc.getLastModified() != resc.getLastModified()) {
-                    return false;
-                }
-            } else {
-                if (olderResc.getCreated() != resc.getCreated()) {
-                    return false;
-                }
-            }
-
-            // Consider the object to be unchanged if last modified matches and same destination uri
-            if (olderResc.getMappedUri().equals(resc.getMappedUri())) {
-                return true;
-            }
-        }
-
-        return false;
+        return eventList;
     }
 
     private class ChronologicalUriExtractingFileVisitor extends SimpleFileVisitor<Path> {
 
         private List<ImportEvent> resources;
+        private Map<String, List<ImportResource>> resourcesGroupedByUri;
 
         private final Config config;
 
         public ChronologicalUriExtractingFileVisitor(final Config config) {
             resources = new ArrayList<>();
+            resourcesGroupedByUri = new HashMap<>();
             this.config = config;
         }
 
-        public List<ImportEvent> getSortedResources() {
-            resources.sort(new Comparator<ImportEvent>() {
-
-                @Override
-                public int compare(final ImportEvent o1, final ImportEvent o2) {
-                    final int compareModified = new Long(o1.getTimestamp()).compareTo(o2.getTimestamp());
-                    // When time equal, tiebreak by filename
-                    if (compareModified == 0) {
-                        return o1.getUri().compareTo(o2.getUri());
-                    }
-                    return compareModified;
-                }
-            });
+        public List<ImportEvent> getEvents() {
             return resources;
+        }
+
+        public Map<String, List<ImportResource>> getResourcesGroupedByUri() {
+            return resourcesGroupedByUri;
         }
 
         @Override
@@ -233,19 +236,27 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             final Resource resc = model.getResource(resourceUri.toString());
             final Statement lastModStmt = resc.getProperty(LAST_MODIFIED_DATE);
             final Statement createdStmt = resc.getProperty(CREATED_DATE);
-            boolean isVersion = resc.hasProperty(RDF_TYPE, VERSION_RESOURCE);
-            if (!isVersion) {
-                isVersion = resc.hasProperty(HAS_VERSIONS);
-            }
 //            final List<String> digests = getMessageDigests(resc);
 
             final long lastModified = lastModStmt == null ? 0L : getTimestampFromProperty(lastModStmt);
             final long created = createdStmt == null ? 0L : getTimestampFromProperty(createdStmt);
 
-            final ImportResource impResc = eventFactory.createFromUri(resourceUri, rdfFile, created, lastModified);
-            impResc.setIsVersion(isVersion);
+            final ImportResource impResc = new ImportResource(resourceUri, rdfFile, created, lastModified, config);
 
             resources.add(impResc);
+
+            logger.debug("Added resource for import {}", impResc.getUri());
+
+            // If including versions, then store a map of destination uris to all resources with the same uris
+            if (config.includeVersions()) {
+                final String groupUri = impResc.getMappedUri().toString();
+                List<ImportResource> rescsForUri = resourcesGroupedByUri.get(groupUri);
+                if (rescsForUri == null) {
+                    rescsForUri = new ArrayList<>();
+                    resourcesGroupedByUri.put(groupUri, rescsForUri);
+                }
+                rescsForUri.add(impResc);
+            }
 
             return CONTINUE;
         }
@@ -272,8 +283,10 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
                 final Resource vResc = vRescIt.next();
                 final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
 
-                final ImportVersion impVersion = eventFactory.createImportVersion(URI.create(vResc.getURI()), time);
+                final ImportVersion impVersion = new ImportVersion(URI.create(vResc.getURI()), time, config);
                 resources.add(impVersion);
+
+                logger.debug("Added version {}", impVersion.getUri());
             }
         }
 

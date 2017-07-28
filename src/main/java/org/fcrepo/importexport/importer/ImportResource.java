@@ -46,23 +46,21 @@ public class ImportResource extends ImportEvent {
     private URI descriptionUri;
     private Model model;
     private Resource resource;
-    private boolean isVersion;
     private File binary;
     private File descriptionFile;
 
     /**
      * Construct new ImportResource
      *
-     * @param id id
      * @param uri uri of resource
      * @param descriptionFile description file for resource
      * @param created created timestamp
      * @param lastModified last modified timestamp for resource
      * @param config config
      */
-    public ImportResource(final String id, final URI uri, final File descriptionFile, final long created,
+    public ImportResource(final URI uri, final File descriptionFile, final long created,
             final long lastModified, final Config config) {
-        super(id, uri, created, lastModified, config);
+        super(uri, created, lastModified, config);
         this.descriptionFile = descriptionFile;
     }
 
@@ -131,13 +129,11 @@ public class ImportResource extends ImportEvent {
             try {
                 model = mapRdfStreamToNonversionedSubjects(new FileInputStream(mdFile), config);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to read model for " + id, e);
+                throw new RuntimeException("Failed to read model for " + uri, e);
             }
         }
         return model;
     }
-
-
 
     /**
      * Get the resource representing this ImportResource from its model
@@ -153,32 +149,5 @@ public class ImportResource extends ImportEvent {
             resource = model.listResourcesWithProperty(RDF_TYPE).next();
         }
         return resource;
-    }
-
-    /**
-     * Return true if this resource is a Version
-     *
-     * @return true if this resource is a Version
-     */
-    public boolean isVersion() {
-        return isVersion;
-    }
-
-    /**
-     * Setter for isVersion property
-     *
-     * @param isVersion value to set
-     */
-    public void setIsVersion(final boolean isVersion) {
-        this.isVersion = isVersion;
-    }
-
-    @Override
-    public long getTimestamp() {
-        if (isVersion()) {
-            return lastModified;
-        } else {
-            return created;
-        }
     }
 }

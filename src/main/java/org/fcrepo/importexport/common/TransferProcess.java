@@ -164,7 +164,7 @@ public interface TransferProcess {
      * @return the map
      */
     public static Map<String, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
-        final Map<String, String> sha1FileMap = new HashMap<String, String>();
+        final Map<String, String> sha1FileMap = new HashMap<>();
         try (final Stream<String> stream = Files.lines(manifestFile)) {
             stream.forEach(l -> {
                 final String[] manifestTokens = l.split(BAGIT_CHECKSUM_DELIMITER);
@@ -215,6 +215,7 @@ public interface TransferProcess {
             throws IOException, FcrepoOperationFailedException {
         final String userName = config.getUsername();
         final String rdfLanguage = config.getRdfLanguage();
+        System.out.println("Checking if repo root is " + uri);
         try (FcrepoResponse response = client.head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, userName);
             // The repository root will not be a binary

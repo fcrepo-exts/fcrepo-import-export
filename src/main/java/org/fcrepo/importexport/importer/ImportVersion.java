@@ -37,13 +37,12 @@ public class ImportVersion extends ImportEvent {
     /**
      * Constructs a ImportVersion object
      *
-     * @param id identifier of the version being imported
      * @param uri uri of the resource being versioned
      * @param created created timestamp of the version
      * @param config config
      */
-    public ImportVersion(final String id, final URI uri, final long created, final Config config) {
-        super(id, uri, created, created, config);
+    public ImportVersion(final URI uri, final long created, final Config config) {
+        super(uri, created, created, config);
 
         final Matcher versionUriMatcher = versionUriPattern.matcher(uri.toString());
 
