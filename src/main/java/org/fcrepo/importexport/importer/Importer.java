@@ -212,7 +212,8 @@ public class Importer implements TransferProcess{
         }
     }
 
-    private void importContainerResource(final ImportResource resc) throws FcrepoOperationFailedException {
+    private void importContainerResource(final ImportResource resc) throws FcrepoOperationFailedException,
+            IOException {
         if (!isSkippableContainer(resc)) {
             try {
                 importDescription(resc);
@@ -274,13 +275,10 @@ public class Importer implements TransferProcess{
     }
 
     private void importDescription(final ImportResource resc) {
-        final Model model = resc.getModel();
         final URI destinationUri = resc.getMappedUri();
         final String descriptionPath = resc.getDescriptionFile().getAbsolutePath();
         try {
-            final FcrepoResponse response = client().put(resc.getDescriptionUri())
-                    .body(modelToStream(sanitize(resc)), config.getRdfLanguage())
-                    .preferLenient().perform();
+            final FcrepoResponse response = descriptionBuilder(resc).preferLenient().perform();
 
             if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized",
@@ -310,6 +308,21 @@ public class Importer implements TransferProcess{
             throw new RuntimeException(
                     "Error reading or parsing " + descriptionPath + ": " + e.toString(), e);
         }
+    }
+
+    private PutBuilder descriptionBuilder(final ImportResource resc) throws FcrepoOperationFailedException,
+            IOException {
+        PutBuilder builder = client().put(resc.getDescriptionUri())
+                .body(modelToStream(sanitize(resc)), config.getRdfLanguage())
+                .ifUnmodifiedSince(currentTimestamp());
+        if (sha1FileMap != null && config.getBagProfile() != null) {
+            // Use the bagIt checksum
+            final File containerFile = Paths.get(fileForContainerURI(resc.getUri()).toURI()).normalize().toFile();
+            final String checksum = sha1FileMap.get(containerFile.getAbsolutePath());
+            logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
+            builder = builder.digest(checksum);
+        }
+        return builder;
     }
 
     private void importBinaryFile(final ImportResource resc) throws FcrepoOperationFailedException, IOException {
