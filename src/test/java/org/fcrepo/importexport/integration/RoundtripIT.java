@@ -452,6 +452,51 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(binaryContent, getAsString(fileURI));
     }
 
+    @Test
+    public void testRoundtripVersions() throws Exception {
+        final String title = "Updated Version";
+        final String baseURI = serverAddress + UUID.randomUUID();
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI res2 = URI.create(baseURI + "/res1/res2");
+
+        create(res1);
+        createVersion(res1, "v0");
+
+        create(res2);
+        createVersion(res1, "v1");
+
+        final String res1Patch = "insert data { "
+                + "<> <" + DC_TITLE + "> \"" + title + "\" . }";
+        patch(res1, res1Patch);
+
+        roundtrip(res1, true);
+
+        assertTrue(exists(res1));
+        assertTrue(exists(res2));
+
+        final URI res1V0 = URI.create(baseURI + "/res1/fcr:versions/v0");
+        final URI res2V0 = URI.create(baseURI + "/res1/fcr:versions/v0/res2");
+
+        assertTrue(exists(res1V0));
+        assertFalse("res2 is not created until v1", exists(res2V0));
+
+        final URI res1V1 = URI.create(baseURI + "/res1/fcr:versions/v1");
+        final URI res2V1 = URI.create(baseURI + "/res1/fcr:versions/v1/res2");
+
+        assertTrue(exists(res1V1));
+        assertTrue(exists(res2V1));
+
+        // Check head versions of resources
+        assertTrue(exists(res1));
+        assertTrue(exists(res2));
+
+        final Model res1Model = getAsModel(res1);
+        final Model res1V1Model = getAsModel(res1V1);
+
+        assertFalse(res1V1Model.contains(null, createProperty(DC_TITLE), title));
+        assertTrue(res1Model.contains(null, createProperty(DC_TITLE), title));
+    }
+
     /*
      * This won't work until 4.7.4 is released to support relaxed server managed triples.
      */
@@ -514,6 +559,7 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setLegacy(true);
+        config.setIncludeVersions(true);
         new Exporter(config, clientBuilder).run();
 
         // delete container and optionally remove tombstone
