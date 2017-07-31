@@ -261,19 +261,30 @@ public class Config {
      */
     public void setMap(final String[] map) {
         if (map.length == 2 && map[0] != null && map[1] != null) {
-            this.source = URI.create(map[0]);
-            this.destination = URI.create(map[1]);
-            checkTrailingSlashes(this.source.toString(), this.destination.toString());
+            final String sourceStr = map[0];
+            final String destinationStr = map[1];
+            if ((sourceStr.endsWith("/") && !destinationStr.endsWith("/")) ||
+                    (!sourceStr.endsWith("/") && destinationStr.endsWith("/"))) {
+                logger.warn("Possible mismatch between the source and destination URIs: one ended with a trailing "
+                        + "slash but the other did not: \"{}\" -> \"{}\" (dropping the trailing slash)", sourceStr,
+                        destinationStr);
+                this.source = URI.create(removeTrailingSlash(sourceStr));
+                this.destination = URI.create(removeTrailingSlash(destinationStr));
+            } else {
+                this.source = URI.create(sourceStr);
+                this.destination = URI.create(destinationStr);
+            }
+
         } else {
             throw new IllegalArgumentException("The map should contain the export and import baseURLs");
         }
     }
 
-    private static void checkTrailingSlashes(final String source, final String destination) {
-        if ((source.endsWith("/") && !destination.endsWith("/")) ||
-            (!source.endsWith("/") && destination.endsWith("/"))) {
-            logger.warn("Possible mismatch between the source and destination URIs: one ends with a trailing "
-                + "slash but the other does not: \"{}\" -> \"{}\"", source, destination);
+    private String removeTrailingSlash(final String url) {
+        if (url.endsWith("/")) {
+            return url.substring(0, url.lastIndexOf('/'));
+        } else {
+            return url;
         }
     }
 

@@ -1,2 +1,3 @@
+57715be6f517f9174d7b2ec9acf8405831f586c5  data/rest.jsonld
 427b598d3b581cb23d5efe362a52aa43a24cfebb  data/rest/bad_bin1/fcr_metadata.jsonld
 c537ab534deef7493140106c2151eccf2a219b8e  data/rest/bad_bin1.binary
