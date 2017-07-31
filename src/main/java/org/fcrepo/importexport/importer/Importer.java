@@ -91,6 +91,8 @@ import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
 
 import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.reader.BagReader;
+import gov.loc.repository.bagit.verify.BagVerifier;
 
 /**
  * Fedora Import Utility
@@ -102,8 +104,6 @@ import gov.loc.repository.bagit.domain.Bag;
  * @since 2016-08-29
  */
 public class Importer implements TransferProcess{
-
-    private static final String VERSIONS_FILENAME = "fcr%3Aversions";
 
     private static final Logger logger = getLogger(Importer.class);
     private Config config;
@@ -517,6 +517,22 @@ public class Importer implements TransferProcess{
 
     private static URI withSlash(final URI uri) {
         return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
+    }
+
+    /**
+     * Verify the bag we are going to import
+     *
+     * @param bagDir root directory of the bag
+     * @return true if valid
+     */
+    public static boolean verifyBag(final File bagDir) {
+        try {
+            final Bag bag = BagReader.read(bagDir);
+            BagVerifier.isValid(bag, true);
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
+        }
     }
 
     /**
