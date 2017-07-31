@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.test.util;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
@@ -162,6 +163,8 @@ public abstract class ResponseMocker {
         when(client.put(eq(uri))).thenReturn(putBuilder);
         when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
         when(putBuilder.digest(isA(String.class))).thenReturn(putBuilder);
+        when(putBuilder.filename(any())).thenReturn(putBuilder);
+        when(putBuilder.ifUnmodifiedSince(any())).thenReturn(putBuilder);
         when(putBuilder.preferLenient()).thenReturn(putBuilder);
         when(putBuilder.perform()).thenReturn(response);
         when(response.getStatusCode()).thenReturn(201);
@@ -184,6 +187,8 @@ public abstract class ResponseMocker {
         when(client.post(eq(uri))).thenReturn(postBuilder);
         when(postBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(postBuilder);
         when(postBuilder.digest(isA(String.class))).thenReturn(postBuilder);
+        when(postBuilder.filename(any())).thenReturn(postBuilder);
+        when(postBuilder.ifUnmodifiedSince(any())).thenReturn(postBuilder);
         when(postBuilder.slug(anyString())).thenReturn(postBuilder);
         when(postBuilder.perform()).thenReturn(response);
         when(response.getStatusCode()).thenReturn(201);

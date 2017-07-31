@@ -19,16 +19,18 @@ package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
-import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -75,6 +77,7 @@ public class ImporterTest {
     private URI containerURI;
     private URI pairtreeURI;
     private URI finalContainerURI;
+    private URI repositoryRootURI;
     private File binaryFilesDir;
     private File externalFilesDir;
 
@@ -92,6 +95,7 @@ public class ImporterTest {
         externalResourceURI  = new URI("http://example.org:9999/rest/ext1");
         externalResourceDescriptionURI = new URI("http://example.org:9999/rest/ext1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
+        repositoryRootURI = new URI("http://example.org:9999/rest");
 
         binaryFilesDir = new File("src/test/resources/sample/binary");
         binaryArgs = new Config();
@@ -181,6 +185,8 @@ public class ImporterTest {
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
         when(binBuilder.digest(isA(String.class))).thenReturn(binBuilder);
+        when(binBuilder.filename(any())).thenReturn(binBuilder);
+        when(binBuilder.ifUnmodifiedSince(any())).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -191,6 +197,8 @@ public class ImporterTest {
         when(client.put(eq(externalResourceURI))).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.body(isA(InputStream.class), isA(String.class)))
                 .thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.filename(any())).thenReturn(externalResourceBuilder);
+        when(externalResourceBuilder.ifUnmodifiedSince(any())).thenReturn(externalResourceBuilder);
         when(externalResourceBuilder.perform()).thenReturn(externalResourceResponse);
         when(externalResourceResponse.getStatusCode()).thenReturn(201);
         when(externalResourceResponse.getLinkHeaders(eq("describedby"))).thenReturn(externalResourceLinks);
@@ -199,6 +207,7 @@ public class ImporterTest {
         // mock container/description interactions
         putBuilder = mock(PutBuilder.class);
         conResponse = mock(FcrepoResponse.class);
+        when(client.put(eq(repositoryRootURI))).thenReturn(putBuilder);
         when(client.put(eq(containerURI))).thenReturn(putBuilder);
         when(client.put(eq(pairtreeURI))).thenReturn(putBuilder);
         when(client.put(eq(finalContainerURI))).thenReturn(putBuilder);
@@ -206,6 +215,7 @@ public class ImporterTest {
         when(client.put(eq(externalResourceDescriptionURI))).thenReturn(putBuilder);
         when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
         when(putBuilder.preferLenient()).thenReturn(putBuilder);
+        when(putBuilder.ifUnmodifiedSince(any())).thenReturn(putBuilder);
         when(putBuilder.perform()).thenReturn(conResponse);
         when(conResponse.getStatusCode()).thenReturn(201);
         when(conResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
@@ -298,6 +308,9 @@ public class ImporterTest {
         when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
+        when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
+        when(badBinBuilder.preferLenient()).thenReturn(badBinBuilder);
         when(badBinBuilder.perform()).thenReturn(badBinResponse);
         when(badBinResponse.getStatusCode()).thenReturn(409);
         when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));

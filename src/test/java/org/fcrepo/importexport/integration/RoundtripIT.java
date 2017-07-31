@@ -17,6 +17,25 @@
  */
 package org.fcrepo.importexport.integration;
 
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.jena.datatypes.xsd.XSDDatatype.XSDdateTime;
+import static org.apache.jena.datatypes.xsd.XSDDatatype.XSDlong;
+import static org.apache.jena.rdf.model.ResourceFactory.createLangLiteral;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.rdf.model.ResourceFactory.createTypedLiteral;
+import static org.apache.jena.riot.RDFDataMgr.loadModel;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.slf4j.LoggerFactory.getLogger;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
@@ -30,32 +49,13 @@ import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
 import org.junit.Test;
 import org.slf4j.Logger;
-
-import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.apache.jena.datatypes.xsd.XSDDatatype.XSDdateTime;
-import static org.apache.jena.datatypes.xsd.XSDDatatype.XSDlong;
-import static org.apache.jena.rdf.model.ResourceFactory.createLangLiteral;
-import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.apache.jena.rdf.model.ResourceFactory.createTypedLiteral;
-import static org.apache.jena.riot.RDFDataMgr.loadModel;
-import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
-import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
-import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * @author escowles
@@ -434,6 +434,7 @@ public class RoundtripIT extends AbstractResourceIT {
         // create a binary with an RDF content type
         final FcrepoResponse response = clientBuilder.build().put(fileURI)
                 .body(new FileInputStream(binaryFile), "text/turtle").filename(null).perform();
+
         assertEquals(SC_CREATED, response.getStatusCode());
         assertEquals(fileURI, response.getLocation());
 

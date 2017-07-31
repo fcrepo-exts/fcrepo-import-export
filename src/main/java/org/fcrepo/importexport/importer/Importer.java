@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.importer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -61,6 +62,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -161,11 +164,15 @@ public class Importer implements TransferProcess{
         return clientBuilder.build();
     }
 
+    /**
+     * This method does the import
+     */
     @Override
     public void run() {
         logger.info("Running importer...");
 
         repositoryRoot = findRepositoryRoot(config.getResource());
+        logger.debug("Repository root {}", repositoryRoot);
 
         processImport(config.getResource());
 
@@ -339,7 +346,9 @@ public class Importer implements TransferProcess{
         } else {
             contentStream = new FileInputStream(binaryFile);
         }
-        PutBuilder builder = client().put(binaryURI).body(contentStream, contentType);
+        PutBuilder builder = client().put(binaryURI).filename(null)
+                                     .body(contentStream, contentType)
+                                     .ifUnmodifiedSince(currentTimestamp());
         if (!external(contentType)) {
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
@@ -352,6 +361,10 @@ public class Importer implements TransferProcess{
             }
         }
         return builder;
+    }
+
+    private String currentTimestamp() {
+        return RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneId.of("GMT")));
     }
 
     private void deleteTombstone(final URI rescUri, final URI tombstone) throws FcrepoOperationFailedException {
