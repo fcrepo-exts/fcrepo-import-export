@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.importer;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -24,17 +25,20 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MEMBER_RELATION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
+import static org.fcrepo.importexport.common.ModelUtils.mapRdfStream;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
@@ -49,20 +53,27 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
@@ -102,6 +113,8 @@ public class Importer implements TransferProcess{
 
     final Map<String, String> versionedLabels;
 
+    private final Map<String, Set<String>> uriToMembershipRelations;
+
     private Bag bag;
     private MessageDigest sha1;
     private final Map<String, String> sha1FileMap;
@@ -121,6 +134,7 @@ public class Importer implements TransferProcess{
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
         this.versionedLabels = new HashMap<>();
+        this.uriToMembershipRelations = new HashMap<>();
 
         if (config.getBagProfile() == null) {
             this.bag = null;
@@ -163,6 +177,9 @@ public class Importer implements TransferProcess{
         final File importContainerDirectory = importContainerMetadataFile.getParentFile();
 
         try {
+            // Generate list of resources
+            discoverMembershipResources(importContainerDirectory);
+
             final Iterator<ImportEvent> rescIt = new ChronologicalImportEventIterator(
                     importContainerDirectory, config);
             while (rescIt.hasNext()) {
@@ -175,10 +192,8 @@ public class Importer implements TransferProcess{
                     createVersion(version.getMappedUri(), version.getLabel());
                 }
             }
-        } catch (FcrepoOperationFailedException e) {
+        } catch (FcrepoOperationFailedException | IOException e) {
             throw new RuntimeException("Failed to import", e);
-        } catch (IOException e) {
-            throw new RuntimeException("", e);
         }
     }
 
@@ -257,7 +272,7 @@ public class Importer implements TransferProcess{
         final String descriptionPath = resc.getDescriptionFile().getAbsolutePath();
         try {
             final FcrepoResponse response = client().put(resc.getDescriptionUri())
-                    .body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                    .body(modelToStream(sanitize(resc)), config.getRdfLanguage())
                     .preferLenient().perform();
 
             if (response.getStatusCode() == 401) {
@@ -370,7 +385,11 @@ public class Importer implements TransferProcess{
      * @throws IOException
      * @throws FcrepoOperationFailedException
      */
-    private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
+    private Model sanitize(final ImportResource resc) throws IOException, FcrepoOperationFailedException {
+
+        final Set<String> membershipRelations = uriToMembershipRelations.get(resc.getUri().toString());
+
+        final Model model = resc.getModel();
         final List<Statement> remove = new ArrayList<>();
         for (final StmtIterator it = model.listStatements(); it.hasNext(); ) {
             final Statement s = it.nextStatement();
@@ -385,10 +404,18 @@ public class Importer implements TransferProcess{
                     || (s.getPredicate().equals(RDF_TYPE) && forbiddenType(s.getResource()))) {
                 remove.add(s);
             } else if (s.getObject().isResource()) {
-                // make sure that referenced repository objects exist
                 final String obj = s.getResource().toString();
+
                 if (obj.startsWith(repositoryRoot.toString())) {
-                    ensureExists(URI.create(obj));
+                    if (membershipRelations != null && membershipRelations.contains(s.getPredicate().getURI())) {
+                        // trim out generated membership relations
+                        remove.add(s);
+                    } else {
+                        // make sure that referenced repository objects exist
+                        ensureExists(URI.create(obj));
+                    }
+
+
                 }
             }
         }
@@ -520,5 +547,45 @@ public class Importer implements TransferProcess{
         } catch (final FcrepoOperationFailedException ex) {
             throw new RuntimeException("Error finding repository root " + u, ex);
         }
+    }
+
+    /**
+     * Finds containers which are providing membership relations, then uses that information to track which membership
+     * relations need to be removed before import.
+     *
+     * @param importDirectory directory containing the import
+     * @throws IOException Thrown if the import directory cannot be read
+     */
+    private void discoverMembershipResources(final File importDirectory) throws IOException {
+        Files.walkFileTree(importDirectory.toPath(), new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+                if (!file.toString().endsWith(config.getRdfExtension())) {
+                    return CONTINUE;
+                }
+
+                final Model model = mapRdfStream(new FileInputStream(file.toFile()), config);
+                if (model.contains(null, MEMBERSHIP_RESOURCE, (RDFNode) null)) {
+                    model.listObjectsOfProperty(MEMBERSHIP_RESOURCE).forEachRemaining(node -> {
+                        logger.info("Membership resource: {}", node);
+                        final String uri = node.toString();
+
+                        final Set<String> relations;
+                        if (uriToMembershipRelations.containsKey(uri)) {
+                            relations = uriToMembershipRelations.get(uri);
+                        } else {
+                            relations = new HashSet<>();
+                            uriToMembershipRelations.put(uri, relations);
+                        }
+
+                        model.listObjectsOfProperty(HAS_MEMBER_RELATION).forEachRemaining(relNode -> {
+                            relations.add(relNode.toString());
+                        });
+                    });
+                }
+
+                return CONTINUE;
+            }
+        });
     }
 }

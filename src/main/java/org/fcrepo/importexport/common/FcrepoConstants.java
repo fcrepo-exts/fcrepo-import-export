@@ -44,6 +44,7 @@ public abstract class FcrepoConstants {
     public static final String LDP_NAMESPACE = "http://www.w3.org/ns/ldp#";
     public static final Resource CONTAINER = createResource(LDP_NAMESPACE + "Container");
     public static final Property MEMBERSHIP_RESOURCE = createProperty(LDP_NAMESPACE + "membershipResource");
+    public static final Property HAS_MEMBER_RELATION = createProperty(LDP_NAMESPACE + "hasMemberRelation");
     public static final Property NON_RDF_SOURCE = createProperty(LDP_NAMESPACE + "NonRDFSource");
     public static final Property RDF_SOURCE = createProperty(LDP_NAMESPACE + "RDFSource");
     public static final Property CONTAINS = createProperty(LDP_NAMESPACE + "contains");
