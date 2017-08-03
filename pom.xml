@@ -238,7 +238,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://github.com/fcrepo4-exts/fcrepo-webapp-plus/releases/download/fcrepo-webapp-plus-4.7.2/fcrepo-webapp-plus-webac-4.7.2.war</url>
+              <url>https://github.com/fcrepo4-exts/fcrepo-webapp-plus/releases/download/fcrepo-webapp-plus-4.7.4/fcrepo-webapp-plus-webac-4.7.4.war</url>
               <outputFileName>fcrepo-webapp.war</outputFileName>
               <targetDirectory>${project.build.directory}</targetDirectory>
             </configuration>
