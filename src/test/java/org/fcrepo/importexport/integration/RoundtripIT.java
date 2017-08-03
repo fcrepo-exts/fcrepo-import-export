@@ -41,7 +41,6 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -450,10 +449,6 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(binaryContent, getAsString(fileURI));
     }
 
-    /*
-     * This won't work until 4.7.4 is released to support relaxed server managed triples.
-     */
-    @Ignore
     @Test
     public void testRoundtripNested() throws Exception {
         final URI containerURI = URI.create(serverAddress + UUID.randomUUID());
@@ -462,7 +457,7 @@ public class RoundtripIT extends AbstractResourceIT {
         assertEquals(SC_CREATED, clientBuilder.build().put(containerURI).perform().getStatusCode());
         assertEquals(SC_CREATED, clientBuilder.build().post(containerURI).slug("b")
                 .body(new ByteArrayInputStream("content".getBytes("UTF-8")), "text/plain").perform().getStatusCode());
-        assertEquals(SC_CREATED,  clientBuilder.build().post(containerURI).slug("a").perform().getStatusCode());
+        assertEquals(SC_CREATED, clientBuilder.build().post(containerURI).slug("a").perform().getStatusCode());
 
         final Model origModel = ModelFactory.createDefaultModel();
         origModel.read(
@@ -473,9 +468,13 @@ public class RoundtripIT extends AbstractResourceIT {
         final Model roundtrippedModel = ModelFactory.createDefaultModel();
         roundtrippedModel.read(
                 clientBuilder.build().get(containerURI).accept("application/n-triples").perform().getBody(), "", "N3");
-        final Graph roundtrippedGraph = roundtrippedModel.getGraph();
 
-        final ExtendedIterator<Triple> originalTripleIt = origModel.getGraph().find(Node.ANY, Node.ANY, Node.ANY);
+        assertIdenticalGraphs(origModel, roundtrippedModel);
+    }
+
+    private void assertIdenticalGraphs(final Model orig, final Model roundtripped) {
+        final Graph roundtrippedGraph = roundtripped.getGraph();
+        final ExtendedIterator<Triple> originalTripleIt = orig.getGraph().find(Node.ANY, Node.ANY, Node.ANY);
         while (originalTripleIt.hasNext()) {
             final Triple t = originalTripleIt.next();
             assertTrue("Roundtripped resource should contain triple " + t + "!", roundtrippedGraph.contains(t));
@@ -511,7 +510,6 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
         new Exporter(config, clientBuilder).run();
 
         // delete container and optionally remove tombstone

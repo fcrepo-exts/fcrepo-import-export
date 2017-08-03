@@ -89,7 +89,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setResource(parent.toString());
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         final Exporter exporter = new Exporter(config, clientBuilder);
         exporter.run();
@@ -128,7 +127,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -158,7 +156,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceServerAddress, serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -196,7 +193,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress + "prod2/"});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -227,7 +223,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -257,7 +252,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), serverAddress + "prod/asdf"});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
@@ -280,7 +274,6 @@ public class ImporterIT extends AbstractResourceIT {
         config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setLegacy(true);
 
         // run import
         final Importer importer = new Importer(config, clientBuilder);
