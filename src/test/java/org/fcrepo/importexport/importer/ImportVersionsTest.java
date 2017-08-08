@@ -150,6 +150,7 @@ public class ImportVersionsTest {
 
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
+        ResponseMocker.mockDeleteResponse(client, container2URI);
         ResponseMocker.mockPutResponse(client, binaryURI);
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         final PostBuilder versionBuilder = ResponseMocker.mockPostResponse(client, versionUri);

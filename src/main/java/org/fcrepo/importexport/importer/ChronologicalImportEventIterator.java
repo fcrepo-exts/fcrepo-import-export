@@ -211,7 +211,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             // Create events for versions of this resource
             if (config.includeVersions()
                     && file.toString().endsWith("fcr%3Aversions" + config.getRdfExtension())) {
-                addVersionEvents(file.toFile());
+                addVersionsEvents(file.toFile());
                 return CONTINUE;
             }
 
@@ -275,19 +275,32 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
 //            return digests;
 //        }
 
-        private void addVersionEvents(final File versionsFile) throws IOException {
+        private void addVersionsEvents(final File versionsFile) throws IOException {
             final Model model = mapRdfStream(new FileInputStream(versionsFile), config);
+
+            final VersionDiffDeletionGenerator deletionGenerator = new VersionDiffDeletionGenerator(config);
+            resources.addAll(deletionGenerator.generateImportDeletions(model));
+
+            // Add versions in after deletions
+            resources.addAll(getVersionEvents(model));
+        }
+
+        private List<ImportVersion> getVersionEvents(final Model model) {
+            final List<ImportVersion> versions = new ArrayList<>();
 
             final ResIterator vRescIt = model.listResourcesWithProperty(CREATED_DATE);
             while (vRescIt.hasNext()) {
                 final Resource vResc = vRescIt.next();
+                final URI rescUri = URI.create(vResc.getURI());
                 final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
 
-                final ImportVersion impVersion = new ImportVersion(URI.create(vResc.getURI()), time, config);
-                resources.add(impVersion);
+                final ImportVersion impVersion = new ImportVersion(rescUri, time, config);
+                versions.add(impVersion);
 
                 logger.debug("Added version {}", impVersion.getUri());
             }
+
+            return versions;
         }
 
         private long getTimestampFromProperty(final Statement stmt) {

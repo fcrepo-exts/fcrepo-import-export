@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 
+import org.fcrepo.client.DeleteBuilder;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -194,5 +195,24 @@ public abstract class ResponseMocker {
         when(response.getStatusCode()).thenReturn(201);
 
         return postBuilder;
+    }
+
+    /**
+     * Create a mock DELETE response
+     *
+     * @param client client
+     * @param uri uri
+     * @return response
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static DeleteBuilder mockDeleteResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
+        final DeleteBuilder deleteBuilder = mock(DeleteBuilder.class);
+        final FcrepoResponse response = mock(FcrepoResponse.class);
+        when(client.delete(eq(uri))).thenReturn(deleteBuilder);
+        when(deleteBuilder.perform()).thenReturn(response);
+        when(response.getStatusCode()).thenReturn(201);
+
+        return deleteBuilder;
     }
 }

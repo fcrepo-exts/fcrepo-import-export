@@ -104,6 +104,8 @@ public class ChronologicalImportEventIteratorTest {
                 "http://localhost:8080/fcrepo/rest/con1/fcr:versions/version_original");
         final URI con1V1Uri = new URI(
                 "http://localhost:8080/fcrepo/rest/con1/fcr:versions/version_1");
+        final URI con2Uri = new URI(
+                "http://localhost:8080/fcrepo/rest/con1/con2");
         final URI con2VOriginalUri = new URI(
                 "http://localhost:8080/fcrepo/rest/con1/fcr:versions/version_original/con2");
         final URI bin1Uri = new URI("http://localhost:8080/fcrepo/rest/con1/bin1");
@@ -125,6 +127,11 @@ public class ChronologicalImportEventIteratorTest {
 
         assertEquals(con1V1Uri, rescIt.next().getUri());
         assertEquals(bin1V1Uri, rescIt.next().getUri());
+
+        final ImportEvent deleteCon2 = rescIt.next();
+        assertTrue(deleteCon2 instanceof ImportDeletion);
+        assertEquals(con2Uri, deleteCon2.getUri());
+
         final ImportEvent version2 = rescIt.next();
         assertTrue("Expected version creation event", version2 instanceof ImportVersion);
         assertEquals(con1V1Uri, version2.getUri());
@@ -159,7 +166,7 @@ public class ChronologicalImportEventIteratorTest {
     public void testUnmodifiedVersions() throws Exception {
         when(config.includeVersions()).thenReturn(true);
 
-        final File directory = new File("src/test/resources/sample/unmodified_version");
+        final File directory = new File("src/test/resources/sample/versioning/unmodified");
         when(config.getBaseDirectory()).thenReturn(directory);
 
         final URI con1VOriginalUri = new URI(

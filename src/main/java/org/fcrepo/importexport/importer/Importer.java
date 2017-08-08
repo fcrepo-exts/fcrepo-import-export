@@ -45,6 +45,7 @@ import static org.fcrepo.importexport.common.TransferProcess.fileForExternalReso
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
 import static org.fcrepo.importexport.common.URITranslationUtil.addRelativePath;
+import static org.fcrepo.importexport.common.UriUtils.withSlash;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -197,6 +198,9 @@ public class Importer implements TransferProcess{
                 } else if (impEvent instanceof ImportVersion) {
                     final ImportVersion version = (ImportVersion) impEvent;
                     createVersion(version.getMappedUri(), version.getLabel());
+                } else if (impEvent instanceof ImportDeletion) {
+                    final ImportDeletion deletion = (ImportDeletion) impEvent;
+                    deleteRemovedVersion(deletion.getMappedUri());
                 }
             }
         } catch (FcrepoOperationFailedException | IOException e) {
@@ -271,6 +275,22 @@ public class Importer implements TransferProcess{
             }
         } catch (FcrepoOperationFailedException | IOException e) {
             throw new RuntimeException("Error creating version " + label + " of " + uri, e);
+        }
+    }
+
+    private void deleteRemovedVersion(final URI uri) {
+        try (final FcrepoResponse response = client().delete(uri).perform()) {
+
+            if (response.getStatusCode() == 201) {
+                logger.info("Delete removed version {}", uri);
+                importLogger.info("Delete removed version {}", uri);
+                successCount.incrementAndGet();
+            } else {
+                throw new RuntimeException("Error deleting removed " + uri
+                        + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+            }
+        } catch (FcrepoOperationFailedException | IOException e) {
+            throw new RuntimeException("Error deleting of " + uri, e);
         }
     }
 
@@ -539,10 +559,6 @@ public class Importer implements TransferProcess{
 
     private boolean external(final String contentType) {
         return contentType.startsWith("message/external-body");
-    }
-
-    private static URI withSlash(final URI uri) {
-        return uri.toString().endsWith("/") ? uri : URI.create(uri.toString() + "/");
     }
 
     /**
