@@ -168,9 +168,9 @@ public class ExporterTest {
         final File baginfo = new File(basedir + "/bag-info.txt");
         Assert.assertTrue(baginfo.exists());
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Bag-Size : 113 bytes"));
-        Assert.assertTrue(baginfoLines.contains("Payload-Oxum : 113.3"));
-        Assert.assertTrue(baginfoLines.contains("Source-Organization : My University"));
+        Assert.assertTrue(baginfoLines.contains("Bag-Size: 113 bytes"));
+        Assert.assertTrue(baginfoLines.contains("Payload-Oxum: 113.3"));
+        Assert.assertTrue(baginfoLines.contains("Source-Organization: My University"));
         Assert.assertTrue(new File(basedir + "/tagmanifest-sha1.txt").exists());
     }
 
@@ -191,8 +191,8 @@ public class ExporterTest {
         final File baginfo = new File(exportDirectory + "/aptrust-info.txt");
         Assert.assertTrue(baginfo.exists());
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Access : Restricted"));
-        Assert.assertTrue(baginfoLines.contains("Title : My Title"));
+        Assert.assertTrue(baginfoLines.contains("Access: Restricted"));
+        Assert.assertTrue(baginfoLines.contains("Title: My Title"));
     }
 
     @Test(expected = Exception.class)
@@ -370,8 +370,8 @@ public class ExporterTest {
         final File customTags = new File(basedir + "/foo-info.txt");
         Assert.assertTrue(customTags.exists());
         final List<String> customLines = readLines(customTags, UTF_8);
-        Assert.assertTrue(customLines.contains("Foo : Bar"));
-        Assert.assertTrue(customLines.contains("Baz : Quux"));
+        Assert.assertTrue(customLines.contains("Foo: Bar"));
+        Assert.assertTrue(customLines.contains("Baz: Quux"));
     }
 }
 
