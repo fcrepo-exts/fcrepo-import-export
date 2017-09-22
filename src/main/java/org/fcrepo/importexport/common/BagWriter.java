@@ -168,7 +168,7 @@ public class BagWriter {
             try (OutputStream out = new FileOutputStream(f)) {
                 for (final Iterator<String> it = values.keySet().iterator(); it.hasNext(); ) {
                     final String field = it.next();
-                    final byte[] bytes = (field + " : " + values.get(field) + "\n").getBytes();
+                    final byte[] bytes = (field + ": " + values.get(field) + "\n").getBytes();
                     out.write(bytes);
 
                     if (md5 != null) {
