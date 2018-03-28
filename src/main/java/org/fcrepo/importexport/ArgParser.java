@@ -137,15 +137,15 @@ public class ArgParser {
                 .longOpt("writeConfig")
                 .hasArg(true).numberOfArgs(1).argName("writeConfig")
                 .desc("When present this flag indicates that a sample config should be written at the" +
-                       " specified filename.")
+                        " specified filename.")
                 .required(false).build());
 
         // Overwrite Tombstones
         configOptions.addOption(Option.builder("t")
-                 .longOpt("overwriteTombstones")
-                 .hasArg(false)
-                 .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
-                 .required(false).build());
+                .longOpt("overwriteTombstones")
+                .hasArg(false)
+                .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
+                .required(false).build());
 
         // Legacy Mode option
         configOptions.addOption(Option.builder("L")
@@ -157,10 +157,10 @@ public class ArgParser {
 
         // Include versions
         configOptions.addOption(Option.builder("V")
-                 .longOpt("versions")
-                 .hasArg(false)
-                 .desc("When exporting, include versions of resources and binaries.")
-                 .required(false).build());
+                .longOpt("versions")
+                .hasArg(false)
+                .desc("When exporting, include versions of resources and binaries.")
+                .required(false).build());
 
         // RDF language option
         configOptions.addOption(Option.builder("l")
@@ -191,6 +191,13 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("path")
                 .required(false)
                 .desc("Path to the bag config file")
+                .build());
+
+        configOptions.addOption(Option.builder("R")
+                .longOpt("repositoryRoot").argName("uri")
+                .hasArg(true).numberOfArgs(1).argName("uri")
+                .required(false)
+                .desc("Repository root URI")
                 .build());
 
         // username option
@@ -354,6 +361,10 @@ public class ArgParser {
         config.setLegacy(cmd.hasOption("L"));
         config.setIncludeVersions(cmd.hasOption('V'));
 
+        if (cmd.getOptionValue('R') != null) {
+            config.setRepositoryRoot(cmd.getOptionValue('R'));
+        }
+
         if (cmd.getOptionValue('w') != null) {
             config.setWriteConfig(cmd.getOptionValue('w'));
         }
@@ -428,7 +439,7 @@ public class ArgParser {
      * Parse command-line arguments.
      * @param args Command-line arguments
      * @return A configured Importer or Exporter instance.
-    **/
+     **/
     public TransferProcess parse(final String[] args) {
         final Config config = parseConfiguration(args);
         if (config.isImport()) {
@@ -496,7 +507,7 @@ public class ArgParser {
                     c.setMode(entry.getValue());
                 } else {
                     throw new java.text.ParseException(
-                        String.format("Invalid value for \"mode\": {}", entry.getValue()), lineNumber);
+                            String.format("Invalid value for \"mode\": {}", entry.getValue()), lineNumber);
                 }
             } else if (entry.getKey().equalsIgnoreCase("resource")) {
                 c.setResource(entry.getValue());
@@ -532,7 +543,7 @@ public class ArgParser {
                 c.setPredicates(entry.getValue().split(","));
             } else {
                 throw new java.text.ParseException(String.format("Unknown configuration key: {}", entry.getKey()),
-                    lineNumber);
+                        lineNumber);
             }
         }
         return c;
@@ -544,8 +555,8 @@ public class ArgParser {
             return Boolean.parseBoolean(value);
         } else {
             throw new java.text.ParseException(String.format(
-                "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
-                key, value), lineNumber);
+                    "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
+                    key, value), lineNumber);
         }
     }
 }

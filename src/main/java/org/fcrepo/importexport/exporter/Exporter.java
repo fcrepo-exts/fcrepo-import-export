@@ -70,7 +70,6 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
-
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -83,7 +82,6 @@ import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
-
 import org.slf4j.Logger;
 
 /**
@@ -130,6 +128,7 @@ public class Exporter implements TransferProcess {
         this.containerURI = URI.create(CONTAINER.getURI());
         this.exportLogger = config.getAuditLog();
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        this.repositoryRoot = config.getRepositoryRoot();
 
         if (config.getBagProfile() != null) {
             try {
@@ -206,11 +205,15 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
-        try {
-            findRepositoryRoot(config.getResource());
-        } catch (IOException | FcrepoOperationFailedException e) {
-            throw new RuntimeException("Failed to locate the root of the repository being exported", e);
+        if (repositoryRoot == null) {
+            try {
+                logger.info("Attempting to automatically determine the repository root");
+                findRepositoryRoot(config.getResource());
+            } catch (IOException | FcrepoOperationFailedException e) {
+                throw new RuntimeException("Failed to locate the root of the repository being exported", e);
+            }
         }
+        logger.debug("Repository root is " + repositoryRoot);
 
         export(config.getResource());
         if (bag != null) {
@@ -247,15 +250,18 @@ public class Exporter implements TransferProcess {
     }
 
     private void export(final URI uri) {
+        logger.trace("HEAD " + uri);
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, config.getUsername());
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
+                logger.debug("Found binary at " + uri);
                 final String contentType = response.getContentType();
                 final boolean external = contentType != null && contentType.contains("message/external-body");
                 final List<URI> describedby = response.getLinkHeaders("describedby");
                 exportBinary(uri, describedby, external);
             } else if (linkHeaders.contains(containerURI)) {
+                logger.debug("Found container at " + uri);
                 exportDescription(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
@@ -266,11 +272,11 @@ public class Exporter implements TransferProcess {
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
             exportLogger.error(String.format("Error retrieving context of uri: {}, Message: {}", uri, ex.toString()),
-                ex);
+                    ex);
         } catch (IOException ex) {
             logger.warn("Error writing content: {}", ex.toString());
             exportLogger.error(String.format("Error writing content from uri: {}, Message: {}", uri, ex.toString()),
-                ex);
+                    ex);
         }
     }
 
@@ -290,7 +296,7 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri, config.getUsername());
 
             final File file = external ? fileForExternalResources(uri, null, null, config.getBaseDirectory()) :
-                    fileForBinary(uri, null, null, config.getBaseDirectory());
+                fileForBinary(uri, null, null, config.getBaseDirectory());
 
             logger.info("Exporting binary: {}", uri);
             writeResponse(uri, response.getBody(), describedby, file);
@@ -316,7 +322,7 @@ public class Exporter implements TransferProcess {
         GetBuilder getBuilder = client().get(uri).accept(config.getRdfLanguage());
         if (config.retrieveInbound()) {
             getBuilder = getBuilder.preferRepresentation(
-                Arrays.asList(URI.create(INBOUND_REFERENCES.getURI())), null);
+                    Arrays.asList(URI.create(INBOUND_REFERENCES.getURI())), null);
         }
 
         try (FcrepoResponse response = getBuilder.perform()) {
@@ -402,7 +408,7 @@ public class Exporter implements TransferProcess {
      * @throws IOException
      */
     private void filterBinaryReferences(final URI uri, final Model model) throws IOException,
-            FcrepoOperationFailedException {
+    FcrepoOperationFailedException {
 
         final List<Statement> removeList = new ArrayList<>();
         for (final StmtIterator it = model.listStatements(); it.hasNext();) {
@@ -433,6 +439,7 @@ public class Exporter implements TransferProcess {
      */
     private void findRepositoryRoot(final URI uri) throws IOException, FcrepoOperationFailedException {
         repositoryRoot = uri;
+        logger.debug("Checking if " + uri + " is the repository root");
         if (!isRepositoryRoot(uri, client(), config)) {
             findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
                     repositoryRoot.toString().lastIndexOf("/"))));
@@ -441,7 +448,7 @@ public class Exporter implements TransferProcess {
 
     /**
      * Initiates export of versions for the given resource if it is a versioned resourced
-     * 
+     *
      * @param uri resource uri
      * @throws FcrepoOperationFailedException
      * @throws IOException

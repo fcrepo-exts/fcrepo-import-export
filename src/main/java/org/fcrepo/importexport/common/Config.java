@@ -55,6 +55,8 @@ public class Config {
     private File baseDirectory;
     private File writeConfig;
 
+    private URI repositoryRoot;
+
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
@@ -138,7 +140,7 @@ public class Config {
     /**
      * Sets the location to write a sample config file.
      * @param configFile The filename where the sample config should be written
-    **/
+     **/
     public void setWriteConfig(final String configFile) {
         this.writeConfig = new File(configFile);
     }
@@ -146,7 +148,7 @@ public class Config {
     /**
      * Gets the location to write a sample config file.
      * @return The filename to write the config file to, or null if no config file should be written
-    **/
+     **/
     public File getWriteConfig() {
         return writeConfig;
     }
@@ -207,7 +209,7 @@ public class Config {
 
     /**
      * Returns true if versions should be exported.
-     * 
+     *
      * @return retrieve include versions flag
      */
     public boolean includeVersions() {
@@ -216,7 +218,7 @@ public class Config {
 
     /**
      * Sets flag indicating whether versions should be exported.
-     * 
+     *
      * @param includeVersions in export
      */
     public void setIncludeVersions(final boolean includeVersions) {
@@ -533,5 +535,17 @@ public class Config {
 
         return "." + lang.getFileExtensions().get(0);
 
+    }
+
+    public URI getRepositoryRoot() {
+        return repositoryRoot;
+    }
+
+    public void setRepositoryRoot(URI repositoryRoot) {
+        this.repositoryRoot = repositoryRoot;
+    }
+
+    public void setRepositoryRoot(String repositoryRoot) {
+        this.repositoryRoot = URI.create(repositoryRoot);
     }
 }
