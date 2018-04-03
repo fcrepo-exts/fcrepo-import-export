@@ -55,6 +55,8 @@ public class Config {
     private File baseDirectory;
     private File writeConfig;
 
+    private URI repositoryRoot;
+
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
@@ -533,5 +535,32 @@ public class Config {
 
         return "." + lang.getFileExtensions().get(0);
 
+    }
+
+    /**
+     * Get the URI of the repository root.
+     *
+     * @return URI of repository root
+     */
+    public URI getRepositoryRoot() {
+        return repositoryRoot;
+    }
+
+    /**
+     * Set the repository root to the given URI.
+     *
+     * @param repositoryRoot URI
+     */
+    public void setRepositoryRoot(final URI repositoryRoot) {
+        this.repositoryRoot = repositoryRoot;
+    }
+
+    /**
+     * Set the repository root to the URI given as a string.
+     *
+     * @param repositoryRoot string representation of URI
+     */
+    public void setRepositoryRoot(final String repositoryRoot) {
+        this.repositoryRoot = URI.create(repositoryRoot);
     }
 }
