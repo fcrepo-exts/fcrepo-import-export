@@ -537,15 +537,30 @@ public class Config {
 
     }
 
+    /**
+     * Get the URI of the repository root.
+     *
+     * @return URI of repository root
+     */
     public URI getRepositoryRoot() {
         return repositoryRoot;
     }
 
-    public void setRepositoryRoot(URI repositoryRoot) {
+    /**
+     * Set the repository root to the given URI.
+     *
+     * @param repositoryRoot URI
+     */
+    public void setRepositoryRoot(final URI repositoryRoot) {
         this.repositoryRoot = repositoryRoot;
     }
 
-    public void setRepositoryRoot(String repositoryRoot) {
+    /**
+     * Set the repository root to the URI given as a string.
+     *
+     * @param repositoryRoot string representation of URI
+     */
+    public void setRepositoryRoot(final String repositoryRoot) {
         this.repositoryRoot = URI.create(repositoryRoot);
     }
 }
