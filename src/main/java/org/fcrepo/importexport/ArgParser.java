@@ -193,6 +193,14 @@ public class ArgParser {
                 .desc("Path to the bag config file")
                 .build());
 
+        configOptions.addOption(Option.builder("R")
+                .longOpt("repositoryRoot").argName("uri")
+                .hasArg(true).numberOfArgs(1).argName("uri")
+                .required(false)
+                .desc("When exporting, use this URI as the repository root; " +
+                        "if not given, export will attempt to automatically determine the repository root")
+                .build());
+
         // username option
         final Option userOption = Option.builder("u")
                 .longOpt("user")
@@ -353,6 +361,10 @@ public class ArgParser {
         config.setOverwriteTombstones(cmd.hasOption('t'));
         config.setLegacy(cmd.hasOption("L"));
         config.setIncludeVersions(cmd.hasOption('V'));
+
+        if (cmd.getOptionValue('R') != null) {
+            config.setRepositoryRoot(cmd.getOptionValue('R'));
+        }
 
         if (cmd.getOptionValue('w') != null) {
             config.setWriteConfig(cmd.getOptionValue('w'));

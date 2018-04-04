@@ -130,6 +130,7 @@ public class Exporter implements TransferProcess {
         this.containerURI = URI.create(CONTAINER.getURI());
         this.exportLogger = config.getAuditLog();
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        this.repositoryRoot = config.getRepositoryRoot();
 
         if (config.getBagProfile() != null) {
             try {
@@ -206,11 +207,15 @@ public class Exporter implements TransferProcess {
     @Override
     public void run() {
         logger.info("Running exporter...");
-        try {
-            findRepositoryRoot(config.getResource());
-        } catch (IOException | FcrepoOperationFailedException e) {
-            throw new RuntimeException("Failed to locate the root of the repository being exported", e);
+        if (repositoryRoot == null) {
+            try {
+                logger.info("Attempting to automatically determine the repository root");
+                findRepositoryRoot(config.getResource());
+            } catch (IOException | FcrepoOperationFailedException e) {
+                throw new RuntimeException("Failed to locate the root of the repository being exported", e);
+            }
         }
+        logger.debug("Repository root is " + repositoryRoot);
 
         export(config.getResource());
         if (bag != null) {
@@ -247,15 +252,18 @@ public class Exporter implements TransferProcess {
     }
 
     private void export(final URI uri) {
+        logger.trace("HEAD " + uri);
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, config.getUsername());
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
+                logger.debug("Found binary at " + uri);
                 final String contentType = response.getContentType();
                 final boolean external = contentType != null && contentType.contains("message/external-body");
                 final List<URI> describedby = response.getLinkHeaders("describedby");
                 exportBinary(uri, describedby, external);
             } else if (linkHeaders.contains(containerURI)) {
+                logger.debug("Found container at " + uri);
                 exportDescription(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
@@ -433,6 +441,7 @@ public class Exporter implements TransferProcess {
      */
     private void findRepositoryRoot(final URI uri) throws IOException, FcrepoOperationFailedException {
         repositoryRoot = uri;
+        logger.debug("Checking if " + uri + " is the repository root");
         if (!isRepositoryRoot(uri, client(), config)) {
             findRepositoryRoot(URI.create(repositoryRoot.toString().substring(0,
                     repositoryRoot.toString().lastIndexOf("/"))));
