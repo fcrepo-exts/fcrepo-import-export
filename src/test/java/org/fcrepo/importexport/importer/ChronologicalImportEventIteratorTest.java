@@ -169,20 +169,21 @@ public class ChronologicalImportEventIteratorTest {
         final File directory = new File("src/test/resources/sample/versioning/unmodified");
         when(config.getBaseDirectory()).thenReturn(directory);
 
+        final URI con1Uri = new URI(
+                "http://localhost:8080/rest/v_con1");
         final URI con1VOriginalUri = new URI(
                 "http://localhost:8080/rest/v_con1/fcr:versions/version_original");
         final URI con1VUnmodUri = new URI(
                 "http://localhost:8080/rest/v_con1/fcr:versions/version_unchanged");
         final URI child1Uri = new URI("http://localhost:8080/rest/v_con1/child1");
-        final URI child1VOriginalUri = new URI(
-                "http://localhost:8080/rest/v_con1/fcr:versions/version_original/child1");
 
         rescIt = new ChronologicalImportEventIterator(directory, config);
 
         assertTrue(rescIt.hasNext());
 
-        assertEquals(con1VOriginalUri, rescIt.next().getUri());
-        assertEquals(child1VOriginalUri, rescIt.next().getUri());
+        assertEquals(con1Uri, rescIt.next().getUri());
+        // the two versions of the child are identical, so it is undefined which of the two will be returned
+        assertTrue(rescIt.next().getUri().toString().matches(".*v_con1/fcr:versions/.*/child1"));
 
         final ImportEvent versionOriginal = rescIt.next();
         assertTrue("Expected version creation event", versionOriginal instanceof ImportVersion);

@@ -87,7 +87,7 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
         if (eventQueue == null) {
             try {
                 eventQueue = generateEventQueue();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException("Failed to read resources for import from specified directory "
                         + importBaseDirectory, e);
             }
@@ -226,10 +226,14 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             // Determine the URI for this resource depending on if it is a binary or not
             final URI resourceUri;
             final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
-            if (binaryResources.hasNext()) {
-                resourceUri = URI.create(binaryResources.next().getURI());
-            } else {
-                resourceUri = URITranslationUtil.uriForFile(rdfFile, config);
+            try {
+                if (binaryResources.hasNext()) {
+                    resourceUri = URI.create(binaryResources.next().getURI());
+                } else {
+                    resourceUri = URITranslationUtil.uriForFile(rdfFile, config);
+                }
+            } finally {
+                binaryResources.close();
             }
 
             // Store the resource along with its last modified date for sorting later
@@ -289,15 +293,19 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             final List<ImportVersion> versions = new ArrayList<>();
 
             final ResIterator vRescIt = model.listResourcesWithProperty(CREATED_DATE);
-            while (vRescIt.hasNext()) {
-                final Resource vResc = vRescIt.next();
-                final URI rescUri = URI.create(vResc.getURI());
-                final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
+            try {
+                while (vRescIt.hasNext()) {
+                    final Resource vResc = vRescIt.next();
+                    final URI rescUri = URI.create(vResc.getURI());
+                    final long time = getTimestampFromProperty(vResc.getProperty(CREATED_DATE));
 
-                final ImportVersion impVersion = new ImportVersion(rescUri, time, config);
-                versions.add(impVersion);
+                    final ImportVersion impVersion = new ImportVersion(rescUri, time, config);
+                    versions.add(impVersion);
 
-                logger.debug("Added version {}", impVersion.getUri());
+                    logger.debug("Added version {}", impVersion.getUri());
+                }
+            } finally {
+                vRescIt.close();
             }
 
             return versions;
