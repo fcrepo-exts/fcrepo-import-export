@@ -35,6 +35,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.fcrepo.client.FcrepoClient;
@@ -147,10 +148,20 @@ public class ImportVersionsTest {
     @Test
     public void testImportVersions() throws Exception {
         final URI versionUri = URI.create(containerURI.toString() + "/" + FCR_VERSIONS_PATH);
+        final URI tombstoneUri = URI.create(container2URI.toString() + "/fcr:tombstone");
+
+        final HeadBuilder headBuilder = mock(HeadBuilder.class);
+        final FcrepoResponse headResponse = mock(FcrepoResponse.class);
+        when(client.head(eq(container2URI))).thenReturn(headBuilder);
+        when(headBuilder.disableRedirects()).thenReturn(headBuilder);
+        when(headBuilder.perform()).thenReturn(headResponse);
+        when(headResponse.getUrl()).thenReturn(container2URI);
+        when(headResponse.getLinkHeaders(eq("hasTombstone"))).thenReturn(Collections.singletonList(tombstoneUri));
 
         ResponseMocker.mockPutResponse(client, containerURI);
         ResponseMocker.mockPutResponse(client, container2URI);
         ResponseMocker.mockDeleteResponse(client, container2URI);
+        ResponseMocker.mockDeleteResponse(client, tombstoneUri);
         ResponseMocker.mockPutResponse(client, binaryURI);
         ResponseMocker.mockPutResponse(client, binaryMDURI);
         final PostBuilder versionBuilder = ResponseMocker.mockPostResponse(client, versionUri);

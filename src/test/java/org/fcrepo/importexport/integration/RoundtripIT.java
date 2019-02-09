@@ -60,6 +60,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -470,9 +471,6 @@ public class RoundtripIT extends AbstractResourceIT {
 
         roundtrip(res1, true);
 
-        assertTrue(exists(res1));
-        assertTrue(exists(res2));
-
         final URI res1V0 = URI.create(baseURI + "/res1/fcr:versions/v0");
         final URI res2V0 = URI.create(baseURI + "/res1/fcr:versions/v0/res2");
 
@@ -496,9 +494,58 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(res1Model.contains(null, createProperty(DC_TITLE), title));
     }
 
-    /*
-     * This won't work until 4.7.4 is released to support relaxed server managed triples.
-     */
+    @Test
+    public void testRoundtripVersionContainingDelete() throws Exception {
+        final String baseURI = serverAddress + UUID.randomUUID();
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI res2 = URI.create(baseURI + "/res1/res2");
+        final URI res3 = URI.create(baseURI + "/res1/res3");
+        final URI res4 = URI.create(baseURI + "/res1/res4");
+
+        // First version contains res1 -> res2, res3
+        create(res1);
+        create(res2);
+        create(res3);
+        createVersion(res1, "v0");
+
+        // Second version contains res1 -> res2, res4
+        create(res4);
+        removeAndReset(res3);
+        createVersion(res1, "v1");
+
+        // Head version contains res1 -> rest2
+        removeAndReset(res4);
+
+        roundtrip(res1, true);
+
+        final URI res1V0 = URI.create(baseURI + "/res1/fcr:versions/v0");
+        final URI res2V0 = URI.create(baseURI + "/res1/fcr:versions/v0/res2");
+        final URI res3V0 = URI.create(baseURI + "/res1/fcr:versions/v0/res3");
+        final URI res4V0 = URI.create(baseURI + "/res1/fcr:versions/v0/res4");
+
+        assertTrue(exists(res1V0));
+        assertTrue(exists(res2V0));
+        assertTrue(exists(res3V0));
+        assertFalse("res4 is not created until v1", exists(res4V0));
+
+        final URI res1V1 = URI.create(baseURI + "/res1/fcr:versions/v1");
+        final URI res2V1 = URI.create(baseURI + "/res1/fcr:versions/v1/res2");
+        final URI res3V1 = URI.create(baseURI + "/res1/fcr:versions/v1/res3");
+        final URI res4V1 = URI.create(baseURI + "/res1/fcr:versions/v1/res4");
+
+        assertTrue(exists(res1V1));
+        assertTrue(exists(res2V1));
+        assertFalse("res3 was removed after v0", exists(res3V1));
+        assertTrue(exists(res4V1));
+
+        // Check head versions of resources
+        assertTrue(exists(res1));
+        assertTrue(exists(res2));
+        assertFalse("res3 was removed after v0", exists(res3));
+        assertFalse("res4 was removed after v1", exists(res4));
+    }
+
+    @Ignore("This won't work until 4.7.4 is released to support relaxed server managed triples.")
     @Test
     public void testRoundtripNested() throws Exception {
         final URI containerURI = URI.create(serverAddress + UUID.randomUUID());

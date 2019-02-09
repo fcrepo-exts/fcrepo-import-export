@@ -61,8 +61,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -107,7 +105,7 @@ import gov.loc.repository.bagit.verify.BagVerifier;
  * @author bbpennel
  * @since 2016-08-29
  */
-public class Importer implements TransferProcess{
+public class Importer implements TransferProcess {
 
     private static final Logger logger = getLogger(Importer.class);
     private Config config;
@@ -119,8 +117,6 @@ public class Importer implements TransferProcess{
 
     private final Map<String, Set<String>> uriToMembershipRelations;
 
-    private Bag bag;
-    private MessageDigest sha1;
     private final Map<String, String> sha1FileMap;
 
     private URI repositoryRoot = null;
@@ -141,8 +137,6 @@ public class Importer implements TransferProcess{
         this.uriToMembershipRelations = new HashMap<>();
 
         if (config.getBagProfile() == null) {
-            this.bag = null;
-            this.sha1 = null;
             this.sha1FileMap = null;
         } else {
             final File bagdir = config.getBaseDirectory().getParentFile();
@@ -150,11 +144,6 @@ public class Importer implements TransferProcess{
             //if (verifyBag(bagdir)) {
             final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-sha1.txt");
             this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
-            try {
-                this.sha1 = MessageDigest.getInstance("SHA-1");
-            } catch (NoSuchAlgorithmException e) {
-                // never happens with known algorithm names
-            }
         }
     }
 
@@ -221,7 +210,7 @@ public class Importer implements TransferProcess{
         if (!isSkippableContainer(resc)) {
             try {
                 importDescription(resc);
-            } catch (ResourceGoneRuntimeException e) {
+            } catch (final ResourceGoneRuntimeException e) {
                 if (config.overwriteTombstones()) {
                     deleteTombstone(e.getResourceUri(), e.getTombstone());
                     importDescription(resc);
@@ -248,12 +237,12 @@ public class Importer implements TransferProcess{
             importBinaryFile(resc);
             // update metadata
             importDescription(resc);
-        } catch (ResourceGoneRuntimeException e) {
+        } catch (final ResourceGoneRuntimeException e) {
             deleteTombstone(e.getResourceUri(), e.getTombstone());
 
             importBinaryFile(resc);
             importDescription(resc);
-        } catch (BinaryImportException e) {
+        } catch (final BinaryImportException e) {
             logger.error(e.getMessage());
         }
     }
@@ -280,14 +269,16 @@ public class Importer implements TransferProcess{
 
     private void deleteRemovedVersion(final URI uri) {
         try (final FcrepoResponse response = client().delete(uri).perform()) {
-
-            if (response.getStatusCode() == 201) {
+            if (response.getStatusCode() == 204) {
+                deleteTombstone(uri, null);
                 logger.info("Delete removed version {}", uri);
                 importLogger.info("Delete removed version {}", uri);
                 successCount.incrementAndGet();
             } else {
+                final String bodyString = response.getBody() == null ? "<no response>" :
+                    IOUtils.toString(response.getBody(), "UTF-8");
                 throw new RuntimeException("Error deleting removed " + uri
-                        + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+                        + " (" + response.getStatusCode() + "): " + bodyString);
             }
         } catch (FcrepoOperationFailedException | IOException e) {
             throw new RuntimeException("Error deleting of " + uri, e);
@@ -317,12 +308,12 @@ public class Importer implements TransferProcess{
                 importLogger.info("import {} to {}", descriptionPath, destinationUri);
                 successCount.incrementAndGet();
             }
-        } catch (FcrepoOperationFailedException e) {
+        } catch (final FcrepoOperationFailedException e) {
             importLogger.error(String.format("Error importing {} to {}, Message: {}",
                     descriptionPath, destinationUri, e.getMessage()), e);
             throw new RuntimeException(
                     "Error importing " + descriptionPath + ": " + e.toString(), e);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             importLogger.error(String.format("Error reading/parsing {} to {}, Message: {}",
                     descriptionPath, destinationUri, e.getMessage()), e);
             throw new RuntimeException(
@@ -404,13 +395,8 @@ public class Importer implements TransferProcess{
         if (tombstone != null) {
             client().delete(tombstone).perform();
         } else {
-            String uri = rescUri.toString();
-            if (uri.endsWith("/")) {
-                uri = uri.substring(0, uri.length() - 1);
-            }
-            final URI parent = URI.create(uri.substring(0, uri.lastIndexOf("/", uri.length() - 1)));
-            final FcrepoResponse response = client().head(parent).perform();
-            deleteTombstone(parent, response.getLinkHeaders("hasTombstone").get(0));
+            final FcrepoResponse response = client().head(rescUri).perform();
+            deleteTombstone(rescUri, response.getLinkHeaders("hasTombstone").get(0));
         }
     }
 
@@ -572,7 +558,7 @@ public class Importer implements TransferProcess{
             final Bag bag = BagReader.read(bagDir);
             BagVerifier.isValid(bag, true);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
     }
@@ -596,7 +582,7 @@ public class Importer implements TransferProcess{
                 return findRepositoryRoot(URI.create(u.toString().substring(0,
                         u.toString().lastIndexOf("/"))));
             }
-        } catch (ResourceNotFoundRuntimeException ex) {
+        } catch (final ResourceNotFoundRuntimeException ex) {
             // The targeted resource that need to be imported next
             return findRepositoryRoot(URI.create(u.toString().substring(0,
                     u.toString().lastIndexOf("/"))));

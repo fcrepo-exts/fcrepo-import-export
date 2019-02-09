@@ -211,7 +211,7 @@ public abstract class ResponseMocker {
         final FcrepoResponse response = mock(FcrepoResponse.class);
         when(client.delete(eq(uri))).thenReturn(deleteBuilder);
         when(deleteBuilder.perform()).thenReturn(response);
-        when(response.getStatusCode()).thenReturn(201);
+        when(response.getStatusCode()).thenReturn(204);
 
         return deleteBuilder;
     }
