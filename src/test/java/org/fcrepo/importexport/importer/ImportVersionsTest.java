@@ -195,14 +195,4 @@ public class ImportVersionsTest {
         // Ensuring that no versions are created
         verify(client, never()).post(versionUri);
     }
-
-    @Test
-    public void testBinarySameAcrossVersions() throws Exception {
-
-    }
-
-    @Test
-    public void testBinaryDiffersAcrossVersions() throws Exception {
-
-    }
 }

@@ -240,7 +240,6 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
             final Resource resc = model.getResource(resourceUri.toString());
             final Statement lastModStmt = resc.getProperty(LAST_MODIFIED_DATE);
             final Statement createdStmt = resc.getProperty(CREATED_DATE);
-//            final List<String> digests = getMessageDigests(resc);
 
             final long lastModified = lastModStmt == null ? 0L : getTimestampFromProperty(lastModStmt);
             final long created = createdStmt == null ? 0L : getTimestampFromProperty(createdStmt);
@@ -264,20 +263,6 @@ public class ChronologicalImportEventIterator implements Iterator<ImportEvent> {
 
             return CONTINUE;
         }
-
-//        private List<String> getMessageDigests(final Resource resc) {
-//            StmtIterator stmtIt = resc.listProperties(HAS_MESSAGE_DIGEST);
-//            List<String> digests = new ArrayList<>();
-//
-//            while (stmtIt.hasNext()) {
-//                Statement stmt = stmtIt.next();
-//                digests.add(stmt.getObject().toString());
-//            }
-//            if (digests.size() == 0) {
-//                return null;
-//            }
-//            return digests;
-//        }
 
         private void addVersionsEvents(final File versionsFile) throws IOException {
             final Model model = mapRdfStream(new FileInputStream(versionsFile), config);
