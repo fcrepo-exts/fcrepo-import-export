@@ -50,7 +50,8 @@ import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-
+import org.fcrepo.importexport.common.FcrepoConstants;
+import org.fcrepo.importexport.test.util.ResponseMocker;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -358,6 +359,31 @@ public class ImporterTest {
         // when the uri has no path
         final URI dummy = URI.create("http://example.org:4444");
         assertEquals(dummy, importer.findRepositoryRoot(dummy));
+    }
+
+    @Test
+    public void testResourceAndBaseDiffer() throws Exception {
+        final URI rootURI = URI.create("http://example.org:9999/prod");
+        final URI sourceURI = URI.create("http://localhost:8080/rest/dev/asdf");
+        final URI resourceURI = URI.create("http://example.org:9999/prod/asdf");
+
+        mockGet(rootURI, FcrepoConstants.REPOSITORY_ROOT.getURI());
+        ResponseMocker.mockHeadResponseError(client, resourceURI, 404);
+
+        ResponseMocker.mockPutResponse(client, resourceURI);
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory("src/test/resources/sample/mapped");
+        config.setIncludeBinaries(false);
+        config.setRdfLanguage("text/turtle");
+        config.setResource(resourceURI);
+        config.setMap(new String[]{sourceURI.toString(), resourceURI.toString()});
+
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        verify(client).put(resourceURI);
     }
 
     private void mockGet(final URI uri, final String type) throws FcrepoOperationFailedException {

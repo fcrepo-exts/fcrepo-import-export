@@ -32,6 +32,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoHttpClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.common.FcrepoConstants;
 import org.junit.Before;
 import org.slf4j.Logger;
 
@@ -42,6 +43,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFDataMgr.loadModel;
 import static org.apache.jena.riot.web.HttpOp.setDefaultHttpClient;
+import static org.fcrepo.importexport.common.URITranslationUtil.addRelativePath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -128,6 +130,13 @@ public abstract class AbstractResourceIT {
     protected FcrepoResponse createTurtle(final URI uri, final String body)
             throws FcrepoOperationFailedException {
         return createBody(uri, body, "text/turtle");
+    }
+
+    protected FcrepoResponse createVersion(final URI uri, final String label) throws FcrepoOperationFailedException {
+        logger.debug("Create version ---------: {} {}", uri, label);
+        final URI versionUri = addRelativePath(uri, FcrepoConstants.FCR_VERSIONS_PATH);
+
+        return clientBuilder.build().post(versionUri).slug(label).perform();
     }
 
     protected InputStream insertTitle(final String title) {

@@ -17,6 +17,8 @@
  */
 package org.fcrepo.importexport.test.util;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -27,17 +29,20 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 
+import org.fcrepo.client.DeleteBuilder;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
+import org.fcrepo.client.PostBuilder;
+import org.fcrepo.client.PutBuilder;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 /**
  * Test utility for common response mocking behaviors
- * 
+ *
  * @author bbpennel
  *
  */
@@ -45,14 +50,15 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks a successful HEAD request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param typeLinks type links
      * @param describedbyLinks described by links
+     * @return the HeadBuilder
      * @throws FcrepoOperationFailedException client failures
      */
-    public static void mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
+    public static HeadBuilder mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
             final List<URI> describedbyLinks) throws FcrepoOperationFailedException {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse headResponse = mock(FcrepoResponse.class);
@@ -63,19 +69,22 @@ public abstract class ResponseMocker {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getStatusCode()).thenReturn(200);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+
+        return headBuilder;
     }
 
     /**
      * Mocks a successful GET request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param typeLinks type links
      * @param describedbyLinks described by links
      * @param body body of response
+     * @return the GetBuilder
      * @throws FcrepoOperationFailedException client failures
      */
-    public static void mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
+    public static GetBuilder mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
             final List<URI> describedbyLinks, final String body) throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
@@ -93,17 +102,20 @@ public abstract class ResponseMocker {
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(getResponse.getStatusCode()).thenReturn(200);
         when(getResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+
+        return getBuilder;
     }
 
     /**
      * Mocks an unsuccessful GET request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param statusCode the status code for the response
+     * @return the GetBuilder
      * @throws FcrepoOperationFailedException client failures
      */
-    public static void mockGetResponseError(final FcrepoClient client, final URI uri, final int statusCode)
+    public static GetBuilder mockGetResponseError(final FcrepoClient client, final URI uri, final int statusCode)
             throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
@@ -112,17 +124,20 @@ public abstract class ResponseMocker {
         when(getBuilder.disableRedirects()).thenReturn(getBuilder);
         when(getBuilder.perform()).thenReturn(getResponse);
         when(getResponse.getStatusCode()).thenReturn(statusCode);
+
+        return getBuilder;
     }
 
     /**
      * Mocks an unsuccessful HEAD request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param statusCode the status code for the response
+     * @return the HeadBuilder
      * @throws FcrepoOperationFailedException client failures
      */
-    public static void mockHeadResponseError(final FcrepoClient client, final URI uri, final int statusCode)
+    public static HeadBuilder mockHeadResponseError(final FcrepoClient client, final URI uri, final int statusCode)
             throws FcrepoOperationFailedException {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse response = mock(FcrepoResponse.class);
@@ -130,5 +145,74 @@ public abstract class ResponseMocker {
         when(headBuilder.disableRedirects()).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(response);
         when(response.getStatusCode()).thenReturn(statusCode);
+
+        return headBuilder;
+    }
+
+    /**
+     * Create a mock PUT response
+     *
+     * @param client client
+     * @param uri uri
+     * @return the PutBuilder
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static PutBuilder mockPutResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
+        final PutBuilder putBuilder = mock(PutBuilder.class);
+        final FcrepoResponse response = mock(FcrepoResponse.class);
+        when(client.put(eq(uri))).thenReturn(putBuilder);
+        when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
+        when(putBuilder.digest(isA(String.class))).thenReturn(putBuilder);
+        when(putBuilder.filename(any())).thenReturn(putBuilder);
+        when(putBuilder.ifUnmodifiedSince(any())).thenReturn(putBuilder);
+        when(putBuilder.preferLenient()).thenReturn(putBuilder);
+        when(putBuilder.perform()).thenReturn(response);
+        when(response.getStatusCode()).thenReturn(201);
+
+        return putBuilder;
+    }
+
+    /**
+     * Create a mock POST response
+     *
+     * @param client client
+     * @param uri uri
+     * @return the PostBuilder
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static PostBuilder mockPostResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
+        final PostBuilder postBuilder = mock(PostBuilder.class);
+        final FcrepoResponse response = mock(FcrepoResponse.class);
+        when(client.post(eq(uri))).thenReturn(postBuilder);
+        when(postBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(postBuilder);
+        when(postBuilder.digest(isA(String.class))).thenReturn(postBuilder);
+        when(postBuilder.filename(any())).thenReturn(postBuilder);
+        when(postBuilder.ifUnmodifiedSince(any())).thenReturn(postBuilder);
+        when(postBuilder.slug(anyString())).thenReturn(postBuilder);
+        when(postBuilder.perform()).thenReturn(response);
+        when(response.getStatusCode()).thenReturn(201);
+
+        return postBuilder;
+    }
+
+    /**
+     * Create a mock DELETE response
+     *
+     * @param client client
+     * @param uri uri
+     * @return response
+     * @throws FcrepoOperationFailedException thrown by builder
+     */
+    public static DeleteBuilder mockDeleteResponse(final FcrepoClient client, final URI uri)
+            throws FcrepoOperationFailedException {
+        final DeleteBuilder deleteBuilder = mock(DeleteBuilder.class);
+        final FcrepoResponse response = mock(FcrepoResponse.class);
+        when(client.delete(eq(uri))).thenReturn(deleteBuilder);
+        when(deleteBuilder.perform()).thenReturn(response);
+        when(response.getStatusCode()).thenReturn(204);
+
+        return deleteBuilder;
     }
 }

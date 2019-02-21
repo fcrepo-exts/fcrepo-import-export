@@ -168,7 +168,7 @@ public interface TransferProcess {
      * @return the map
      */
     public static Map<String, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
-        final Map<String, String> sha1FileMap = new HashMap<String, String>();
+        final Map<String, String> sha1FileMap = new HashMap<>();
         try (final Stream<String> stream = Files.lines(manifestFile)) {
             stream.forEach(l -> {
                 final String[] manifestTokens = l.split(BAGIT_CHECKSUM_DELIMITER);

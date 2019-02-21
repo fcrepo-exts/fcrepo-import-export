@@ -27,8 +27,8 @@ import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -213,13 +213,12 @@ public class ExporterIT extends AbstractResourceIT {
         final URI res1 = URI.create(baseURI + "/res1");
         final URI res2 = URI.create(baseURI + "/res1/res2");
         final URI binRes = URI.create(baseURI + "/res1/file");
-        final URI res1Versions = URI.create(baseURI + "/res1/fcr:versions");
         final String versionLabel = "version1";
 
         create(res1);
         create(res2);
         createBody(binRes, "binary", "text/plain");
-        createVersion(res1Versions, versionLabel);
+        createVersion(res1, versionLabel);
 
         final Config config = new Config();
         config.setMode("export");
@@ -246,10 +245,6 @@ public class ExporterIT extends AbstractResourceIT {
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/res2" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file.binary").exists());
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file/fcr%3Ametadata" + DEFAULT_RDF_EXT).exists());
-    }
-
-    private void createVersion(final URI uri, final String label) throws FcrepoOperationFailedException {
-        clientBuilder.build().post(uri).slug(label).perform();
     }
 
     private Config exportWithCustomPredicates(final String[] predicates, final UUID uuid)

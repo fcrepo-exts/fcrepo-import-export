@@ -35,16 +35,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.graph.Graph;
+import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -112,19 +111,19 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
+    @Test
     public void testCorruptedBinary() throws Exception {
-        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
-        final URI binaryURI = URI.create("http://localhost:8080/fcrepo/rest/bin1");
+        final URI sourceURI = URI.create("http://localhost:8080/rest");
+        final URI binaryDestination = URI.create(serverAddress + "rest/bin1");
         final String referencePath = TARGET_DIR + "/test-classes/sample/corrupted";
-        System.out.println("Importing from " + referencePath);
 
         final Config config = new Config();
         config.setMode("import");
         config.setIncludeBinaries(true);
         config.setBaseDirectory(referencePath);
-        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setRdfLanguage("application/ld+json");
         config.setResource(serverAddress);
-        config.setMap(new String[]{sourceURI.toString(), serverAddress});
+        config.setMap(new String[]{sourceURI.toString() + "/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
 
@@ -133,7 +132,7 @@ public class ImporterIT extends AbstractResourceIT {
         importer.run();
 
         // verify that the corrupted binary failed to load
-        assertFalse(resourceExists(binaryURI));
+        assertFalse(resourceExists(binaryDestination));
     }
 
     @Test
