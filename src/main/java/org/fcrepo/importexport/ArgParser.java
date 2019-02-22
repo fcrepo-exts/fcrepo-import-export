@@ -508,7 +508,7 @@ public class ArgParser {
                     c.setMode(entry.getValue());
                 } else {
                     throw new java.text.ParseException(
-                        String.format("Invalid value for \"mode\": {}", entry.getValue()), lineNumber);
+                        String.format("Invalid value for \"mode\": %1$s", entry.getValue()), lineNumber);
                 }
             } else if (entry.getKey().equalsIgnoreCase("resource")) {
                 c.setResource(entry.getValue());
@@ -542,8 +542,10 @@ public class ArgParser {
                 c.setBagConfigPath(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
+            } else if (entry.getKey().equalsIgnoreCase("auditLog")) {
+                c.setAuditLog(parseBoolean("auditLog", entry.getValue(), lineNumber));
             } else {
-                throw new java.text.ParseException(String.format("Unknown configuration key: {}", entry.getKey()),
+                throw new java.text.ParseException(String.format("Unknown configuration key: %1$s", entry.getKey()),
                     lineNumber);
             }
         }
@@ -556,7 +558,7 @@ public class ArgParser {
             return Boolean.parseBoolean(value);
         } else {
             throw new java.text.ParseException(String.format(
-                "configuration parameter \"{}\" only accepts \"true\" or \"false\", \"{}\" received",
+                "configuration parameter \"%1$s\" only accepts \"true\" or \"false\", \"%2$s\" received",
                 key, value), lineNumber);
         }
     }

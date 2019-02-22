@@ -169,9 +169,9 @@ public class Exporter implements TransferProcess {
             } catch (NoSuchAlgorithmException e) {
                 // never happens with known algorithm names
             } catch (FileNotFoundException e) {
-                throw new RuntimeException(String.format("Error loading bag config file: {}", e.getMessage()), e);
+                throw new RuntimeException(String.format("Error loading bag config file: %1$s", e.getMessage()), e);
             } catch (IOException e) {
-                throw new RuntimeException(String.format("Error reading bag profile: {}", e.getMessage()), e);
+                throw new RuntimeException(String.format("Error reading bag profile: %1$s", e.getMessage()), e);
             }
         }
     }
@@ -273,11 +273,12 @@ public class Exporter implements TransferProcess {
             }
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
-            exportLogger.error(String.format("Error retrieving context of uri: {}, Message: {}", uri, ex.toString()),
+            exportLogger.error(String.format("Error retrieving context of uri: %1$s, Message: %2$s",
+                    uri, ex.toString()),
                 ex);
         } catch (IOException ex) {
             logger.warn("Error writing content: {}", ex.toString());
-            exportLogger.error(String.format("Error writing content from uri: {}, Message: {}", uri, ex.toString()),
+            exportLogger.error(String.format("Error writing content from uri: %1$s, Message: %2$s", uri, ex.toString()),
                 ex);
         }
     }
@@ -362,7 +363,8 @@ public class Exporter implements TransferProcess {
             exportMembers(model, inboundMembers);
         } catch ( Exception ex ) {
             ex.printStackTrace();
-            exportLogger.error(String.format("Error exporting description: {}, Cause: {}", uri, ex.getMessage()), ex);
+            exportLogger.error(String.format("Error exporting description: %1$s, Cause: %2$s",
+                    uri, ex.getMessage()), ex);
         }
 
     }

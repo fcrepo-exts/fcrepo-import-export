@@ -309,11 +309,13 @@ public class Importer implements TransferProcess {
             }
         } catch (FcrepoOperationFailedException ex) {
             importLogger.error(
-                String.format("Error importing: {} to {}, Message: {}", f.getAbsolutePath(), uri, ex.getMessage()), ex);
+                String.format("Error importing: %1$s to %2$s, Message: %3$s",
+                        f.getAbsolutePath(), uri, ex.getMessage()), ex);
             throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (IOException ex) {
             importLogger.error(
-                String.format("Error reading/parsing file: {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
+                String.format("Error reading/parsing file: %1$s, Message: %2$s",
+                        f.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException(
                     "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
@@ -403,17 +405,18 @@ public class Importer implements TransferProcess {
                     successCount.incrementAndGet();
                 }
             } catch (FcrepoOperationFailedException ex) {
-                importLogger.error(String.format("Error importing {} to {}, Message: {}", f.getAbsolutePath(),
+                importLogger.error(String.format("Error importing %1$s to %2$s, Message: %3$s", f.getAbsolutePath(),
                     destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (IOException ex) {
-                importLogger.error(String.format("Error reading/parsing {} to {}, Message: {}", f.getAbsolutePath(),
-                    destinationUri, ex.getMessage()), ex);
+                importLogger.error(String.format("Error reading/parsing %1$s to %2$s, Message: %3$s",
+                        f.getAbsolutePath(), destinationUri, ex.getMessage()), ex);
                 throw new RuntimeException(
                         "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             } catch (URISyntaxException ex) {
                 importLogger.error(
-                    String.format("Error building URI for {}, Message: {}", f.getAbsolutePath(), ex.getMessage()), ex);
+                    String.format("Error building URI for %1$s, Message: %2$s",
+                            f.getAbsolutePath(), ex.getMessage()), ex);
                 throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
         }
