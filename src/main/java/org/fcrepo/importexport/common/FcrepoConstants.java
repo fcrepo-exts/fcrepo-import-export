@@ -56,7 +56,8 @@ public abstract class FcrepoConstants {
     public static final Property RDF_TYPE = createProperty(RDF_NAMESPACE + "type");
 
     public static final String REPOSITORY_NAMESPACE = "http://fedora.info/definitions/v4/repository#";
-    public static final Resource INBOUND_REFERENCES = createResource(REPOSITORY_NAMESPACE + "InboundReferences");
+    public static final Resource INBOUND_REFERENCES =
+            createResource("http://fedora.info/definitions/fcrepo#PreferInboundReferences");
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
     public static final Resource REPOSITORY_ROOT = createResource(REPOSITORY_NAMESPACE + "RepositoryRoot");
 
@@ -68,6 +69,7 @@ public abstract class FcrepoConstants {
     public static final Property LAST_MODIFIED_BY = createProperty(REPOSITORY_NAMESPACE + "lastModifiedBy");
 
     public static final String FCR_VERSIONS_PATH = "fcr:versions";
-    public static final Property HAS_VERSION = createProperty(REPOSITORY_NAMESPACE + "hasVersion");
+    public static final Property MEMENTO = createProperty("http://mementoweb.org/ns#Memento");
+    public static final Property TIMEMAP = createProperty("http://mementoweb.org/ns#TimeMap");
     public static final Property HAS_VERSION_LABEL = createProperty(REPOSITORY_NAMESPACE + "hasVersionLabel");
 }

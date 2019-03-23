@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.fcrepo</groupId>
     <artifactId>fcrepo-parent</artifactId>
-    <version>4.6.0</version>
+    <version>5.0.2</version>
   </parent>
   <groupId>org.fcrepo.importexport</groupId>
   <artifactId>fcrepo-import-export</artifactId>
@@ -18,7 +18,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- We do NOT want to rely on a snapshot dependency, but changes were 
       necessary in the fcrepo-java-client that haven't made it into a stable release. -->
-    <fcrepo-java-client.version>0.3.0</fcrepo-java-client.version>
+    <fcrepo.version>5.0.2</fcrepo.version>
+    <fcrepo-java-client.version>0.4.0</fcrepo-java-client.version>
     <bagit.version>5.0.0-BETA</bagit.version>
     <commons-cli.version>1.3.1</commons-cli.version>
     <httpclient.version>4.3.6</httpclient.version>
@@ -238,7 +239,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://github.com/fcrepo4-exts/fcrepo-webapp-plus/releases/download/fcrepo-webapp-plus-4.7.4/fcrepo-webapp-plus-webac-4.7.4.war</url>
+              <url>https://github.com/fcrepo4/fcrepo4/releases/download/fcrepo-${fcrepo.version}/fcrepo-webapp-${fcrepo.version}.war</url>
               <outputFileName>fcrepo-webapp.war</outputFileName>
               <targetDirectory>${project.build.directory}</targetDirectory>
             </configuration>
@@ -257,14 +258,15 @@
             <artifactInstaller>
               <groupId>org.apache.tomcat</groupId>
               <artifactId>tomcat</artifactId>
-              <version>7.0.70</version>
+              <version>7.0.93</version>
             </artifactInstaller>
             <systemProperties>
+              <fcrepo.log>TRACE</fcrepo.log>
               <fcrepo.log.http.commons>TRACE</fcrepo.log.http.commons>
               <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
               <fcrepo.log.auth>TRACE</fcrepo.log.auth>
               <fcrepo.properties.management>relaxed</fcrepo.properties.management>
-              <fcrepo.modeshape.configuration>classpath:/config/servlet-auth/repository.json</fcrepo.modeshape.configuration>
+              <fcrepo.external.content.allowed>${project.basedir}/src/test/resources/allowed-paths.txt</fcrepo.external.content.allowed>
               <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
               <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
               <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>

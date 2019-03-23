@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -32,6 +33,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoHttpClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.PutBuilder;
 import org.junit.Before;
 import org.slf4j.Logger;
 
@@ -111,18 +113,48 @@ public abstract class AbstractResourceIT {
 
     protected FcrepoResponse create(final URI uri) throws FcrepoOperationFailedException {
         logger.debug("Create ---------: {}", uri);
-        return clientBuilder.build().put(uri).perform();
+        final FcrepoResponse response =  clientBuilder.build().put(uri).perform();
+
+        logger().debug("Response for create {}:  status={}; location={}",
+                uri, response.getStatusCode(), response.getHeaderValue("Location"));
+
+        return response;
+
     }
 
     protected FcrepoResponse createBody(final URI uri, final String body, final String contentType)
             throws FcrepoOperationFailedException {
-        return createBody(uri, new ByteArrayInputStream(body.getBytes()), contentType);
+        return createBody(uri, new ByteArrayInputStream(body.getBytes()), contentType, null);
     }
 
     protected FcrepoResponse createBody(final URI uri, final InputStream stream, final String contentType)
             throws FcrepoOperationFailedException {
+        return createBody(uri, stream, contentType, null);
+    }
+
+    protected FcrepoResponse createBody(final URI uri, final InputStream stream, final String contentType,
+                                        final Map<String, String> headers) throws FcrepoOperationFailedException {
         logger.debug("Create with binary: {}", uri);
-        return clientBuilder.build().put(uri).body(stream, contentType).perform();
+
+        final PutBuilder builder =  clientBuilder.build().put(uri).body(stream, contentType);
+
+        if (headers != null) {
+            for (String key : headers.keySet()) {
+                builder.addHeader(key, headers.get(key));
+            }
+        }
+        final FcrepoResponse response  = builder.perform();
+
+        logger().debug("Response for create binary {}:  status={}; location={}",
+                uri, response.getStatusCode(), response.getHeaderValue("Location"));
+
+        try {
+            logger().debug("body = {}", IOUtils.toString(response.getBody(), "UTF-8"));
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        return response;
     }
 
     protected FcrepoResponse createTurtle(final URI uri, final String body)

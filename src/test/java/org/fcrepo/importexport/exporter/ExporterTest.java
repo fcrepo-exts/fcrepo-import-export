@@ -116,9 +116,9 @@ public class ExporterTest {
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final String body) throws FcrepoOperationFailedException {
-        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks);
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null);
 
-        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, body);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, body);
     }
 
     @Test
@@ -259,9 +259,7 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getStatusCode()).thenReturn(307);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
-        when(headResponse.getContentType())
-            .thenReturn("message/external-body;access-type=URL;url=\"http://www.example.com/file\"");
-
+        when(headResponse.getHeaderValue("Content-Location")).thenReturn("http://www.example.com/file");
         exporter.run();
         final File externalResourceFile = new File(basedir + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION);
         Assert.assertTrue(exporter.wroteFile(externalResourceFile));

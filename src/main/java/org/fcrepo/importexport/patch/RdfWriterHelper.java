@@ -71,8 +71,7 @@ public class RdfWriterHelper {
                 return new FedoraWriterStreamRDFPlain(w, CharSpace.ASCII);     // N-Quads and N-Triples.
             };
 
-    private static WriterGraphRIOTFactory wgfactory = (serialization) ->
-    {
+    private static WriterGraphRIOTFactory wgfactory = (serialization) -> {
         if ( Objects.equals(RDFFormat.TURTLE_PRETTY, serialization) ) {
             return new FedoraTurtleWriter();
         }
