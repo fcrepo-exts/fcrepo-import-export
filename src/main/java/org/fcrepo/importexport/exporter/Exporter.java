@@ -23,11 +23,14 @@ import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
+import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+
 import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
@@ -81,7 +84,6 @@ import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ProfileValidationException;
 import org.fcrepo.importexport.common.ProfileValidationUtil;
-import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.slf4j.Logger;
@@ -103,6 +105,7 @@ public class Exporter implements TransferProcess {
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private URI binaryURI;
     private URI containerURI;
+    private URI rdfSourceURI;
     private BagWriter bag;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
@@ -128,6 +131,7 @@ public class Exporter implements TransferProcess {
         this.clientBuilder = clientBuilder;
         this.binaryURI = URI.create(NON_RDF_SOURCE.getURI());
         this.containerURI = URI.create(CONTAINER.getURI());
+        this.rdfSourceURI = URI.create(RDF_SOURCE.getURI());
         this.exportLogger = config.getAuditLog();
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         this.repositoryRoot = config.getRepositoryRoot();
@@ -258,18 +262,17 @@ public class Exporter implements TransferProcess {
             final List<URI> linkHeaders = response.getLinkHeaders("type");
             if (linkHeaders.contains(binaryURI)) {
                 logger.debug("Found binary at " + uri);
-                final String contentType = response.getContentType();
-                final boolean external = contentType != null && contentType.contains("message/external-body");
+                final boolean external = response.getHeaderValue("Content-Location") != null;
                 final List<URI> describedby = response.getLinkHeaders("describedby");
                 exportBinary(uri, describedby, external);
-            } else if (linkHeaders.contains(containerURI)) {
+            } else if (linkHeaders.contains(containerURI) || linkHeaders.contains(rdfSourceURI)) {
                 logger.debug("Found container at " + uri);
                 exportDescription(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
             } else {
-                logger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
-                exportLogger.error("Resource is neither an LDP Container nor an LDP NonRDFSource: {}", uri);
+                logger.error("Resource is not an LDP Container, LDP RDFSource,  or an LDP NonRDFSource: {}", uri);
+                exportLogger.error("Resource is not an LDP Container, LDP RDFSource, or an LDP NonRDFSource: {}", uri);
             }
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
@@ -305,6 +308,7 @@ public class Exporter implements TransferProcess {
             writeResponse(uri, response.getBody(), describedby, file);
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
+
         }
 
         // Export versions for this binary
@@ -312,7 +316,7 @@ public class Exporter implements TransferProcess {
     }
 
     private void exportDescription(final URI uri, final URI binaryURI)
-            throws FcrepoOperationFailedException, IOException {
+            throws FcrepoOperationFailedException {
         final File file = fileForURI(uri, null, null, config.getBaseDirectory(), config.getRdfExtension());
         if (file == null) {
             logger.info("Skipping {}", uri);
@@ -332,7 +336,7 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting description: {}", uri);
 
-            final String responseBody = IOUtils.toString(response.getBody());
+            final String responseBody = IOUtils.toString(response.getBody(), "UTF-8");
             final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
                     null, config.getRdfLanguage());
             Set<URI> inboundMembers = null;
@@ -361,6 +365,7 @@ public class Exporter implements TransferProcess {
             successCount.incrementAndGet();
 
             exportMembers(model, inboundMembers);
+            exportVersions(uri);
         } catch ( Exception ex ) {
             ex.printStackTrace();
             exportLogger.error(String.format("Error exporting description: %1$s, Cause: %2$s",
@@ -459,38 +464,50 @@ public class Exporter implements TransferProcess {
      */
     private void exportVersions(final URI uri) throws FcrepoOperationFailedException, IOException {
         // Do not check for versions if disabled, already exporting a version, or the repo root
-        if (!config.includeVersions() || uri.toString().contains(FCR_VERSIONS_PATH)
-                || uri.equals(repositoryRoot)) {
+        if (!config.includeVersions() || uri.equals(repositoryRoot)) {
             return;
         }
 
-        // Create URI for location of the versions endpoint for this resource
-        final URI versionsUri = addRelativePath(uri, FCR_VERSIONS_PATH);
-        try (FcrepoResponse response = client().get(versionsUri).accept(config.getRdfLanguage()).perform()) {
-            // Verify that fcr:versions can be accessed, which will fail if the resource is not versioned
-            checkValidResponse(response, versionsUri, config.getUsername());
+        // Resolve the timemap endpoint for this resource
+        final URI timemapURI;
+        try (FcrepoResponse response = client().head(uri).perform()) {
+            checkValidResponse(response, uri, config.getUsername());
+            if (response.getLinkHeaders("type").stream()
+                .filter(x -> x.toString().equals(MEMENTO.getURI()))
+                .count() > 0) {
+                logger.trace("Resource {} is a memento and therefore not versioned:  ", uri);
+                return;
+            } else if (response.getLinkHeaders("type").stream()
+                .filter(x -> x.toString().equals(TIMEMAP.getURI()))
+                .count() > 0) {
+                logger.trace("Resource {} is a timemap and therefore not versioned:  ", uri);
+                return;
+            }
 
-            // Persist versions response
-            final File file = TransferProcess.fileForURI(versionsUri, null, null, config.getBaseDirectory(),
-                    config.getRdfExtension());
-            writeResponse(uri, response.getBody(), null, file);
+            timemapURI = response.getLinkHeaders("timemap").stream().findFirst().orElse(null);
+            if (timemapURI == null) {
+                logger.trace("Resource {} is not versioned:  no rel=\"timemap\" Link header present on {}", uri);
+                return;
+            }
+        }
 
-            // Extract uris of previous versions for export
-            final Model model = createDefaultModel().read(new FileInputStream(file), null, config.getRdfLanguage());
-            final Resource resc = model.getResource(uri.toString());
+        export(timemapURI);
 
-            final StmtIterator versionsIt = resc.listProperties(HAS_VERSION);
+        try (FcrepoResponse response = client().get(timemapURI).accept(config.getRdfLanguage()).perform()) {
+           // Verify that timemapURI can be accessed, which will fail if the resource is not versioned
+            checkValidResponse(response, timemapURI, config.getUsername());
+            // Extract uris of mementos for export
+            final Model model = createDefaultModel().read(response.getBody(), null, config.getRdfLanguage());
+            final StmtIterator versionsIt = model.listStatements();
             while (versionsIt.hasNext()) {
                 final Statement versionSt = versionsIt.next();
-                final Resource versionResc = versionSt.getResource();
-                exportLogger.info("Exporting version: {}", versionResc.getURI());
-                logger.info("Exporting version {} for {}", versionResc.getURI(), uri);
-
-                export(URI.create(versionResc.getURI()));
+                if (versionSt.getPredicate().equals(CONTAINS)) {
+                    final Resource versionResc = versionSt.getResource();
+                    exportLogger.info("Exporting version: {}", versionResc.getURI());
+                    logger.info("Exporting version {} for {}", versionResc.getURI(), uri);
+                    export(URI.create(versionResc.getURI()));
+                }
             }
-        } catch (ResourceNotFoundRuntimeException e) {
-            // Expected case for when the resource is not versioned
-            logger.trace("Resource {} is not versioned", uri);
         }
     }
 

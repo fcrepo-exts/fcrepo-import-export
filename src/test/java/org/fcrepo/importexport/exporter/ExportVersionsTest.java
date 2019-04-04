@@ -22,11 +22,12 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
+import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.isA;
@@ -39,12 +40,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpStatus;
 import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -70,8 +69,9 @@ public class ExportVersionsTest {
     private final String basedir = exportDirectory + "/versions";
     private URI rootResource;
 
-    private final String versionCreated = "2017-05-16T17:35:26.608Z";
-    private final String versionLabel = "version1";
+    private final String rfc1123Date = "Wed, 13 Mar 2019 17:58:45 GMT";
+    private final String versionCreated = "2019-03-13T17:58:45.110Z";
+    private final String versionLabel = "20190313175845";
 
     @Mock
     private FcrepoClient client;
@@ -89,10 +89,21 @@ public class ExportVersionsTest {
     private ExporterWrapper exporter;
 
     private String[] predicates = new String[]{ CONTAINS.toString() };
+
+    private List<URI> descriptionLinks =
+            Arrays.asList(URI.create(RDF_SOURCE.getURI()));
     private List<URI> containerLinks =
             Arrays.asList(URI.create(CONTAINER.getURI()));
-    private List<URI> binaryLinks =
+    private List<URI> binaryTypeLinks =
             Arrays.asList(URI.create(NON_RDF_SOURCE.getURI()));
+    private List<URI> mementoTypeLinks =
+            Arrays.asList(URI.create(RDF_SOURCE.getURI()),URI.create(MEMENTO.getURI()));
+    private List<URI> timeMapTypeLinks =
+            Arrays.asList(URI.create(RDF_SOURCE.getURI()),
+                          URI.create(CONTAINER.getURI()),
+                          URI.create(TIMEMAP.getURI()));
+    private List<URI> binaryMementoLinks =
+            Arrays.asList(URI.create(NON_RDF_SOURCE.getURI()), URI.create(MEMENTO.getURI()));
 
     @Before
     public void setUp() throws Exception {
@@ -118,7 +129,7 @@ public class ExportVersionsTest {
         exporter = new ExporterWrapper(config, clientBuilder);
 
         rootResource = new URI("http://localhost:8080/rest");
-        mockResponse(rootResource, containerLinks, new ArrayList<>(),
+        mockResponse(rootResource, containerLinks, new ArrayList<>(), null,
                 createJson(rootResource, REPOSITORY_ROOT));
     }
 
@@ -132,10 +143,10 @@ public class ExportVersionsTest {
     }
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
-            final String body) throws FcrepoOperationFailedException {
-        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks);
+            final URI timemapLink, final String body) throws FcrepoOperationFailedException {
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink);
 
-        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, body);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, body);
     }
 
     @Test
@@ -147,13 +158,13 @@ public class ExportVersionsTest {
         when(config.getResource()).thenReturn(resource1);
         when(config.includeVersions()).thenReturn(false);
 
-        mockResponse(resource1, containerLinks, emptyList(), createJson(resource1));
+        mockResponse(resource1, containerLinks, emptyList(), null, createJson(resource1));
 
         // Setup version responses, which should not get invoked
         final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), resource1,
                 resource1Version1, versionCreated, versionLabel));
-        mockResponse(resource1Versions, emptyList(), emptyList(), versionsJson);
-        mockResponse(resource1Version1, containerLinks, emptyList(), createJson(resource1));
+        mockResponse(resource1Versions, emptyList(), emptyList(), null, versionsJson);
+        mockResponse(resource1Version1, containerLinks, emptyList(), null, createJson(resource1));
 
         exporter.run();
 
@@ -163,59 +174,45 @@ public class ExportVersionsTest {
     }
 
     @Test
-    public void testExportVersionsContainers() throws Exception {
+    public void testExportNonversionedResource() throws Exception {
         final URI resource1 = new URI(BASE_URI + "1");
-        final URI resource2 = new URI(BASE_URI + "1/2");
-        final URI resource1Versions = new URI(BASE_URI + "1/fcr:versions");
-        final URI resource1Version1 = new URI(BASE_URI + "1/fcr:versions/version1");
-        final URI resourceVersionedChild = new URI(BASE_URI + "1/fcr:versions/version1/vChild");
-        final URI resource2Versions = new URI(BASE_URI + "1/2/fcr:versions");
 
         when(config.getResource()).thenReturn(resource1);
 
-        mockResponse(resource1, containerLinks, emptyList(), createJson(resource1, resource2));
-        mockResponse(resource2, containerLinks, emptyList(), createJson(resource2));
+        mockResponse(resource1, containerLinks, emptyList(), null,  createJson(resource1));
 
-        final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), resource1,
-                resource1Version1, versionCreated, versionLabel));
-        mockResponse(resource1Versions, emptyList(), emptyList(), versionsJson);
-
-        mockResponse(resource1Version1, containerLinks, emptyList(),
-                createJson(resource1, resourceVersionedChild));
-        mockResponse(resourceVersionedChild, containerLinks, emptyList(),
-                createJson(resourceVersionedChild));
-
-        ResponseMocker.mockGetResponseError(client, resource2Versions, HttpStatus.SC_NOT_FOUND);
 
         exporter.run();
 
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1/vChild.jsonld")));
-        assertFalse("Child not present in previous version should not appear in version export",
-                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1/2.jsonld")));
+        assertFalse("Versions directory should not be present for unversioned resource",
+                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions")));
     }
 
     @Test
-    public void testExportNonversionedResource() throws Exception {
-        final URI resource1 = new URI(BASE_URI + "1");
-        final URI resource1Versions = new URI(BASE_URI + "1/fcr:versions");
+    public void testExportVersionedContainer() throws Exception {
+        final URI containerResource = new URI(BASE_URI + "container1");
+        final URI containerResourceVersions = new URI(BASE_URI + "container1/fcr:versions");
+        final URI containerResourceVersion = new URI(BASE_URI + "container1/fcr:versions/" + versionLabel);
 
-        when(config.getResource()).thenReturn(resource1);
+        mockResponse(containerResource, containerLinks, emptyList(), containerResourceVersions,
+                     createJson(containerResource));
+        mockResponse(containerResourceVersion, mementoTypeLinks, Arrays.asList(containerResource),
+                     containerResourceVersions, createJson(containerResource));
 
-        mockResponse(resource1, containerLinks, emptyList(), createJson(resource1));
+        final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), containerResource,
+            containerResourceVersion, versionCreated, versionLabel));
+        mockResponse(containerResourceVersions, timeMapTypeLinks, Arrays.asList(containerResourceVersions),
+                     containerResourceVersions, versionsJson);
 
-        ResponseMocker.mockGetResponseError(client, resource1Versions, HttpStatus.SC_NOT_FOUND);
+        when(config.getResource()).thenReturn(containerResource);
 
         exporter.run();
 
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        assertFalse("Versions metadata should not be present for unversioned resource",
-                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions.jsonld")));
-        assertFalse("Versions directory should not be present for unversioned resource",
-                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions/" + versionLabel +
+                                               ".jsonld")));
     }
 
     @Test
@@ -223,21 +220,28 @@ public class ExportVersionsTest {
         final URI binaryResc = new URI(BASE_URI + "file1");
         final URI binaryRescMetadata = new URI(BASE_URI + "file1/fcr:metadata");
         final URI binaryRescVersions = new URI(BASE_URI + "file1/fcr:versions");
-        final URI binaryRescVersion = new URI(BASE_URI + "file1/fcr:versions/version1");
-        final URI binaryRescMetadataVersion = new URI(BASE_URI + "file1/fcr:versions/version1/fcr:metadata");
+        final URI binaryRescMetadataVersions = new URI(BASE_URI + "file1/fcr:metadata/fcr:versions");
+        final URI binaryRescVersion = new URI(BASE_URI + "file1/fcr:versions/" + versionLabel);
+        final URI binaryRescMetadataVersion = new URI(BASE_URI + "file1/fcr:metadata/fcr:versions/" + versionLabel);
+        mockResponse(binaryResc, binaryTypeLinks, Arrays.asList(binaryRescMetadata), binaryRescVersions, "binary");
+        mockResponse(binaryRescVersion, binaryMementoLinks, Arrays.asList(binaryRescMetadata), binaryRescVersions,
+               "old binary");
 
-        mockResponse(binaryResc, binaryLinks, Arrays.asList(binaryRescMetadata), "binary");
-        mockResponse(binaryRescVersion, binaryLinks, Arrays.asList(binaryRescMetadataVersion), "old binary");
-
-        final List<URI> descriptionLinks = Arrays.asList(URI.create(RDF_SOURCE.getURI()));
-        mockResponse(binaryRescMetadata, descriptionLinks, Collections.emptyList(),
-                createJson(binaryRescMetadata));
-        mockResponse(binaryRescMetadataVersion, descriptionLinks, Collections.emptyList(),
-                createJson(binaryRescMetadataVersion));
+        mockResponse(binaryRescMetadata, descriptionLinks, Arrays.asList(binaryRescMetadata),
+                binaryRescMetadataVersions, createJson(binaryRescMetadata));
+        mockResponse(binaryRescMetadataVersion, mementoTypeLinks, Arrays.asList(binaryRescMetadataVersion),
+                binaryRescMetadataVersions, createJson(binaryRescMetadataVersion));
 
         final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), binaryResc,
                 binaryRescVersion, versionCreated, versionLabel));
-        mockResponse(binaryRescVersions, emptyList(), emptyList(), versionsJson);
+        mockResponse(binaryRescVersions, timeMapTypeLinks, Arrays.asList(binaryRescVersions), binaryRescVersions,
+                     versionsJson);
+
+        final String metadataVersionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), binaryRescMetadata,
+                binaryRescMetadataVersion, versionCreated, versionLabel));
+        mockResponse(binaryRescMetadataVersions,timeMapTypeLinks, Arrays.asList(binaryRescMetadataVersions),
+                     binaryRescMetadataVersions, metadataVersionsJson);
+
 
         when(config.getResource()).thenReturn(binaryResc);
 
@@ -246,51 +250,11 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1.binary")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1.binary")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1/fcr%3Ametadata.jsonld")));
-    }
-
-    @Test
-    public void testExportMultipleVersionsContainers() throws Exception {
-        final String version2Label = "version2";
-        final String version3Label = "version_original";
-        final String version2Created = "2017-05-10T00:00:00.600Z";
-        final String version3Created = "2016-12-24T01:00:00.000Z";
-
-        final URI resource = new URI(BASE_URI + "1");
-        final URI resourceVersions = new URI(BASE_URI + "1/fcr:versions");
-        final URI resourceVersion1 = new URI(BASE_URI + "1/fcr:versions/version1");
-        final URI resourceVersion2 = new URI(BASE_URI + "1/fcr:versions/version2");
-        final URI resourceVersion3 = new URI(BASE_URI + "1/fcr:versions/version_original");
-        final URI resourceVersion2Child = new URI(BASE_URI + "1/fcr:versions/version2/vChild");
-
-        when(config.getResource()).thenReturn(resource);
-
-        mockResponse(resource, containerLinks, emptyList(), createJson(resource));
-
-        // Add all versions to fcr:versions response
-        final List<String> versionList = new ArrayList<>();
-        addVersionJson(versionList, resource, resourceVersion1, versionCreated, versionLabel);
-        addVersionJson(versionList, resource, resourceVersion2, version2Created, version2Label);
-        addVersionJson(versionList, resource, resourceVersion3, version3Created, version3Label);
-        final String versionsJson = joinJsonArray(versionList);
-        mockResponse(resourceVersions, emptyList(), emptyList(), versionsJson);
-
-        // Mock responses for version resources
-        mockResponse(resourceVersion1, containerLinks, emptyList(), createJson(resourceVersion1));
-        mockResponse(resourceVersion2, containerLinks, emptyList(),
-                createJson(resourceVersion2, resourceVersion2Child));
-        mockResponse(resourceVersion3, containerLinks, emptyList(), createJson(resourceVersion3));
-        mockResponse(resourceVersion2Child, containerLinks, emptyList(), createJson(resourceVersion2Child));
-
-        exporter.run();
-
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version1.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version2.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version2/vChild.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions/version_original.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/" + versionLabel +
+                                               ".binary")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions/" +
+                                               versionLabel + ".jsonld")));
     }
 
     @Test
@@ -298,23 +262,30 @@ public class ExportVersionsTest {
         final URI binaryResc = new URI(BASE_URI + "file1");
         final URI binaryRescMetadata = new URI(BASE_URI + "file1/fcr:metadata");
         final URI binaryRescVersions = new URI(BASE_URI + "file1/fcr:versions");
-        final URI binaryRescVersion = new URI(BASE_URI + "file1/fcr:versions/version1");
-        final URI binaryRescMetadataVersion = new URI(BASE_URI + "file1/fcr:versions/version1/fcr:metadata");
+        final URI binaryRescMetadataVersions = new URI(BASE_URI + "file1/fcr:metadata/fcr:versions");
+        final URI binaryRescVersion = new URI(BASE_URI + "file1/fcr:versions/" + versionLabel);
+        final URI binaryRescMetadataVersion = new URI(BASE_URI + "file1/fcr:metadata/fcr:versions/" + versionLabel);
 
-        mockResponse(binaryResc, binaryLinks, Arrays.asList(binaryRescMetadata), "binary");
-        mockResponse(binaryRescVersion, binaryLinks, Arrays.asList(binaryRescMetadataVersion), "old binary");
+        mockResponse(binaryResc, binaryTypeLinks, Arrays.asList(binaryRescMetadata), binaryRescVersions, "binary");
+        mockResponse(binaryRescVersion, binaryMementoLinks, Arrays.asList(binaryRescMetadataVersion), null,
+               "old binary");
 
-        final List<URI> descriptionLinks = Arrays.asList(URI.create(RDF_SOURCE.getURI()));
-        mockResponse(binaryRescMetadata, descriptionLinks, Collections.emptyList(),
+        mockResponse(binaryRescMetadata, descriptionLinks, Arrays.asList(binaryRescMetadata),
+                     binaryRescMetadataVersions,
                 createJson(binaryRescMetadata));
-        mockResponse(binaryRescMetadataVersion, descriptionLinks, Collections.emptyList(),
+        mockResponse(binaryRescMetadataVersion, mementoTypeLinks, Arrays.asList(binaryRescMetadataVersion), null,
                 createJson(binaryRescMetadataVersion));
 
         final String versionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), binaryResc,
                 binaryRescVersion, versionCreated, versionLabel));
-        mockResponse(binaryRescVersions, emptyList(), emptyList(), versionsJson);
+        mockResponse(binaryRescVersions, timeMapTypeLinks, Arrays.asList(binaryRescVersions), null, versionsJson);
 
-        mockResponse(rootResource, containerLinks, new ArrayList<>(),
+        final String metadataVersionsJson = joinJsonArray(addVersionJson(new ArrayList<>(), binaryRescMetadata,
+                binaryRescMetadataVersion, versionCreated, versionLabel));
+        mockResponse(binaryRescMetadataVersions, timeMapTypeLinks, mementoTypeLinks, null, metadataVersionsJson);
+
+
+        mockResponse(rootResource, containerLinks, new ArrayList<>(), null,
                 createJson(rootResource, REPOSITORY_ROOT, binaryResc));
         final URI rootVersionsUri = URI.create(rootResource.toString() + "/" + FCR_VERSIONS_PATH);
         ResponseMocker.mockGetResponseError(client, rootVersionsUri, 500);
@@ -326,8 +297,10 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1.binary")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions.jsonld")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1.binary")));
-        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/version1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions/" +
+                   versionLabel + ".jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/" + versionLabel + ".binary")));
     }
 
     private String createJson(final URI resource, final URI... children) {
@@ -357,7 +330,7 @@ public class ExportVersionsTest {
     private List<String> addVersionJson(final List<String> versions, final URI rescUri, final URI versionUri,
             final String label, final String timestamp) {
         final String versionJson = "{\"@id\":\"" + rescUri.toString() + "\"," +
-                "\"" + HAS_VERSION.getURI() + "\":[{\"@id\":\"" + versionUri.toString() + "\"}]}," +
+                "\"" + CONTAINS.getURI() + "\":[{\"@id\":\"" + versionUri.toString() + "\"}]}," +
             "{\"@id\":\"" + versionUri.toString() + "\"," +
                 "\"" + CREATED_DATE.getURI() + "\":[{" +
                     "\"@value\":\"" + timestamp + "\"," +

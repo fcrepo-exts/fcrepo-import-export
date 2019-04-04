@@ -35,10 +35,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -143,7 +149,13 @@ public class ExporterIT extends AbstractResourceIT {
         // Create an external content resource pointing at another repository resource
         final URI binaryURI = URI.create(serverAddress + UUID.randomUUID());
         createBody(binaryURI, "content", "text/plain");
-        createBody(url, "", "message/external-body; access-type=URL; URL=\"" + binaryURI.toString() + "\"");
+        final Map<String,String> headers = new HashMap<>();
+        headers.put("Link", "<" + binaryURI.toString() + ">;" +
+                "      rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+                "      handling=\"redirect\"; " +
+                "      type=\"text/plain\"");
+
+        createBody(url, new ByteArrayInputStream("".getBytes()), "text/plain", headers);
 
         // Run an export process
         final Config config = new Config();
@@ -213,13 +225,17 @@ public class ExporterIT extends AbstractResourceIT {
         final URI res1 = URI.create(baseURI + "/res1");
         final URI res2 = URI.create(baseURI + "/res1/res2");
         final URI binRes = URI.create(baseURI + "/res1/file");
-        final URI res1Versions = URI.create(baseURI + "/res1/fcr:versions");
-        final String versionLabel = "version1";
+
+        final String rfc1123Date = "Wed, 13 Mar 2019 17:58:45 GMT";
+        final String versionLabel = "20190313175845";
+
 
         create(res1);
         create(res2);
         createBody(binRes, "binary", "text/plain");
-        createVersion(res1Versions, versionLabel);
+        createMemento(res1, rfc1123Date);
+        createMemento(res2, rfc1123Date);
+        createMemento(binRes, rfc1123Date);
 
         final Config config = new Config();
         config.setMode("export");
@@ -240,16 +256,24 @@ public class ExporterIT extends AbstractResourceIT {
         assertTrue(new File(baseDir, "/res1/res2" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res1/file.binary").exists());
         assertTrue(new File(baseDir, "/res1/file/fcr%3Ametadata" + DEFAULT_RDF_EXT).exists());
-
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions" + DEFAULT_RDF_EXT).exists());
-        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1" + DEFAULT_RDF_EXT).exists());
-        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/res2" + DEFAULT_RDF_EXT).exists());
-        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file.binary").exists());
-        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/version1/file/fcr%3Ametadata" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aversions/" + versionLabel + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/res2/fcr%3Aversions/" + versionLabel + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary").exists());
     }
 
-    private void createVersion(final URI uri, final String label) throws FcrepoOperationFailedException {
-        clientBuilder.build().post(uri).slug(label).perform();
+    private void createMemento(final URI uri, final String rfc1123Date) throws FcrepoOperationFailedException {
+        final InputStream body = clientBuilder.build().get(uri).accept(DEFAULT_RDF_LANG).perform().getBody();
+        final String timeMap = uri.toString() + "/fcr:versions";
+        final FcrepoResponse response = clientBuilder.build().createMemento(URI.create(timeMap), rfc1123Date)
+            .body(body, DEFAULT_RDF_LANG).perform();
+        try {
+            final String mementoResponse = IOUtils.toString(response.getBody(), "UTF-8");
+            logger().info("Create memento:  status={}; location={}; url = {}; body={}",
+                response.getStatusCode(), response.getHeaderValue("Location"), timeMap, mementoResponse);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private Config exportWithCustomPredicates(final String[] predicates, final UUID uuid)

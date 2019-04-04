@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 
 import org.fcrepo.client.FcrepoClient;
@@ -50,10 +51,11 @@ public abstract class ResponseMocker {
      * @param uri uri of destination being mocked
      * @param typeLinks type links
      * @param describedbyLinks described by links
+     * @param timemapLink timemap links
      * @throws FcrepoOperationFailedException client failures
      */
     public static void mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
-            final List<URI> describedbyLinks) throws FcrepoOperationFailedException {
+            final List<URI> describedbyLinks, final URI timemapLink) throws FcrepoOperationFailedException {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse headResponse = mock(FcrepoResponse.class);
         when(client.head(eq(uri))).thenReturn(headBuilder);
@@ -63,6 +65,9 @@ public abstract class ResponseMocker {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getStatusCode()).thenReturn(200);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+        if (timemapLink != null) {
+            when(headResponse.getLinkHeaders(eq("timemap"))).thenReturn(Arrays.asList(timemapLink));
+        }
     }
 
     /**
@@ -76,7 +81,8 @@ public abstract class ResponseMocker {
      * @throws FcrepoOperationFailedException client failures
      */
     public static void mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
-            final List<URI> describedbyLinks, final String body) throws FcrepoOperationFailedException {
+                                       final List<URI> describedbyLinks, final URI timemapLink, final String body)
+        throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
         when(client.get(eq(uri))).thenReturn(getBuilder);
@@ -93,6 +99,10 @@ public abstract class ResponseMocker {
         when(getResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(getResponse.getStatusCode()).thenReturn(200);
         when(getResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
+        if (timemapLink != null) {
+            when(getResponse.getLinkHeaders(eq("timemap"))).thenReturn(Arrays.asList(timemapLink));
+        }
+
     }
 
     /**
