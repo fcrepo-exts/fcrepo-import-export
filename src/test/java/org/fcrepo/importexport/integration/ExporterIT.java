@@ -262,6 +262,35 @@ public class ExporterIT extends AbstractResourceIT {
         assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary").exists());
     }
 
+
+    @Test
+    public void testExportAcl() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI res1Acl = URI.create(baseURI + "/res1/fcr:acl");
+
+        create(res1);
+        create(res1Acl);
+
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(res1);
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setIncludeVersions(false);
+        config.setIncludeBinaries(false);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        assertTrue(new File(baseDir, "/res1" + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/fcr%3Aacl" + DEFAULT_RDF_EXT).exists());
+    }
     private void createMemento(final URI uri, final String rfc1123Date) throws FcrepoOperationFailedException {
         final InputStream body = clientBuilder.build().get(uri).accept(DEFAULT_RDF_LANG).perform().getBody();
         final String timeMap = uri.toString() + "/fcr:versions";

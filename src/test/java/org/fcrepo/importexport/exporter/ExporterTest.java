@@ -68,6 +68,7 @@ public class ExporterTest {
     private List<URI> describedbyLinks;
     private URI rootResource;
     private URI resource;
+    private URI resourceAcl;
     private URI resource2;
     private URI resource3;
     private URI resource4;
@@ -84,6 +85,8 @@ public class ExporterTest {
         headResponse = mock(FcrepoResponse.class);
         rootResource = new URI("http://localhost:8080/rest");
         resource = new URI("http://localhost:8080/rest/1");
+        resourceAcl = new URI("http://localhost:8080/rest/1/fcr:acl");
+
         resource2 = new URI("http://localhost:8080/rest/1/2");
         resource3 = new URI("http://localhost:8080/rest/file1");
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
@@ -94,10 +97,13 @@ public class ExporterTest {
         descriptionLinks = Arrays.asList(new URI(RDF_SOURCE.getURI()));
         describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
 
-        mockResponse(resource, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource.toString()
+        mockResponse(resource, containerLinks, new ArrayList<>(), resourceAcl,"{\"@id\":\"" + resource.toString()
                 + "\",\"@type\":[\"" + REPOSITORY_NAMESPACE + "RepositoryRoot\"],\""
                 + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
+        mockResponse(resourceAcl, containerLinks, new ArrayList<>(), "{}");
+
         mockResponse(resource2, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
+
         mockResponse(resource3, binaryLinks, describedbyLinks, "binary");
         mockResponse(resource4, descriptionLinks, new ArrayList<>(), "{\"@id\":\"" + resource4.toString() + "\"}");
         mockResponse(resource5, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
@@ -116,9 +122,15 @@ public class ExporterTest {
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final String body) throws FcrepoOperationFailedException {
-        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null);
+        mockResponse(uri, typeLinks, describedbyLinks, null, body);
 
-        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, body);
+    }
+
+    private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
+                              final URI aclLink, final String body) throws FcrepoOperationFailedException {
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null, aclLink);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, aclLink, body);
+
     }
 
     @Test
@@ -282,6 +294,25 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+    }
+
+    @Test
+    public void testExportAcl() throws Exception {
+        final String basedir = exportDirectory + "/5";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(true);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aacl.jsonld")));
+
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)

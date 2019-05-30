@@ -258,8 +258,15 @@ public class Exporter implements TransferProcess {
     private void export(final URI uri) {
         logger.trace("HEAD " + uri);
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
+            if (response.getStatusCode() == 404 && uri.toString().endsWith("fcr:acl")) {
+                logger.info("ACL {} not found and thus will not be exported.", uri);
+                return;
+            }
+
             checkValidResponse(response, uri, config.getUsername());
             final List<URI> linkHeaders = response.getLinkHeaders("type");
+            final URI acl = response.getLinkHeaders("acl").stream().findFirst().orElse(null);
+
             if (linkHeaders.contains(binaryURI)) {
                 logger.debug("Found binary at " + uri);
                 final boolean external = response.getHeaderValue("Content-Location") != null;
@@ -267,13 +274,19 @@ public class Exporter implements TransferProcess {
                 exportBinary(uri, describedby, external);
             } else if (linkHeaders.contains(containerURI) || linkHeaders.contains(rdfSourceURI)) {
                 logger.debug("Found container at " + uri);
-                exportDescription(uri, null);
+                exportRdf(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
             } else {
                 logger.error("Resource is not an LDP Container, LDP RDFSource,  or an LDP NonRDFSource: {}", uri);
                 exportLogger.error("Resource is not an LDP Container, LDP RDFSource, or an LDP NonRDFSource: {}", uri);
             }
+
+            if (acl != null) {
+                export(acl);
+            }
+
+
         } catch (FcrepoOperationFailedException ex) {
             logger.warn("Error retrieving content: {}", ex.toString());
             exportLogger.error(String.format("Error retrieving context of uri: %1$s, Message: %2$s",
@@ -315,7 +328,7 @@ public class Exporter implements TransferProcess {
         exportVersions(uri);
     }
 
-    private void exportDescription(final URI uri, final URI binaryURI)
+    private void exportRdf(final URI uri, final URI binaryURI)
             throws FcrepoOperationFailedException {
         final File file = fileForURI(uri, null, null, config.getBaseDirectory(), config.getRdfExtension());
         if (file == null) {
@@ -334,7 +347,7 @@ public class Exporter implements TransferProcess {
 
         try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri, config.getUsername());
-            logger.info("Exporting description: {}", uri);
+            logger.info("Exporting rdf: {}", uri);
 
             final String responseBody = IOUtils.toString(response.getBody(), "UTF-8");
             final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
@@ -548,7 +561,7 @@ public class Exporter implements TransferProcess {
 
         if (describedby != null) {
             for (final Iterator<URI> it = describedby.iterator(); it.hasNext(); ) {
-                exportDescription(it.next(), uri);
+                exportRdf(it.next(), uri);
             }
         }
     }
