@@ -22,7 +22,7 @@
 @prefix pcdm: <http://pcdm.org/models#> .
 
 
-<http://localhost:8080/fcrepo/rest/indirect/1> a fedora:Container , fedora:Resource ;
+<http://localhost:8080/fcrepo/rest/indirect/1> a fedora:Container , fedora:Resource , ldp:BasicContainer ;
 	fedora:lastModifiedBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	fedora:createdBy "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	fedora:created "2016-09-22T17:21:33.422Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
