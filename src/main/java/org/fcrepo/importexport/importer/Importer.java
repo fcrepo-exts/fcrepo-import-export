@@ -337,6 +337,7 @@ public class Importer implements TransferProcess {
         final String sourceRelativePath =
                 config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
         final String filePath = f.getPath();
+
         if (filePath.endsWith(BINARY_EXTENSION) || filePath.endsWith(EXTERNAL_RESOURCE_EXTENSION)) {
             // ... this is only expected to happen when binaries and metadata are written to the same directory...
             if (config.isIncludeBinaries()) {
@@ -351,6 +352,18 @@ public class Importer implements TransferProcess {
             logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
             return;
         } else {
+
+            //always skip timemaps since they are derived from the mementos they contain.
+            if (sourceRelativePath.endsWith("fcr%3Aversions" + config.getRdfExtension())) {
+                logger.debug("Skipping {} :  Time maps are never imported.", sourceRelativePath);
+                return;
+            }
+
+            //skip versions when include versions flag is false.
+            if (!config.includeVersions() && filePath.contains("fcr%3Aversions")) {
+                logger.debug("Skipping {}: Versions import disabled.", sourceRelativePath);
+                return;
+            }
 
             FcrepoResponse response = null;
             URI destinationUri = null;
