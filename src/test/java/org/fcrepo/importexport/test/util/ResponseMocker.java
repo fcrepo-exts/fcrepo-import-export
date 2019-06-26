@@ -55,7 +55,8 @@ public abstract class ResponseMocker {
      * @throws FcrepoOperationFailedException client failures
      */
     public static void mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
-            final List<URI> describedbyLinks, final URI timemapLink) throws FcrepoOperationFailedException {
+                                        final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink)
+            throws FcrepoOperationFailedException {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse headResponse = mock(FcrepoResponse.class);
         when(client.head(eq(uri))).thenReturn(headBuilder);
@@ -67,6 +68,10 @@ public abstract class ResponseMocker {
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(typeLinks);
         if (timemapLink != null) {
             when(headResponse.getLinkHeaders(eq("timemap"))).thenReturn(Arrays.asList(timemapLink));
+        }
+
+        if (aclLink != null) {
+            when(headResponse.getLinkHeaders(eq("acl"))).thenReturn(Arrays.asList(aclLink));
         }
     }
 
@@ -81,7 +86,8 @@ public abstract class ResponseMocker {
      * @throws FcrepoOperationFailedException client failures
      */
     public static void mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
-                                       final List<URI> describedbyLinks, final URI timemapLink, final String body)
+                                       final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink,
+                                       final String body)
         throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
@@ -103,6 +109,9 @@ public abstract class ResponseMocker {
             when(getResponse.getLinkHeaders(eq("timemap"))).thenReturn(Arrays.asList(timemapLink));
         }
 
+        if (aclLink != null) {
+            when(getResponse.getLinkHeaders(eq("acl"))).thenReturn(Arrays.asList(aclLink));
+        }
     }
 
     /**

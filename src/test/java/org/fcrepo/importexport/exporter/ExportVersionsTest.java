@@ -144,9 +144,9 @@ public class ExportVersionsTest {
 
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final URI timemapLink, final String body) throws FcrepoOperationFailedException {
-        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink);
+        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink,null);
 
-        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, body);
+        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, null, body);
     }
 
     @Test
