@@ -33,6 +33,11 @@ import org.apache.jena.rdf.model.Resource;
 public abstract class FcrepoConstants {
 
     public static final String BINARY_EXTENSION = ".binary";
+    public static final String HEADERS_EXTENSION = ".headers";
+
+    public static final String MEMENTO_DATETIME_HEADER = "Memento-Datetime";
+    public static final String CONTENT_TYPE_HEADER = "Content-Type";
+
     public static final String EXTERNAL_RESOURCE_EXTENSION = ".external";
 
     public static final String EBUCORE_NAMESPACE = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";

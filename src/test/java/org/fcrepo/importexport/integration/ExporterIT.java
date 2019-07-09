@@ -259,7 +259,11 @@ public class ExporterIT extends AbstractResourceIT {
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions" + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res1/fcr%3Aversions/" + versionLabel + DEFAULT_RDF_EXT).exists());
         assertTrue(new File(baseDir, "/res1/res2/fcr%3Aversions/" + versionLabel + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(baseDir, "/res1/res2/fcr%3Aversions/" + versionLabel + DEFAULT_RDF_EXT + ".headers")
+            .exists());
         assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary").exists());
+        assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary.headers").exists());
+
     }
 
 

@@ -23,6 +23,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
@@ -152,6 +153,13 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION +
+            HEADERS_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld" +
+            HEADERS_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld" +
+            HEADERS_EXTENSION)));
+
     }
 
     @Test
@@ -416,6 +424,14 @@ class ExporterWrapper extends Exporter {
         super.writeResponse(uri, in, describedby, file);
         writtenFiles.add(file);
     }
+
+    @Override
+    void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
+        super.writeHeadersFile(response, file);
+        writtenFiles.add(file);
+
+    }
+
     boolean wroteFile(final File file) {
         return writtenFiles.contains(file);
     }
