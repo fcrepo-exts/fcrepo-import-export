@@ -69,7 +69,8 @@ public abstract class FcrepoConstants {
     public static final Property LAST_MODIFIED_BY = createProperty(REPOSITORY_NAMESPACE + "lastModifiedBy");
 
     public static final String FCR_VERSIONS_PATH = "fcr:versions";
-    public static final Property MEMENTO = createProperty("http://mementoweb.org/ns#Memento");
-    public static final Property TIMEMAP = createProperty("http://mementoweb.org/ns#TimeMap");
+    public static final String MEMENTO_NAMESPACE = "http://mementoweb.org/ns#";
+    public static final Property MEMENTO = createProperty(MEMENTO_NAMESPACE + "Memento");
+    public static final Property TIMEMAP = createProperty(MEMENTO_NAMESPACE + "TimeMap");
     public static final Property HAS_VERSION_LABEL = createProperty(REPOSITORY_NAMESPACE + "hasVersionLabel");
 }
