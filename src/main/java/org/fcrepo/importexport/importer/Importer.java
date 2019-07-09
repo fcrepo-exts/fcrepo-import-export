@@ -25,7 +25,6 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
@@ -35,10 +34,11 @@ import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
+import static org.fcrepo.importexport.common.FcrepoConstants.LDP_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
-import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
@@ -574,10 +574,9 @@ public class Importer implements TransferProcess {
      * @return true if the resource represents a type that may not be added/removed explicitly
      */
     private boolean forbiddenType(final Resource resource) {
-         return resource.getNameSpace().equals(REPOSITORY_NAMESPACE)
-             || resource.getURI().equals(CONTAINER.getURI())
-             || resource.getURI().equals(NON_RDF_SOURCE.getURI())
-             || resource.getURI().equals(RDF_SOURCE.getURI());
+        return resource.getNameSpace().equals(REPOSITORY_NAMESPACE)
+            || resource.getNameSpace().equals(MEMENTO_NAMESPACE)
+            || resource.getNameSpace().equals(LDP_NAMESPACE);
     }
 
     /**
@@ -607,11 +606,11 @@ public class Importer implements TransferProcess {
         ensureExists(parent(uri));
 
         final FcrepoResponse response;
+        final ByteArrayInputStream emptyStream = new ByteArrayInputStream(new byte[]{});
         if (fileForBinaryURI(uri, false).exists() || fileForBinaryURI(uri, true).exists()) {
-            response = client().put(uri).body(new ByteArrayInputStream(new byte[]{})).perform();
+            response = client().put(uri).body(emptyStream).perform();
         } else if (fileForContainerURI(uri).exists()) {
-            response = client().put(uri).body(new ByteArrayInputStream(
-                    "<> a <http://www.w3.org/ns/ldp#Container> .".getBytes()), "text/turtle").perform();
+            response = client().put(uri).body(emptyStream, "text/turtle").perform();
         } else {
             return;
         }

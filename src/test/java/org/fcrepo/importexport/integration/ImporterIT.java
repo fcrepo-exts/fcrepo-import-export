@@ -45,7 +45,6 @@ import org.fcrepo.importexport.importer.Importer;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -53,7 +52,6 @@ import org.slf4j.Logger;
  * @author awoods
  * @since 2016-09-18
  */
-@Ignore  //TODO fix these tests
 public class ImporterIT extends AbstractResourceIT {
 
     private FcrepoClient client;
@@ -114,9 +112,10 @@ public class ImporterIT extends AbstractResourceIT {
                 binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
     }
 
+    @Test
     public void testCorruptedBinary() throws Exception {
-        final URI sourceURI = URI.create("http://localhost:8080/fcrepo/rest");
-        final URI binaryURI = URI.create("http://localhost:8080/fcrepo/rest/bin1");
+        final URI sourceURI = URI.create(serverAddress);
+        final URI binaryURI = URI.create(serverAddress + "/bin1");
         final String referencePath = TARGET_DIR + "/test-classes/sample/corrupted";
         System.out.println("Importing from " + referencePath);
 

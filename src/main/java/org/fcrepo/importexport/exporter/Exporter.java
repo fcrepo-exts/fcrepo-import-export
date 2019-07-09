@@ -259,7 +259,7 @@ public class Exporter implements TransferProcess {
         logger.trace("HEAD " + uri);
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             if (response.getStatusCode() == 404 && uri.toString().endsWith("fcr:acl")) {
-                logger.info("ACL {} not found and thus will not be exported.", uri);
+                logger.debug("ACL {} not found and thus will not be exported.", uri);
                 return;
             }
 
