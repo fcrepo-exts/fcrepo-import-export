@@ -23,6 +23,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.FCR_VERSIONS_PATH;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_VERSION_LABEL;
+import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
@@ -145,7 +146,6 @@ public class ExportVersionsTest {
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final URI timemapLink, final String body) throws FcrepoOperationFailedException {
         ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink,null);
-
         ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, null, body);
     }
 
@@ -213,6 +213,8 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions/" + versionLabel +
                                                ".jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions/" + versionLabel +
+            ".jsonld" + HEADERS_EXTENSION)));
     }
 
     @Test
@@ -252,9 +254,13 @@ public class ExportVersionsTest {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/" + versionLabel +
                                                ".binary")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Aversions/" + versionLabel +
+            ".binary.headers")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions.jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions/" +
                                                versionLabel + ".jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions/" +
+            versionLabel + ".jsonld.headers")));
     }
 
     @Test

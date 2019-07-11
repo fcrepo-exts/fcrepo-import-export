@@ -25,6 +25,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
@@ -32,15 +33,19 @@ import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_E
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
+import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.LDP_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMBERSHIP_RESOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO_DATETIME_HEADER;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
@@ -56,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -63,14 +69,18 @@ import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
@@ -92,6 +102,8 @@ import org.slf4j.Logger;
 import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
+
+import javax.ws.rs.core.Link;
 
 /**
  * Fedora Import Utility
@@ -337,25 +349,70 @@ public class Importer implements TransferProcess {
         final String sourceRelativePath =
                 config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
         final String filePath = f.getPath();
+
+        //ignore header files
+        if (filePath.endsWith(".headers")) {
+            // this could be hidden files created by the OS
+            logger.debug("Skipping .headers files ({}).", sourceRelativePath);
+            return;
+
+        }
+
+        //parse headers from headers file
+        final Map<String,List<String>> headers;
+
+        try {
+            headers = parseHeaders(getHeadersFile(f));
+        } catch (IOException ex) {
+            importLogger.error(String.format("Error reading/parsing headers file for %1$s - Message: %2$s",
+                f.getAbsolutePath(), ex.getMessage()), ex);
+            throw new RuntimeException(
+                "Error reading or parsing headers file for" + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        }
+
+        //always skip timemaps since they are derived from the mementos they contain.
+        if (isTimeMap(headers)) {
+            logger.debug("Skipping {} :  TimeMaps are never imported.", sourceRelativePath);
+            return;
+        }
+
+        final boolean isMemento = isMemento(headers);
+
+        //skip versions when include versions flag is false.
+        if (!config.includeVersions() && isMemento) {
+            logger.debug("Skipping {}: Versions import disabled.", sourceRelativePath);
+            return;
+        }
+
         if (filePath.endsWith(BINARY_EXTENSION) || filePath.endsWith(EXTERNAL_RESOURCE_EXTENSION)) {
             // ... this is only expected to happen when binaries and metadata are written to the same directory...
-            if (config.isIncludeBinaries()) {
-                logger.debug("Skipping binary {}: it will be imported when its metadata is imported.",
+
+            if (!isMemento) {
+                if (config.isIncludeBinaries()) {
+                    logger.debug("Skipping binary {}: it will be imported when its metadata is imported.",
                         sourceRelativePath);
-            } else {
-                logger.debug("Skipping binary {}", sourceRelativePath);
-            }
-            return;
+                } else {
+                    logger.debug("Skipping binary {}", sourceRelativePath);
+                }
+                return;
+            } // else continue processing
+
         } else if (!filePath.endsWith(config.getRdfExtension())) {
             // this could be hidden files created by the OS
             logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
             return;
-        } else {
+        }
 
-            FcrepoResponse response = null;
-            URI destinationUri = null;
-            try {
+        FcrepoResponse response = null;
+        URI destinationUri = null;
+        try {
+
+            if (isMemento) {
+                response = importMemento(f, headers);
+            } else {
+
                 final Model model = parseStream(new FileInputStream(f));
+
                 // remove the member resources that are being imported
                 for (final ResIterator it = model.listSubjects(); it.hasNext();) {
                     final URI uri = URI.create(it.next().toString());
@@ -386,40 +443,111 @@ public class Importer implements TransferProcess {
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
                     response = importContainer(destinationUri, sanitize(model));
                 }
+            }
 
-                if (response == null) {
-                    logger.warn("Failed to import {}", f.getAbsolutePath());
-                } else if (response.getStatusCode() == 401) {
-                    importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
-                        destinationUri);
-                    throw new AuthenticationRequiredRuntimeException();
-                } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
-                    final String message = "Error while importing " + f.getAbsolutePath() + " ("
-                            + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
-                    logger.error(message);
-                    importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
-                        response.getStatusCode());
-                } else {
-                    logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
-                    importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
-                    successCount.incrementAndGet();
+
+            if (response.getStatusCode() == 401) {
+                importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
+                    destinationUri);
+                throw new AuthenticationRequiredRuntimeException();
+            } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
+                final String message = "Error while importing " + f.getAbsolutePath() + " ("
+                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
+                logger.error(message);
+                importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
+                    response.getStatusCode());
+            } else {
+                logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
+                importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
+                successCount.incrementAndGet();
+            }
+        } catch (FcrepoOperationFailedException ex) {
+            importLogger.error(String.format("Error importing %1$s to %2$s, Message: %3$s", f.getAbsolutePath(),
+                destinationUri, ex.getMessage()), ex);
+            throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        } catch (IOException ex) {
+            importLogger.error(String.format("Error reading/parsing %1$s to %2$s, Message: %3$s",
+                    f.getAbsolutePath(), destinationUri, ex.getMessage()), ex);
+            throw new RuntimeException(
+                    "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        } catch (URISyntaxException ex) {
+            importLogger.error(
+                String.format("Error building URI for %1$s, Message: %2$s",
+                        f.getAbsolutePath(), ex.getMessage()), ex);
+            throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
+        }
+    }
+
+    private FcrepoResponse importMemento(final File mementoFile, final Map<String, List<String>> headers)
+        throws IOException, FcrepoOperationFailedException {
+        final String mementoDatetime = getFirstByKey(headers, MEMENTO_DATETIME_HEADER);
+        final String contentType = getFirstByKey(headers, CONTENT_TYPE_HEADER);
+        final URI timeMapURI = getLinkValueByRel(headers, "timemap");
+        final PostBuilder builder = client().post(timeMapURI)
+            .body(new FileInputStream(mementoFile), contentType)
+            .addHeader(MEMENTO_DATETIME_HEADER, mementoDatetime);
+        return builder.perform();
+    }
+
+    private boolean hasType(final Map<String, List<String>> headers, final String typeUri) {
+        final List<String> values = headers.get("Link");
+        if (values != null) {
+            for (String linkstr : values) {
+                final Link link = Link.valueOf(linkstr);
+                if (link.getRel().equals("type") && link.getUri().toString().equals(typeUri)) {
+                    return true;
                 }
-            } catch (FcrepoOperationFailedException ex) {
-                importLogger.error(String.format("Error importing %1$s to %2$s, Message: %3$s", f.getAbsolutePath(),
-                    destinationUri, ex.getMessage()), ex);
-                throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
-            } catch (IOException ex) {
-                importLogger.error(String.format("Error reading/parsing %1$s to %2$s, Message: %3$s",
-                        f.getAbsolutePath(), destinationUri, ex.getMessage()), ex);
-                throw new RuntimeException(
-                        "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
-            } catch (URISyntaxException ex) {
-                importLogger.error(
-                    String.format("Error building URI for %1$s, Message: %2$s",
-                            f.getAbsolutePath(), ex.getMessage()), ex);
-                throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
             }
         }
+        return false;
+    }
+
+    private boolean isMemento(final Map<String, List<String>> headers) {
+        return hasType(headers, MEMENTO.getURI());
+    }
+
+    private boolean isTimeMap(final Map<String, List<String>> headers) {
+        return hasType(headers, TIMEMAP.getURI());
+    }
+
+    private URI getLinkValueByRel(final Map<String, List<String>> headers, final String rel) {
+        final List<String> values = headers.get("Link");
+        for (String linkstr : values) {
+            final Link link = Link.valueOf(linkstr);
+            if (link.getRel().equals(rel)) {
+                return link.getUri();
+            }
+        }
+
+        return null;
+    }
+
+    private String getFirstByKey(final Map<String, List<String>> headers, final String key) {
+        final List<String> values = headers.get(key);
+        if (values != null && values.size() > 0) {
+            return values.get(0);
+        }
+
+        return null;
+    }
+
+    private File getHeadersFile(final File f) {
+        return new File(f.getParentFile(), f.getName() + HEADERS_EXTENSION);
+    }
+
+    private Map<String, List<String>> parseHeaders(final File headersFile) throws IOException {
+
+        if (!headersFile.exists()) {
+            return new HashMap<>();
+        }
+
+        //converting json to Map
+        final byte[] mapData = Files.readAllBytes(Paths.get(headersFile.toURI()));
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final Map<String, List<String>> headers =
+            objectMapper.readValue(mapData, new TypeReference<HashMap<String, List<String>>>() {
+            });
+        return headers;
     }
 
     private Model parseStream(final InputStream in) throws IOException {
@@ -450,7 +578,7 @@ public class Importer implements TransferProcess {
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
                     binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
-            return null;
+            return binaryResponse;
         }
     }
 

@@ -24,6 +24,7 @@ import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
 import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
@@ -46,6 +47,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -65,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -319,6 +322,7 @@ public class Exporter implements TransferProcess {
 
             logger.info("Exporting binary: {}", uri);
             writeResponse(uri, response.getBody(), describedby, file);
+            writeHeadersFile(response, getHeadersFile(file));
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
 
@@ -374,6 +378,9 @@ public class Exporter implements TransferProcess {
                 writeResponse(uri, new ByteArrayInputStream(responseBody.getBytes()), null, file);
             }
 
+            //write headers file
+            writeHeadersFile(response, getHeadersFile(file));
+
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             successCount.incrementAndGet();
 
@@ -385,6 +392,17 @@ public class Exporter implements TransferProcess {
                     uri, ex.getMessage()), ex);
         }
 
+    }
+
+    private File getHeadersFile(final File file) {
+        return new File(file.getParentFile(), file.getName() + HEADERS_EXTENSION);
+    }
+
+    void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
+        final String json = new ObjectMapper().writeValueAsString(response.getHeaders());
+        try (final FileWriter writer = new FileWriter(file)) {
+            writer.write(json);
+        }
     }
 
     private Set<URI> filterInboundReferences(final URI uri, final Model model) {

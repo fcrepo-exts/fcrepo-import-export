@@ -119,7 +119,26 @@ public abstract class AbstractResourceIT {
                 uri, response.getStatusCode(), response.getHeaderValue("Location"));
 
         return response;
+    }
 
+    protected FcrepoResponse post(final URI uri) throws FcrepoOperationFailedException {
+        logger.debug("Create ---------: {}", uri);
+        final FcrepoResponse response =  clientBuilder.build().post(uri).perform();
+
+        logger().debug("Response for post {}:  status={}; location={}",
+            uri, response.getStatusCode(), response.getHeaderValue("Location"));
+
+        return response;
+    }
+
+    protected FcrepoResponse get(final URI uri) throws FcrepoOperationFailedException {
+        logger.debug("Create ---------: {}", uri);
+        final FcrepoResponse response =  clientBuilder.build().get(uri).perform();
+
+        logger().debug("Response for get {}:  status={}; location={}",
+            uri, response.getStatusCode(), response.getHeaderValue("Location"));
+
+        return response;
     }
 
     protected FcrepoResponse createBody(final URI uri, final String body, final String contentType)
