@@ -395,9 +395,8 @@ public class Importer implements TransferProcess {
                     logger.debug("Skipping binary {}", sourceRelativePath);
                 }
                 return;
-            } else {
-                //continue processing
-            }
+            } // else continue processing
+
         } else if (!filePath.endsWith(config.getRdfExtension())) {
             // this could be hidden files created by the OS
             logger.info("Skipping file with unexpected extension ({}).", sourceRelativePath);
@@ -447,9 +446,7 @@ public class Importer implements TransferProcess {
             }
 
 
-            if (response == null) {
-                logger.warn("Failed to import {}", f.getAbsolutePath());
-            } else if (response.getStatusCode() == 401) {
+            if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
                     destinationUri);
                 throw new AuthenticationRequiredRuntimeException();
@@ -581,7 +578,7 @@ public class Importer implements TransferProcess {
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
                     binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
-            return null;
+            return binaryResponse;
         }
     }
 

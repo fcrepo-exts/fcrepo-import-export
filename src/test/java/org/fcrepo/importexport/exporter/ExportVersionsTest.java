@@ -146,7 +146,6 @@ public class ExportVersionsTest {
     private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
             final URI timemapLink, final String body) throws FcrepoOperationFailedException {
         ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink,null);
-
         ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, null, body);
     }
 
@@ -216,7 +215,6 @@ public class ExportVersionsTest {
                                                ".jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/container1/fcr%3Aversions/" + versionLabel +
             ".jsonld" + HEADERS_EXTENSION)));
-
     }
 
     @Test
@@ -263,7 +261,6 @@ public class ExportVersionsTest {
                                                versionLabel + ".jsonld")));
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata/fcr%3Aversions/" +
             versionLabel + ".jsonld.headers")));
-
     }
 
     @Test

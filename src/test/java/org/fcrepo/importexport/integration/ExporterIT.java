@@ -263,7 +263,6 @@ public class ExporterIT extends AbstractResourceIT {
             .exists());
         assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary").exists());
         assertTrue(new File(baseDir, "/res1/file/fcr%3Aversions/" + versionLabel + ".binary.headers").exists());
-
     }
 
 

@@ -119,7 +119,6 @@ public abstract class AbstractResourceIT {
                 uri, response.getStatusCode(), response.getHeaderValue("Location"));
 
         return response;
-
     }
 
     protected FcrepoResponse post(final URI uri) throws FcrepoOperationFailedException {
@@ -130,7 +129,6 @@ public abstract class AbstractResourceIT {
             uri, response.getStatusCode(), response.getHeaderValue("Location"));
 
         return response;
-
     }
 
     protected FcrepoResponse get(final URI uri) throws FcrepoOperationFailedException {
@@ -141,7 +139,6 @@ public abstract class AbstractResourceIT {
             uri, response.getStatusCode(), response.getHeaderValue("Location"));
 
         return response;
-
     }
 
     protected FcrepoResponse createBody(final URI uri, final String body, final String contentType)

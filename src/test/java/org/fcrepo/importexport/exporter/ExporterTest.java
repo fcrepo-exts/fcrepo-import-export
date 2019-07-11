@@ -131,7 +131,6 @@ public class ExporterTest {
                               final URI aclLink, final String body) throws FcrepoOperationFailedException {
         ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null, aclLink);
         ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, aclLink, body);
-
     }
 
     @Test
@@ -159,7 +158,6 @@ public class ExporterTest {
             HEADERS_EXTENSION)));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld" +
             HEADERS_EXTENSION)));
-
     }
 
     @Test
@@ -320,7 +318,6 @@ public class ExporterTest {
         exporter.run();
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aacl.jsonld")));
-
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)
