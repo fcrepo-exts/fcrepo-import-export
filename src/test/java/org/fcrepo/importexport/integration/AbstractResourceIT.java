@@ -142,8 +142,14 @@ public abstract class AbstractResourceIT {
     }
 
     protected FcrepoResponse createBody(final URI uri, final String body, final String contentType)
-            throws FcrepoOperationFailedException {
-        return createBody(uri, new ByteArrayInputStream(body.getBytes()), contentType, null);
+        throws FcrepoOperationFailedException {
+        return createBody(uri, body, contentType, null);
+    }
+
+    protected FcrepoResponse createBody(final URI uri, final String body, final String contentType,
+                                        final Map<String, String> headers)
+        throws FcrepoOperationFailedException {
+        return createBody(uri, new ByteArrayInputStream(body.getBytes()), contentType, headers);
     }
 
     protected FcrepoResponse createBody(final URI uri, final InputStream stream, final String contentType)
@@ -176,9 +182,14 @@ public abstract class AbstractResourceIT {
         return response;
     }
 
-    protected FcrepoResponse createTurtle(final URI uri, final String body)
+    protected FcrepoResponse createTurtle(final URI uri, final String body, final Map<String,String> headers)
             throws FcrepoOperationFailedException {
-        return createBody(uri, body, "text/turtle");
+        return createBody(uri, body, "text/turtle", headers);
+    }
+
+    protected FcrepoResponse createTurtle(final URI uri, final String body)
+        throws FcrepoOperationFailedException {
+        return createTurtle(uri, body, null);
     }
 
     protected InputStream insertTitle(final String title) {

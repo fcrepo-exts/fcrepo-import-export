@@ -23,7 +23,9 @@ import java.io.FileInputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
@@ -226,7 +228,6 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(model.contains(date1, createProperty(EDM_END), dateLiteral("2013-12-31T23:59:59Z")));
     }
 
-    @Ignore
     @Test
     public void testRoundtripDirectContainer() throws Exception {
         final String baseURI = serverAddress + UUID.randomUUID();
@@ -235,12 +236,15 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI part1 = URI.create(baseURI + "/res1/parts/part1");
 
 
-        final String partsTurtle = "<> a <" + LDP_DIRECT_CONTAINER + "> ; "
-            + "<" + LDP_HAS_MEMBER_RELATION + "> <" + DCTERMS_HAS_PART + "> ; "
+        final String partsTurtle = " <> <" + LDP_HAS_MEMBER_RELATION + "> <" + DCTERMS_HAS_PART + "> ; "
             + "<" + LDP_MEMBERSHIP_RESOURCE + "> <" +  res1.toString() + "> .";
 
         create(res1);
-        createTurtle(parts, partsTurtle);
+
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Link", "<" + LDP_DIRECT_CONTAINER + ">; rel=\"type\"");
+
+        createTurtle(parts, partsTurtle, headers);
         create(part1);
 
         roundtrip(URI.create(baseURI), true);
@@ -264,7 +268,6 @@ public class RoundtripIT extends AbstractResourceIT {
         assertFalse(model3.contains(parent, createProperty(DCTERMS_HAS_PART), member));
     }
 
-    @Ignore
     @Test
     public void testRoundtripIndirectContainer() throws Exception {
         final String baseURI = serverAddress + UUID.randomUUID();
@@ -273,8 +276,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI parts = URI.create(baseURI + "/res2/parts");
         final URI proxy = URI.create(baseURI + "/res2/parts/proxy1");
 
-        final String partsTurtle = "<> a <" + LDP_INDIRECT_CONTAINER + "> ; "
-            + "<" + LDP_HAS_MEMBER_RELATION + "> <" + DCTERMS_HAS_PART + "> ; "
+        final String partsTurtle = "<> <" + LDP_HAS_MEMBER_RELATION + "> <" + DCTERMS_HAS_PART + "> ; "
             + "<" + LDP_MEMBERSHIP_RESOURCE + "> <" +  res2.toString() + "> ; "
             + "<" + LDP_INSERTED_CONTENT_RELATION + "> <" + ORE_PROXY_FOR + "> .";
 
@@ -283,7 +285,9 @@ public class RoundtripIT extends AbstractResourceIT {
 
         create(res1);
         create(res2);
-        createTurtle(parts, partsTurtle);
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Link", "<" + LDP_INDIRECT_CONTAINER + ">; rel=\"type\"");
+        createTurtle(parts, partsTurtle, headers);
         createTurtle(proxy, proxyTurtle);
 
         roundtrip(URI.create(baseURI), true);
