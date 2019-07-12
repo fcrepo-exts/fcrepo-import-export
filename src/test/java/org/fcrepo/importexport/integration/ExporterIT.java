@@ -127,9 +127,9 @@ public class ExporterIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.binary");
-        final File descFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1/fcr%3Ametadata"
+        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, ROOT_PATH + uuid + "/file1.binary");
+        final File descFile = new File(exportDir, ROOT_PATH + uuid + "/file1/fcr%3Ametadata"
                 + config.getRdfExtension());
 
         assertTrue(containerFile.exists() && containerFile.isFile());

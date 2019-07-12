@@ -1,0 +1,4 @@
+{
+    "Http-Status-Code": ["307"],
+    "Content-Location": ["http://example.org:9999/rest/ext1"]
+}

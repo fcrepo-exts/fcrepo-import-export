@@ -20,6 +20,7 @@ package org.fcrepo.importexport.integration;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -200,7 +201,7 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File res2File = new File(exportDir, "fcrepo/rest/" + uuid + "/res2" + config.getRdfExtension());
+        final File res2File = new File(exportDir, ROOT_PATH + uuid + "/res2" + config.getRdfExtension());
 
         assertTrue(res2File.exists() && res2File.isFile());
         final Model res2Model = loadModel(res2File.getAbsolutePath());
@@ -335,9 +336,9 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.binary");
-        final File descFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1/fcr%3Ametadata"
+        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, ROOT_PATH + uuid + "/file1.binary");
+        final File descFile = new File(exportDir, ROOT_PATH + uuid + "/file1/fcr%3Ametadata"
                 + config.getRdfExtension());
 
         assertTrue(containerFile.exists() && containerFile.isFile());
@@ -392,9 +393,9 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + ".binary");
-        final File descFile = new File(exportDir, "fcrepo/rest/" + uuidBinary + "/fcr%3Ametadata"
+        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, ROOT_PATH + uuidBinary + ".binary");
+        final File descFile = new File(exportDir, ROOT_PATH + uuidBinary + "/fcr%3Ametadata"
                 + config.getRdfExtension());
 
         assertTrue(containerFile.exists() && containerFile.isFile());
@@ -412,9 +413,8 @@ public class RoundtripIT extends AbstractResourceIT {
         assertFalse(exists(file1));
     }
 
-    @Ignore
     @Test
-    public void testRoundtripExternal() throws Exception {
+    public void testRoundtripExternalRedirect() throws Exception {
         final UUID uuid = UUID.randomUUID();
         final String baseURI = serverAddress + uuid;
         final URI res1 = URI.create(baseURI);
@@ -428,8 +428,12 @@ public class RoundtripIT extends AbstractResourceIT {
 
         create(res1);
         final URI externalURI = URI.create("http://www.example.com/file1");
-        final String externalContent = "message/external-body;access-type=URL;url=\"" + externalURI + "\"";
-        final FcrepoResponse resp = createBody(file1, "", externalContent);
+        final String externalContent = "<" + externalURI + ">; " +
+                                       "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+                                        "handling=\"redirect\";type=\"text/plain\"";
+        final Map<String,String> headers = new HashMap<>();
+        headers.put("Link", externalContent);
+        final FcrepoResponse resp = createBody(file1, new ByteArrayInputStream(new byte[]{}), "text/plain", headers);
         final URI file1desc = resp.getLinkHeaders("describedby").get(0);
         patch(file1desc, file1patch);
 
@@ -437,9 +441,11 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File containerFile = new File(exportDir, "fcrepo/rest/" + uuid + config.getRdfExtension());
-        final File binaryFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1.external");
-        final File descFile = new File(exportDir, "fcrepo/rest/" + uuid + "/file1/fcr%3Ametadata"
+        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, ROOT_PATH + uuid + "/file1.external");
+        final File binaryFileHeaders = new File(exportDir, ROOT_PATH + uuid + "/file1.external.headers");
+
+        final File descFile = new File(exportDir, ROOT_PATH + uuid + "/file1/fcr%3Ametadata"
                 + config.getRdfExtension());
 
         assertTrue(containerFile.exists() && containerFile.isFile());
@@ -449,12 +455,13 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(binaryFile.exists() && binaryFile.isFile());
         assertEquals("", IOUtils.toString(new FileInputStream(binaryFile)));
         assertEquals(0L, binaryFile.length());
+        assertTrue(binaryFileHeaders.exists() && binaryFileHeaders.isFile());
 
         assertTrue(descFile.exists() && descFile.isFile());
         final Model descModel = loadModel(descFile.getAbsolutePath());
         assertTrue(descModel.contains(binary, RDF_TYPE, NON_RDF_SOURCE));
-        assertTrue(descModel.contains(binary, createProperty(PREMIS_SIZE), longLiteral("0")));
-        assertTrue(descModel.contains(binary, createProperty(EBU_HAS_MIME_TYPE), externalContent));
+        assertTrue(descModel.contains(binary, createProperty(PREMIS_SIZE), longLiteral("-1")));
+        assertTrue(descModel.contains(binary, createProperty(EBU_HAS_MIME_TYPE), "text/plain"));
 
         // verify that the resources exist in the repository
         assertTrue(exists(res1));
@@ -466,9 +473,83 @@ public class RoundtripIT extends AbstractResourceIT {
         final Model model = getAsModel(file1desc);
         assertTrue(model.contains(binary, RDF_TYPE, createResource(LDP_NON_RDF_SOURCE)));
         assertTrue(model.contains(binary, createProperty(SKOS_PREFLABEL), "original version"));
-        assertTrue(model.contains(binary, createProperty(PREMIS_SIZE), longLiteral("0")));
-        assertTrue(model.contains(binary, createProperty(PREMIS_DIGEST),
-                createResource("urn:sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709")));
+        assertTrue(model.contains(binary, createProperty(PREMIS_SIZE), longLiteral("-1")));
+    }
+
+    @Test
+    public void testRoundtripExternalProxy() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI);
+        final URI file1 = URI.create(baseURI + "/file1");
+
+        final Resource container = createResource(res1.toString());
+        final Resource binary = createResource(file1.toString());
+
+        final File localBinaryFile = new File("binary.txt");
+        localBinaryFile.deleteOnExit();
+        final String contents = "this is a test";
+        try (final FileWriter writer = new FileWriter(localBinaryFile)) {
+            writer.write(contents);
+        }
+
+        final long binaryFileLength = localBinaryFile.length();
+
+        final String file1patch = "insert data { "
+            + "<" + file1.toString() + "> <" + SKOS_PREFLABEL + "> \"original version\" . }";
+
+        create(res1);
+        final URI externalURI = localBinaryFile.toURI();
+        final String externalContent = "<" + externalURI + ">; " +
+            "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+            "handling=\"proxy\";type=\"text/plain\"";
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Link", externalContent);
+        final FcrepoResponse resp = createBody(file1, new ByteArrayInputStream(new byte[] {}), "text/plain", headers);
+        final URI file1desc = resp.getLinkHeaders("describedby").get(0);
+        patch(file1desc, file1patch);
+
+        final String contentLength = get(file1).getHeaderValue("Content-Length");
+        assertEquals("Unexpected Content-Length value", contentLength, binaryFileLength + "");
+        final Config config = roundtrip(URI.create(baseURI), true);
+
+        // verify that files exist and contain expected content
+        final File exportDir = config.getBaseDirectory();
+        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
+        final File binaryFile = new File(exportDir, ROOT_PATH + uuid + "/file1.external");
+        final File binaryFileHeaders = new File(exportDir, ROOT_PATH + uuid + "/file1.external.headers");
+
+        final File descFile = new File(exportDir, ROOT_PATH + uuid + "/file1/fcr%3Ametadata"
+            + config.getRdfExtension());
+
+        assertTrue(containerFile.exists() && containerFile.isFile());
+        final Model contModel = loadModel(containerFile.getAbsolutePath());
+        assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
+
+        assertTrue(binaryFile.exists() && binaryFile.isFile());
+        assertEquals(contents, IOUtils.toString(new FileInputStream(binaryFile)));
+        assertEquals(binaryFileLength, binaryFile.length());
+        assertTrue(binaryFileHeaders.exists() && binaryFileHeaders.isFile());
+
+        assertTrue(descFile.exists() && descFile.isFile());
+        final Model descModel = loadModel(descFile.getAbsolutePath());
+        assertTrue(descModel.contains(binary, RDF_TYPE, NON_RDF_SOURCE));
+        assertTrue(descModel.contains(binary, createProperty(PREMIS_SIZE), longLiteral(binaryFileLength + "")));
+        assertTrue(descModel.contains(binary, createProperty(EBU_HAS_MIME_TYPE), "text/plain"));
+
+        // verify that the resources exist in the repository
+        assertTrue(exists(res1));
+        assertTrue(exists(file1));
+        final FcrepoResponse getResponse = client.get(file1).perform();
+        assertEquals(200, getResponse.getStatusCode());
+        assertEquals(externalURI.toString(), getResponse.getHeaderValue("Content-Location"));
+        assertEquals("Unexpected Content-Length value", getResponse.getHeaderValue("Content-Length"),
+            binaryFileLength + "");
+
+        final Model model = getAsModel(file1desc);
+        assertTrue(model.contains(binary, RDF_TYPE, createResource(LDP_NON_RDF_SOURCE)));
+        assertTrue(model.contains(binary, createProperty(SKOS_PREFLABEL), "original version"));
+        assertTrue(model.contains(binary, createProperty(PREMIS_SIZE), longLiteral(binaryFileLength + "")));
     }
 
     @Test
