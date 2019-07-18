@@ -44,7 +44,6 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -428,12 +427,9 @@ public class RoundtripIT extends AbstractResourceIT {
 
         create(res1);
         final URI externalURI = URI.create("http://www.example.com/file1");
-        final String externalContent = "<" + externalURI + ">; " +
-                                       "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
-                                        "handling=\"redirect\";type=\"text/plain\"";
-        final Map<String,String> headers = new HashMap<>();
-        headers.put("Link", externalContent);
-        final FcrepoResponse resp = createBody(file1, new ByteArrayInputStream(new byte[]{}), "text/plain", headers);
+        final FcrepoResponse resp = client.put(file1)
+            .externalContent(externalURI, "text/plain", "redirect")
+                .perform();
         final URI file1desc = resp.getLinkHeaders("describedby").get(0);
         patch(file1desc, file1patch);
 
@@ -500,12 +496,10 @@ public class RoundtripIT extends AbstractResourceIT {
 
         create(res1);
         final URI externalURI = localBinaryFile.toURI();
-        final String externalContent = "<" + externalURI + ">; " +
-            "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
-            "handling=\"proxy\";type=\"text/plain\"";
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("Link", externalContent);
-        final FcrepoResponse resp = createBody(file1, new ByteArrayInputStream(new byte[] {}), "text/plain", headers);
+        final FcrepoResponse resp = client.put(file1)
+                                          .externalContent(externalURI, "text/plain", "proxy")
+                                          .perform();
+
         final URI file1desc = resp.getLinkHeaders("describedby").get(0);
         patch(file1desc, file1patch);
 

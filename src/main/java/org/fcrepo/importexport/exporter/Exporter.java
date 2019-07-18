@@ -401,10 +401,7 @@ public class Exporter implements TransferProcess {
     void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
 
         final Map<String, List<String>> headers = response.getHeaders();
-        //add status code header:
-        final Map<String, List<String>> headersWithStatus = new HashMap<>(headers);
-        headersWithStatus.put(STATUS_CODE_HEADER_KEY, Arrays.asList(response.getStatusCode() + ""));
-        final String json = new ObjectMapper().writeValueAsString(headersWithStatus);
+        final String json = new ObjectMapper().writeValueAsString(headers);
         try (final FileWriter writer = new FileWriter(file)) {
             writer.write(json);
         }

@@ -590,19 +590,23 @@ public class Importer implements TransferProcess {
 
     private PutBuilder binaryBuilder(final URI binaryURI, final File binaryFile, final String contentType,
             final Model model) throws FcrepoOperationFailedException, IOException {
-        final Map<String,List<String>> headers = parseHeaders(getHeadersFile(binaryFile));
-        final String externalContentLocation = getExternalContentLocation(headers);
-        final boolean external = externalContentLocation != null;
+        final Map<String, List<String>> headers = parseHeaders(getHeadersFile(binaryFile));
+        String externalContentLocation = null;
+
+        boolean isRedirect = false;
+        if (headers.containsKey("Location")) {
+            externalContentLocation = getFirstByKey(headers, "Location");
+            isRedirect = true;
+        } else if (headers.containsKey("Content-Location")) {
+            externalContentLocation = getFirstByKey(headers, "Content-Location");
+        }
 
         PutBuilder builder = client().put(binaryURI)
                                      .filename(null);
 
-        if (external) {
-            final int statusCode = Integer.parseInt(getFirstByKey(headers, STATUS_CODE_HEADER_KEY));
-            final String handling = statusCode < 300 ? "proxy" : "redirect";
-            builder.addHeader("Link", "<" + externalContentLocation + ">; " +
-                "type=\"" + contentType + "\"; handling=\"" + handling + "\"; " +
-                "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"");
+        if (externalContentLocation != null) {
+            builder.externalContent(URI.create(externalContentLocation), contentType,
+                                    isRedirect ? "redirect" : "proxy");
         } else {
             builder.body(new FileInputStream(binaryFile), contentType).ifUnmodifiedSince(currentTimestamp());
 
@@ -619,9 +623,6 @@ public class Importer implements TransferProcess {
         return builder;
     }
 
-    private String getExternalContentLocation(final Map<String,List<String>> headers) {
-        return  getFirstByKey(headers, "Content-Location");
-    }
 
     private FcrepoResponse importContainer(final URI uri, final Model model, final Map<String,List<String>> headers)
         throws FcrepoOperationFailedException {
