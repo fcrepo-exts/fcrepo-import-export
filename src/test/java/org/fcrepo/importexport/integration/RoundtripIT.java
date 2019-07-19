@@ -416,16 +416,13 @@ public class RoundtripIT extends AbstractResourceIT {
     public void testRoundtripExternalRedirect() throws Exception {
         final UUID uuid = UUID.randomUUID();
         final String baseURI = serverAddress + uuid;
-        final URI res1 = URI.create(baseURI);
         final URI file1 = URI.create(baseURI + "/file1");
 
-        final Resource container = createResource(res1.toString());
         final Resource binary = createResource(file1.toString());
 
         final String file1patch = "insert data { "
             + "<" + file1.toString() + "> <" + SKOS_PREFLABEL + "> \"original version\" . }";
 
-        create(res1);
         final URI externalURI = URI.create("http://www.example.com/file1");
         final FcrepoResponse resp = client.put(file1)
             .externalContent(externalURI, "text/plain", "redirect")
@@ -437,16 +434,11 @@ public class RoundtripIT extends AbstractResourceIT {
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
-        final File containerFile = new File(exportDir, ROOT_PATH + uuid + config.getRdfExtension());
         final File binaryFile = new File(exportDir, ROOT_PATH + uuid + "/file1.external");
         final File binaryFileHeaders = new File(exportDir, ROOT_PATH + uuid + "/file1.external.headers");
 
         final File descFile = new File(exportDir, ROOT_PATH + uuid + "/file1/fcr%3Ametadata"
                 + config.getRdfExtension());
-
-        assertTrue(containerFile.exists() && containerFile.isFile());
-        final Model contModel = loadModel(containerFile.getAbsolutePath());
-        assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
 
         assertTrue(binaryFile.exists() && binaryFile.isFile());
         assertEquals("", IOUtils.toString(new FileInputStream(binaryFile)));
@@ -460,7 +452,6 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(descModel.contains(binary, createProperty(EBU_HAS_MIME_TYPE), "text/plain"));
 
         // verify that the resources exist in the repository
-        assertTrue(exists(res1));
         assertTrue(exists(file1));
         final FcrepoResponse redirResp = client.get(file1).disableRedirects().perform();
         assertEquals(307, redirResp.getStatusCode());
