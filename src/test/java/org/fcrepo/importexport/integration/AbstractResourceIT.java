@@ -87,7 +87,9 @@ public abstract class AbstractResourceIT {
 
     static final String PASSWORD = "password";
 
-    static final String serverAddress = "http://" + HOSTNAME + ":" + SERVER_PORT + "/fcrepo/rest/";
+    static final String ROOT_PATH = "fcrepo/rest/";
+
+    static final String serverAddress = "http://" + HOSTNAME + ":" + SERVER_PORT + "/" + ROOT_PATH;
 
     static final String TARGET_DIR = System.getProperty("project.build.directory");
 

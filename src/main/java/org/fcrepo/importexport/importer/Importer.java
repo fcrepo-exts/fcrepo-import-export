@@ -33,7 +33,6 @@ import static org.fcrepo.importexport.common.FcrepoConstants.DIRECT_CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.INDIRECT_CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
@@ -273,7 +272,7 @@ public class Importer implements TransferProcess {
                                 relatedResources.add(URI.create(uri));
 
                                 logger.debug("Added related resource {}", uri);
-                            } else if ((fileForBinaryURI(resURI, false).exists() || fileForBinaryURI(resURI, true)
+                            } else if ((fileForBinaryURI(resURI).exists() || fileForBinaryURI(resURI)
                                     .exists())) {
                                 importedResources.add(URI.create(uri));
 
@@ -568,7 +567,8 @@ public class Importer implements TransferProcess {
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        final File binaryFile =  fileForBinaryURI(binaryURI, external(contentType));
+        final File binaryFile =  fileForBinaryURI(binaryURI);
+
         final FcrepoResponse binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
             logger.info("Imported binary: {}", binaryURI);
@@ -590,16 +590,26 @@ public class Importer implements TransferProcess {
 
     private PutBuilder binaryBuilder(final URI binaryURI, final File binaryFile, final String contentType,
             final Model model) throws FcrepoOperationFailedException, IOException {
-        final InputStream contentStream;
-        if (external(contentType)) {
-            contentStream = new ByteArrayInputStream(new byte[]{});
-        } else {
-            contentStream = new FileInputStream(binaryFile);
+        final Map<String, List<String>> headers = parseHeaders(getHeadersFile(binaryFile));
+        String externalContentLocation = null;
+
+        boolean isRedirect = false;
+        if (headers.containsKey("Location")) {
+            externalContentLocation = getFirstByKey(headers, "Location");
+            isRedirect = true;
+        } else if (headers.containsKey("Content-Location")) {
+            externalContentLocation = getFirstByKey(headers, "Content-Location");
         }
-        PutBuilder builder = client().put(binaryURI).filename(null)
-                                     .body(contentStream, contentType)
-                                     .ifUnmodifiedSince(currentTimestamp());
-        if (!external(contentType)) {
+
+        PutBuilder builder = client().put(binaryURI)
+                                     .filename(null);
+
+        if (externalContentLocation != null) {
+            builder.externalContent(URI.create(externalContentLocation), contentType,
+                                    isRedirect ? "redirect" : "proxy");
+        } else {
+            builder.body(new FileInputStream(binaryFile), contentType).ifUnmodifiedSince(currentTimestamp());
+
             if (sha1FileMap != null) {
                 // Use the bagIt checksum
                 final String checksum = sha1FileMap.get(binaryFile.getAbsolutePath());
@@ -613,9 +623,6 @@ public class Importer implements TransferProcess {
         return builder;
     }
 
-    private boolean external(final String contentType) {
-        return contentType.startsWith("message/external-body");
-    }
 
     private FcrepoResponse importContainer(final URI uri, final Model model, final Map<String,List<String>> headers)
         throws FcrepoOperationFailedException {
@@ -705,7 +712,6 @@ public class Importer implements TransferProcess {
                     || s.getPredicate().equals(DESCRIBEDBY)
                     || s.getPredicate().equals(CONTAINS)
                     || s.getPredicate().equals(HAS_MESSAGE_DIGEST)
-                    || s.getPredicate().equals(HAS_SIZE)
                     || (s.getPredicate().equals(RDF_TYPE) && forbiddenType(s.getResource()))) {
                 remove.add(s);
             } else if (s.getObject().isResource()) {
@@ -759,7 +765,7 @@ public class Importer implements TransferProcess {
 
         final FcrepoResponse response;
         final ByteArrayInputStream emptyStream = new ByteArrayInputStream(new byte[]{});
-        if (fileForBinaryURI(uri, false).exists() || fileForBinaryURI(uri, true).exists()) {
+        if (fileForBinaryURI(uri).exists()) {
             response = client().put(uri).body(emptyStream).perform();
         } else if (fileForContainerURI(uri).exists()) {
             response = client().put(uri).body(emptyStream, "text/turtle").perform();
@@ -812,13 +818,15 @@ public class Importer implements TransferProcess {
         return (base.endsWith("/")) ? base : base + "/";
     }
 
-    private File fileForBinaryURI(final URI uri, final boolean external) {
-        if (external) {
-            return fileForExternalResources(uri, config.getSourcePath(), config.getDestinationPath(),
+    private File fileForBinaryURI(final URI uri) {
+        final File file = fileForExternalResources(uri, config.getSourcePath(), config.getDestinationPath(),
                     config.getBaseDirectory());
+
+        if (file.exists()) {
+            return file;
         } else {
             return fileForBinary(uri, config.getSourcePath(), config.getDestinationPath(),
-                    config.getBaseDirectory());
+                config.getBaseDirectory());
         }
     }
 

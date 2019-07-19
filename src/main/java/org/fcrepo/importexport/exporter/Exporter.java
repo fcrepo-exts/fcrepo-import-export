@@ -399,7 +399,9 @@ public class Exporter implements TransferProcess {
     }
 
     void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
-        final String json = new ObjectMapper().writeValueAsString(response.getHeaders());
+
+        final Map<String, List<String>> headers = response.getHeaders();
+        final String json = new ObjectMapper().writeValueAsString(headers);
         try (final FileWriter writer = new FileWriter(file)) {
             writer.write(json);
         }
@@ -501,7 +503,7 @@ public class Exporter implements TransferProcess {
 
         // Resolve the timemap endpoint for this resource
         final URI timemapURI;
-        try (FcrepoResponse response = client().head(uri).perform()) {
+        try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, config.getUsername());
             if (response.getLinkHeaders("type").stream()
                 .filter(x -> x.toString().equals(MEMENTO.getURI()))

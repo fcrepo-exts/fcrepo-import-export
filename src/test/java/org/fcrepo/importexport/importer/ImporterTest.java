@@ -235,7 +235,6 @@ public class ImporterTest {
         final Importer importer = new Importer(externalResourceArgs, clientBuilder);
         importer.run();
         verify(client).put(externalResourceURI);
-        verify(externalResourceBuilder).body(isA(InputStream.class), eq("message/external-body"));
         verify(client).put(externalResourceDescriptionURI);
     }
 

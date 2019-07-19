@@ -1,0 +1,4 @@
+{
+    "Location": ["http://example.org:9999/rest/ext1"],
+    "Content-Location": ["http://example.org:9999/rest/ext1"]
+}
