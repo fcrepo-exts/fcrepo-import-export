@@ -29,11 +29,13 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.CREATED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.DESCRIBEDBY;
+import static org.fcrepo.importexport.common.FcrepoConstants.DIRECT_CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MESSAGE_DIGEST;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_SIZE;
 import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.INDIRECT_CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_BY;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
 import static org.fcrepo.importexport.common.FcrepoConstants.LDP_NAMESPACE;
@@ -69,15 +71,19 @@ import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoLink;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
@@ -102,8 +108,6 @@ import org.slf4j.Logger;
 import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
-
-import javax.ws.rs.core.Link;
 
 /**
  * Fedora Import Utility
@@ -130,6 +134,9 @@ public class Importer implements TransferProcess {
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
+
+    final static Set<String> INTERACTION_MODELS = new HashSet<>(Arrays.asList(DIRECT_CONTAINER.getURI(),
+                                                                              INDIRECT_CONTAINER.getURI()));
 
     /**
      * A directory within the metadata directory that serves as the
@@ -305,7 +312,9 @@ public class Importer implements TransferProcess {
         try {
             final Model diskModel = parseStream(new FileInputStream(f));
             final Model repoModel = parseStream(client().get(uri).perform().getBody());
-            final FcrepoResponse response = importContainer(uri, sanitize(diskModel.difference(repoModel)));
+            final FcrepoResponse response = importContainer(uri,
+                                                            sanitize(diskModel.difference(repoModel)),
+                                                            parseHeaders(getHeadersFile(f)));
             if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(), uri);
                 throw new AuthenticationRequiredRuntimeException();
@@ -359,16 +368,7 @@ public class Importer implements TransferProcess {
         }
 
         //parse headers from headers file
-        final Map<String,List<String>> headers;
-
-        try {
-            headers = parseHeaders(getHeadersFile(f));
-        } catch (IOException ex) {
-            importLogger.error(String.format("Error reading/parsing headers file for %1$s - Message: %2$s",
-                f.getAbsolutePath(), ex.getMessage()), ex);
-            throw new RuntimeException(
-                "Error reading or parsing headers file for" + f.getAbsolutePath() + ": " + ex.toString(), ex);
-        }
+        final Map<String,List<String>> headers = parseHeaders(getHeadersFile(f));
 
         //always skip timemaps since they are derived from the mementos they contain.
         if (isTimeMap(headers)) {
@@ -441,7 +441,7 @@ public class Importer implements TransferProcess {
                     }
 
                     logger.info("Importing container {} to {}", f.getAbsolutePath(), destinationUri);
-                    response = importContainer(destinationUri, sanitize(model));
+                    response = importContainer(destinationUri, sanitize(model), headers);
                 }
             }
 
@@ -493,7 +493,7 @@ public class Importer implements TransferProcess {
         final List<String> values = headers.get("Link");
         if (values != null) {
             for (String linkstr : values) {
-                final Link link = Link.valueOf(linkstr);
+                final FcrepoLink link = FcrepoLink.valueOf(linkstr);
                 if (link.getRel().equals("type") && link.getUri().toString().equals(typeUri)) {
                     return true;
                 }
@@ -513,7 +513,7 @@ public class Importer implements TransferProcess {
     private URI getLinkValueByRel(final Map<String, List<String>> headers, final String rel) {
         final List<String> values = headers.get("Link");
         for (String linkstr : values) {
-            final Link link = Link.valueOf(linkstr);
+            final FcrepoLink link = FcrepoLink.valueOf(linkstr);
             if (link.getRel().equals(rel)) {
                 return link.getUri();
             }
@@ -535,19 +535,25 @@ public class Importer implements TransferProcess {
         return new File(f.getParentFile(), f.getName() + HEADERS_EXTENSION);
     }
 
-    private Map<String, List<String>> parseHeaders(final File headersFile) throws IOException {
+    private Map<String, List<String>> parseHeaders(final File headersFile) {
+        try {
+            if (!headersFile.exists()) {
+                return new HashMap<>();
+            }
 
-        if (!headersFile.exists()) {
-            return new HashMap<>();
+            //converting json to Map
+            final byte[] mapData = Files.readAllBytes(Paths.get(headersFile.toURI()));
+            final ObjectMapper objectMapper = new ObjectMapper();
+            final Map<String, List<String>> headers =
+                objectMapper.readValue(mapData, new TypeReference<HashMap<String, List<String>>>() {
+                });
+            return headers;
+        } catch (IOException ex) {
+            importLogger.error(String.format("Error reading/parsing headers file for %1$s - Message: %2$s",
+                headersFile.getAbsolutePath(), ex.getMessage()), ex);
+            throw new RuntimeException(
+                "Error reading or parsing headers file for" + headersFile.getAbsolutePath() + ": " + ex.toString(), ex);
         }
-
-        //converting json to Map
-        final byte[] mapData = Files.readAllBytes(Paths.get(headersFile.toURI()));
-        final ObjectMapper objectMapper = new ObjectMapper();
-        final Map<String, List<String>> headers =
-            objectMapper.readValue(mapData, new TypeReference<HashMap<String, List<String>>>() {
-            });
-        return headers;
     }
 
     private Model parseStream(final InputStream in) throws IOException {
@@ -611,17 +617,19 @@ public class Importer implements TransferProcess {
         return contentType.startsWith("message/external-body");
     }
 
-    private FcrepoResponse importContainer(final URI uri, final Model model) throws FcrepoOperationFailedException {
-        final FcrepoResponse response = containerBuilder(uri, model).preferLenient().perform();
+    private FcrepoResponse importContainer(final URI uri, final Model model, final Map<String,List<String>> headers)
+        throws FcrepoOperationFailedException {
+        final FcrepoResponse response = containerBuilder(uri, model, headers).preferLenient().perform();
         if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
             deleteTombstone(response);
-            return containerBuilder(uri, model).preferLenient().perform();
+            return containerBuilder(uri, model, headers).preferLenient().perform();
         } else {
             return response;
         }
     }
 
-    private PutBuilder containerBuilder(final URI uri, final Model model) throws FcrepoOperationFailedException {
+    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers)
+        throws FcrepoOperationFailedException {
         PutBuilder builder = client().put(uri)
                                      .body(modelToStream(model), config.getRdfLanguage())
                                      .ifUnmodifiedSince(currentTimestamp());
@@ -632,7 +640,23 @@ public class Importer implements TransferProcess {
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
             builder = builder.digest(checksum);
         }
+
+        addInteractionModels(builder, headers);
         return builder;
+    }
+
+    private void addInteractionModels(final PutBuilder builder, final Map<String, List<String>> headers) {
+        headers.entrySet().stream().filter(entry -> entry.getKey().equals("Link"))
+            .flatMap(entry -> entry.getValue().stream())
+            .forEach(linkstr -> {
+                final FcrepoLink link = FcrepoLink.valueOf(linkstr);
+                if (link.getRel().equals("type")) {
+                    final String interactionModel = link.getUri().toString();
+                    if (INTERACTION_MODELS.contains(interactionModel)) {
+                        builder.addInteractionModel(interactionModel);
+                    }
+                }
+            });
     }
 
     private String currentTimestamp() {
