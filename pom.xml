@@ -16,6 +16,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.java.source>1.8</project.java.source>
     <!-- We do NOT want to rely on a snapshot dependency, but changes were 
       necessary in the fcrepo-java-client that haven't made it into a stable release. -->
     <fcrepo.version>5.1.0</fcrepo.version>
@@ -228,6 +229,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <source>${project.java.source}</source>
+          <linksource>true</linksource>
+        </configuration>
       </plugin>
 
       <plugin>
