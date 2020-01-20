@@ -1,7 +1,9 @@
 language: java
 sudo: false
 jdk:
-  - oraclejdk8
+  - openjdk8
+  - openjdk11
+
 before_install:
   - "echo $JAVA_OPTS"
   - "export JAVA_OPTS=-Xmx512m"
@@ -11,5 +13,3 @@ script:
   - mvn javadoc:jar
   - mvn javadoc:test-aggregate
 
-notifications:
-irc: "irc.freenode.org#fcrepo"
