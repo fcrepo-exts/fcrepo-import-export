@@ -59,37 +59,32 @@ public class ProfileValidationUtil {
      *         description of all validation errors found.
      */
     public static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
-            final Map<String, String> fields) throws ProfileValidationException {
+                                final Map<String, String> fields) throws ProfileValidationException {
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
 
-            for (String fieldName : requiredFields.keySet()) {
+            for (String requiredField : requiredFields.keySet()) {
                 // ignore validation on system generated fields
-                if (SYSTEM_GENERATED_FIELD_NAMES.contains(fieldName)) {
-                    logger.debug("skipping system generated field {}...", fieldName);
+                if (SYSTEM_GENERATED_FIELD_NAMES.contains(requiredField)) {
+                    logger.debug("skipping system generated field {}...", requiredField);
                     continue;
                 }
 
-                final ProfileFieldRule rules = requiredFields.get(fieldName);
-                // Prior this was checking validity by iterating the requiredFields in order to look for fields which
-                // were set as required
-                // This is being updated to check for required or recommended, and should print warnings on recommended
-                // missing
-                if (fields.containsKey(fieldName)) {
-                    final String value = fields.get(fieldName);
-                    final Set<String> validValues = rules.getValues();
+                final ProfileFieldRule rule = requiredFields.get(requiredField);
+                if (fields.containsKey(requiredField)) {
+                    final String value = fields.get(requiredField);
+                    final Set<String> validValues = rule.getValues();
                     if (validValues != null && !validValues.isEmpty()) {
                         if (!validValues.contains(value)) {
-                            errors.append("\"" + value + "\" is not valid for \"" + fieldName + "\". Valid values: " +
-                                    StringUtils.join(validValues, ",") + "\n");
+                            final String invalidMessage = "\"%s\" is not valid for \"%s\". Valid values: %s\n";
+                            errors.append(String.format(invalidMessage, value, requiredField,
+                                                        StringUtils.join(validValues, ",")));
                         }
                     }
-
-                } else if (rules.isRequired()) {
-                    errors.append("\"" + fieldName + "\" is a required field.\n");
-                } else if (rules.isRecommended()) {
-                    // warnings.append?
-                    logger.warn("{} does not contain an entry for the recommended field {}", profileSection, fieldName);
+                } else if (rule.isRequired()) {
+                    errors.append("\"" + requiredField + "\" is a required field.\n");
+                } else if (rule.isRecommended()) {
+                    logger.warn("{} does not contain the recommended field {}", profileSection, requiredField);
                 }
             }
 
