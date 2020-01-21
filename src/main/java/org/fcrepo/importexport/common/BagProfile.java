@@ -42,6 +42,18 @@ public class BagProfile {
 
     private static final Logger logger = getLogger(BagProfile.class);
 
+    private boolean allowFetch;
+    private String serialization;
+
+    private Set<String> acceptedBagItVersions;
+    private Set<String> acceptedSerializations;
+
+    private Set<String> tagFilesAllowed;
+    private Set<String> tagFilesRequired;
+
+    private Set<String> allowedPayloadAlgorithms;
+    private Set<String> allowedTagAlgorithms;
+
     private Set<String> payloadDigestAlgorithms;
     private Set<String> tagDigestAlgorithms;
 
@@ -56,6 +68,18 @@ public class BagProfile {
     public BagProfile(final InputStream in) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
+
+        allowFetch = json.has("Allow-Fetch.txt") ? json.get("Allow-Fetch.txt").asBoolean() : true;
+        serialization = json.has("Serialization") ? json.get("Serialization").asText() : "optional";
+
+        acceptedBagItVersions = arrayValues(json, "Accept-BagIt-Version");
+        acceptedSerializations = arrayValues(json, "Accept-Serialization");
+
+        tagFilesAllowed = arrayValues(json, "Tag-Files-Allowed");
+        tagFilesRequired = arrayValues(json, "Tag-Files-Required");
+
+        allowedPayloadAlgorithms = arrayValues(json, "Manifests-Allowed");
+        allowedTagAlgorithms = arrayValues(json, "Tag-Manifests-Allowed");
 
         payloadDigestAlgorithms = arrayValues(json, "Manifests-Required");
         tagDigestAlgorithms = arrayValues(json, "Tag-Manifests-Required");
@@ -118,11 +142,11 @@ public class BagProfile {
         }
 
         final Map<String, ProfileFieldRule> results = new HashMap<>();
-        for (final java.util.Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
+        for (final Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
             // fields we set with
             boolean required = false;
             boolean recommended = false;
-            String description = "";
+            String description = "No description";
             Set<String> values = Collections.emptySet();
 
             final String name = it.next();
@@ -150,17 +174,98 @@ public class BagProfile {
             values = readValues == null ? values : readValues;
 
             results.put(name, new ProfileFieldRule(required, recommended, description, values));
-            /*
-            if (field.get("required") != null && field.get("required").asBoolean()) {
-                results.put(name, arrayValues(field, "values"));
-            }
-             */
         }
 
         return results;
     }
 
     /**
+     * Boolean flag allowing a fetch.txt file
+     *
+     * @return true if fetch.txt is allowed, false otherwise
+     */
+    public boolean isAllowFetch() {
+        return allowFetch;
+    }
+
+    /**
+     * Get the support of serialization for a Bag.
+     *
+     * Allowed values are: forbidden, required, and optional
+     *
+     * @return String value of "forbidden", "required", or "optional"
+     */
+    public String getSerialization() {
+        return serialization;
+    }
+
+
+    /**
+     * Get the supported BagIt versions
+     *
+     * @return Set of BagIt version numbers
+     */
+    public Set<String> getAcceptedBagItVersions() {
+        return acceptedBagItVersions;
+    }
+
+    /**
+     * Get the supported serialization formats
+     *
+     * If {@link BagProfile#getSerialization()} has a value of required or optional, at least one value is needed.
+     * If {@link BagProfile#getSerialization()} is forbidden, this has no meaning
+     *
+     * @return Set of serialization formats
+     */
+    public Set<String> getAcceptedSerializations() {
+        return acceptedSerializations;
+    }
+
+    /**
+     * Get the names of allowed tag files; supports unix style globbing
+     *
+     * All the tag files listed in {@link BagProfile#getTagFilesRequired()} must be in included in this
+     *
+     * @return Set of allowed tag files
+     */
+    public Set<String> getTagFilesAllowed() {
+        return tagFilesAllowed;
+    }
+
+    /**
+     * Get the tag files which are required to exist
+     *
+     * @return Set of tag filenames
+     */
+    public Set<String> getTagFilesRequired() {
+        return tagFilesRequired;
+    }
+
+    /**
+     * Get the payload algorithms which are allowed
+     *
+     * When specified along with {@link BagProfile#getPayloadDigestAlgorithms()}, this must include at least all of the
+     * manifest types listed in {@link BagProfile#getPayloadDigestAlgorithms()}.
+     *
+     * @return Set of digest algorithm names
+     */
+    public Set<String> getAllowedPayloadAlgorithms() {
+        return allowedPayloadAlgorithms;
+    }
+
+    /**
+     * Get the tag manifest algorithms which are allowed.
+     *
+     * When specified along with {@link BagProfile#getTagDigestAlgorithms()}, this must include at least all of the tag
+     * manifest types listed in {@link BagProfile#getTagDigestAlgorithms()}.
+     *
+     * @return Set of digest algorithm names
+     */
+    public Set<String> getAllowedTagAlgorithms() {
+        return allowedTagAlgorithms;
+    }
+
+   /**
      * Get the required digest algorithms for payload manifests.
      * @return Set of digest algorithm names
      */
