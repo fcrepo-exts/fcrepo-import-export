@@ -45,14 +45,15 @@ public class BagProfileTest {
         assertTrue(profile.getTagDigestAlgorithms().contains("sha1"));
         assertFalse(profile.getTagDigestAlgorithms().contains("sha256"));
 
-        assertTrue(profile.getMetadataFields().keySet().contains("Source-Organization"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Organization-Address"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Contact-Name"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Contact-Phone"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Bag-Size"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Bagging-Date"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Payload-Oxum"));
-        assertFalse(profile.getMetadataFields().keySet().contains("Contact-Email"));
+        assertTrue(profile.getMetadataFields().containsKey("Source-Organization"));
+        assertTrue(profile.getMetadataFields().containsKey("Organization-Address"));
+        assertTrue(profile.getMetadataFields().containsKey("Contact-Name"));
+        assertTrue(profile.getMetadataFields().containsKey("Contact-Phone"));
+        assertTrue(profile.getMetadataFields().containsKey("Bag-Size"));
+        assertTrue(profile.getMetadataFields().containsKey("Bagging-Date"));
+        assertTrue(profile.getMetadataFields().containsKey("Payload-Oxum"));
+        assertTrue(profile.getMetadataFields().containsKey("Contact-Email"));
+        assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
         assertFalse(
             profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
@@ -60,17 +61,18 @@ public class BagProfileTest {
 
     @Test
     public void testExtendedProfile() throws Exception {
+        final String aptrustInfo = "APTrust-Info";
         final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
         assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
-        assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals("APTrust-Info")));
+        assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals(aptrustInfo)));
         assertFalse(profile.getSectionNames().stream().anyMatch(t -> t.equals("Wrong-Tags")));
-        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Title"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Access"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Consortia"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Institution"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Restricted"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Title"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Access"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Consortia"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Institution"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Restricted"));
 
     }
 

@@ -83,6 +83,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
+import org.fcrepo.importexport.common.ProfileFieldRule;
 import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ProfileValidationException;
@@ -196,7 +197,7 @@ public class Exporter implements TransferProcess {
         return new BagConfig(bagConfigFile);
     }
 
-    protected void validateProfile(final String profileSection, final Map<String, Set<String>> requiredFields,
+    protected void validateProfile(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
             final Map<String, String> fields) throws ProfileValidationException {
         ProfileValidationUtil.validate(profileSection, requiredFields, fields);
     }

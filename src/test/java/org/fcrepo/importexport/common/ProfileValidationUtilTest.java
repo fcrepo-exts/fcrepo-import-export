@@ -18,6 +18,7 @@
 
 package org.fcrepo.importexport.common;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,7 +41,7 @@ public class ProfileValidationUtilTest {
 
     private static final String FIELD2 = "field2";
 
-    private Map<String, Set<String>> rules;
+    private Map<String, ProfileFieldRule> rules;
 
     private LinkedHashMap<String, String> fields;
 
@@ -52,7 +53,8 @@ public class ProfileValidationUtilTest {
         set.add("value1");
         set.add("value2");
         set.add("value3");
-        rules.put(FIELD1, set);
+        final ProfileFieldRule field = new ProfileFieldRule(true, false, "", set);
+        rules.put(FIELD1, field);
     }
 
     @Test
@@ -76,7 +78,7 @@ public class ProfileValidationUtilTest {
     @Test
     public void testMultipleValidationErrorsInOneExceptionMessage() {
         fields.put(FIELD1, "invalidValue");
-        rules.put(FIELD2, null);
+        rules.put(FIELD2, new ProfileFieldRule(true, true, "field 2 should fail", Collections.emptySet()));
         fields.put("field3", "any value");
         try {
             ProfileValidationUtil.validate("profile-section", rules, fields);

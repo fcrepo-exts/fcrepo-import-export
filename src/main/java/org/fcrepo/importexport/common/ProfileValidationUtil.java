@@ -58,7 +58,7 @@ public class ProfileValidationUtil {
      * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
      *         description of all validation errors found.
      */
-    public static void validate(final String profileSection, final Map<String, Set<String>> requiredFields,
+    public static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
             final Map<String, String> fields) throws ProfileValidationException {
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
@@ -70,9 +70,14 @@ public class ProfileValidationUtil {
                     continue;
                 }
 
+                final ProfileFieldRule rules = requiredFields.get(fieldName);
+                // Prior this was checking validity by iterating the requiredFields in order to look for fields which
+                // were set as required
+                // This is being updated to check for required or recommended, and should print warnings on recommended
+                // missing
                 if (fields.containsKey(fieldName)) {
                     final String value = fields.get(fieldName);
-                    final Set<String> validValues = requiredFields.get(fieldName);
+                    final Set<String> validValues = rules.getValues();
                     if (validValues != null && !validValues.isEmpty()) {
                         if (!validValues.contains(value)) {
                             errors.append("\"" + value + "\" is not valid for \"" + fieldName + "\". Valid values: " +
@@ -80,8 +85,11 @@ public class ProfileValidationUtil {
                         }
                     }
 
-                } else {
+                } else if (rules.isRequired()) {
                     errors.append("\"" + fieldName + "\" is a required field.\n");
+                } else if (rules.isRecommended()) {
+                    // warnings.append?
+                    logger.warn("{} does not contain an entry for the recommended field {}", profileSection, fieldName);
                 }
             }
 

@@ -22,6 +22,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,9 +45,8 @@ public class BagProfile {
     private Set<String> payloadDigestAlgorithms;
     private Set<String> tagDigestAlgorithms;
 
-    private Set<String> sections = new HashSet<String>();
-
-    private Map<String, Map<String, Set<String>>> metadataFields = new HashMap<String, Map<String, Set<String>>>();
+    private Set<String> sections = new HashSet<>();
+    private Map<String, Map<String, ProfileFieldRule>> metadataFields = new HashMap<>();
 
     /**
      * Default constructor.
@@ -110,21 +110,51 @@ public class BagProfile {
      * @param key key in json to load tags from
      * @return map of tags => set of allowed values
      */
-    private static Map<String, Set<String>> metadataFields(final JsonNode json, final String key) {
+    private static Map<String, ProfileFieldRule> metadataFields(final JsonNode json, final String key) {
         final JsonNode fields = json.get(key);
 
         if (fields == null) {
             return null;
         }
 
-        final Map<String, Set<String>> results = new HashMap<>();
+        final Map<String, ProfileFieldRule> results = new HashMap<>();
         for (final java.util.Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
+            // fields we set with
+            boolean required = false;
+            boolean recommended = false;
+            String description = "";
+            Set<String> values = Collections.emptySet();
+
             final String name = it.next();
             final JsonNode field = fields.get(name);
 
+
+            // not sure if this is exactly what we want but good enough for a first pass
+            // can probably move to BagProfileField constructor imo
+            final JsonNode requiredNode = field.get("required");
+            if (requiredNode != null && requiredNode.asBoolean()) {
+                required = requiredNode.asBoolean();
+            }
+
+            final JsonNode recommendedNode = field.get("recommended");
+            if (recommendedNode != null && recommendedNode.asBoolean()) {
+                recommended = recommendedNode.asBoolean();
+            }
+
+            final JsonNode descriptionNode = field.get("description");
+            if (descriptionNode != null && descriptionNode.asText().isEmpty()) {
+               description = descriptionNode.asText();
+            }
+
+            final Set<String> readValues = arrayValues(field, "values");
+            values = readValues == null ? values : readValues;
+
+            results.put(name, new ProfileFieldRule(required, recommended, description, values));
+            /*
             if (field.get("required") != null && field.get("required").asBoolean()) {
                 results.put(name, arrayValues(field, "values"));
             }
+             */
         }
 
         return results;
@@ -150,7 +180,7 @@ public class BagProfile {
      * Get the required Bag-Info metadata fields.
      * @return A map of field names to a Set of acceptable values (or null when the values are restricted).
      */
-    public Map<String, Set<String>> getMetadataFields() {
+    public Map<String, ProfileFieldRule> getMetadataFields() {
         return getMetadataFields(BAG_INFO_FIELDNAME);
     }
 
@@ -160,7 +190,7 @@ public class BagProfile {
      * @param tagFile the tag file to get tags for
      * @return map of tag = set of acceptable values, or null if tagFile doesn't exist
      */
-    public Map<String, Set<String>> getMetadataFields(final String tagFile) {
+    public Map<String, ProfileFieldRule> getMetadataFields(final String tagFile) {
         return metadataFields.get(tagFile);
     }
 
