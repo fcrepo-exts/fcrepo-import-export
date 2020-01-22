@@ -81,4 +81,19 @@ public class ProfileFieldRule {
     public Set<String> getValues() {
         return values;
     }
+
+    /**
+     * String representation of a ProfileFieldRule
+     *
+     * @return the string representation
+     */
+    @Override
+    public String toString() {
+        return "ProfileFieldRule{" +
+               "required=" + required +
+               ", recommended=" + recommended +
+               ", description='" + description + '\'' +
+               ", values=" + values +
+               '}';
+    }
 }
