@@ -111,6 +111,7 @@ public class Exporter implements TransferProcess {
     private URI containerURI;
     private URI rdfSourceURI;
     private BagWriter bag;
+    private String bagProfileId;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
     private MessageDigest md5 = null;
@@ -166,6 +167,10 @@ public class Exporter implements TransferProcess {
 
                 //enforce default metadata
                 bagProfile.validateConfig(bagConfig);
+                final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
+
+                // assume this is already valid?
+                bagProfileId = profileMetadata.get("BagIt-Profile-Identifier");
 
                 // setup bag
                 final File bagdir = config.getBaseDirectory().getParentFile();
@@ -253,6 +258,7 @@ public class Exporter implements TransferProcess {
 
     private Map<String, String> bagTechMetadata() {
         final Map<String, String> metadata = new HashMap<>();
+        metadata.put("BagIt-Profile-Identifier", bagProfileId);
         metadata.put("Bag-Size", byteCountToDisplaySize(successBytes.longValue()));
         metadata.put("Payload-Oxum", successBytes.toString() + "." + successCount.toString());
         metadata.put("Bagging-Date", dateFormat.format(new Date()));
