@@ -40,7 +40,6 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -50,10 +49,21 @@ import org.slf4j.Logger;
  */
 public class BagItIT extends AbstractResourceIT {
 
-    @Test
-    public void testExportBag() throws Exception {
-        final String exampleID = UUID.randomUUID().toString();
-        final URI uri = URI.create(serverAddress + exampleID);
+    private final String apTrustProfile = "aptrust";
+    private final String btrProfile = "beyondtherepository";
+    private final String defaultConfig = "src/test/resources/configs/bagit-config.yml";
+    private final String btrConfig = "src/test/resources/configs/bagit-config-no-aptrust.yml";
+
+    /**
+     * Common ops for export
+     *
+     * @param id the id to assign to the bag
+     * @param bagProfile the bag profile to use
+     * @param bagConfig the path to the bag config for bag-info data
+     * @throws Exception
+     */
+    public void runExportBag(final String id, final String bagProfile, final String bagConfig) throws Exception {
+        final URI uri = URI.create(serverAddress + id);
 
         final FcrepoResponse response = create(uri);
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -61,7 +71,7 @@ public class BagItIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("export");
-        config.setBaseDirectory(TARGET_DIR + File.separator + exampleID);
+        config.setBaseDirectory(TARGET_DIR + File.separator + id);
         config.setIncludeBinaries(true);
         config.setResource(uri);
         config.setPredicates(new String[]{CONTAINS.toString()});
@@ -69,11 +79,11 @@ public class BagItIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(DEFAULT_BAG_PROFILE);
-        config.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+        config.setBagProfile(bagProfile);
+        config.setBagConfigPath(bagConfig);
         new Exporter(config, clientBuilder).run();
 
-        final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path target = Paths.get(TARGET_DIR, id);
         assertTrue(target.resolve("bagit.txt").toFile().exists());
         assertTrue(target.resolve("manifest-sha1.txt").toFile().exists());
 
@@ -97,6 +107,34 @@ public class BagItIT extends AbstractResourceIT {
         final String checksumLine = reader.readLine();
         reader.close();
         assertEquals(checksum, checksumLine.split(" ")[0]);
+    }
+
+    @Test
+    public void testExportDefault() throws Exception {
+        // todo: read bag-info for BagIt-Profile-Identifier
+        final String exampleID = UUID.randomUUID().toString();
+        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        assertTrue(target.resolve("bag-info.txt").toFile().exists());
+    }
+
+    @Test
+    public void testExportApTrust() throws Exception {
+        final String exampleID = UUID.randomUUID().toString();
+        runExportBag(exampleID, apTrustProfile, defaultConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
+    }
+
+    @Test
+    public void testExportBeyondTheRepository() throws Exception {
+        final String exampleID = UUID.randomUUID().toString();
+        runExportBag(exampleID, btrProfile, btrConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        assertTrue(target.resolve("bag-info.txt").toFile().exists());
     }
 
     @Test
