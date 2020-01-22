@@ -59,6 +59,7 @@ public class BagProfile {
 
     private Set<String> sections = new HashSet<>();
     private Map<String, Map<String, ProfileFieldRule>> metadataFields = new HashMap<>();
+    private Map<String, String> profileMetadata = new HashMap<>();
 
     /**
      * Default constructor.
@@ -68,6 +69,8 @@ public class BagProfile {
     public BagProfile(final InputStream in) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
+
+        loadProfileInto(json);
 
         allowFetch = json.has("Allow-Fetch.txt") ? json.get("Allow-Fetch.txt").asBoolean() : true;
         serialization = json.has("Serialization") ? json.get("Serialization").asText() : "optional";
@@ -92,6 +95,13 @@ public class BagProfile {
 
         if (json.get("Other-Info") != null) {
             loadOtherTags(json);
+        }
+    }
+
+    private void loadProfileInto(final JsonNode json) {
+        final JsonNode tag = json.get("BagIt-Profile-Info");
+        if (tag != null) {
+            tag.fields().forEachRemaining(entry -> profileMetadata.put(entry.getKey(), entry.getValue().asText()));
         }
     }
 
@@ -283,7 +293,7 @@ public class BagProfile {
 
     /**
      * Get the required Bag-Info metadata fields.
-     * @return A map of field names to a Set of acceptable values (or null when the values are restricted).
+     * @return A map of field names to a ProfileFieldRule containing acceptance criteria
      */
     public Map<String, ProfileFieldRule> getMetadataFields() {
         return getMetadataFields(BAG_INFO_FIELDNAME);
@@ -306,6 +316,15 @@ public class BagProfile {
      */
     public Set<String> getSectionNames() {
         return sections;
+    }
+
+    /**
+     * Get the BagIt-Profile-Info section describing the BagIt Profile
+     *
+     * @return map of fields names to text descriptions
+     */
+    public Map<String, String> getProfileMetadata() {
+        return profileMetadata;
     }
 
     /**
