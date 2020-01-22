@@ -31,11 +31,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.List;
 import java.util.UUID;
 
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
@@ -116,7 +119,10 @@ public class BagItIT extends AbstractResourceIT {
         runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        assertTrue(target.resolve("bag-info.txt").toFile().exists());
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
+        List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/default.json"));
     }
 
     @Test
@@ -125,7 +131,11 @@ public class BagItIT extends AbstractResourceIT {
         runExportBag(exampleID, apTrustProfile, defaultConfig);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
         assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
+        List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/aptrust.json"));
     }
 
     @Test
@@ -134,7 +144,10 @@ public class BagItIT extends AbstractResourceIT {
         runExportBag(exampleID, btrProfile, btrConfig);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        assertTrue(target.resolve("bag-info.txt").toFile().exists());
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
+        List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json"));
     }
 
     @Test
@@ -157,6 +170,32 @@ public class BagItIT extends AbstractResourceIT {
         assertFalse(exists(resourceURI));
 
         // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // Resource does exist.
+        assertTrue(exists(resourceURI));
+    }
+
+    @Test
+    public void testImportBtRBag() throws FcrepoOperationFailedException {
+        final URI resourceURI = URI.create(serverAddress + "testBagImport");
+        final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(btrProfile);
+        config.setLegacy(true);
+
+        // Resource doesn't exist
+        assertFalse(exists(resourceURI));
+
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
