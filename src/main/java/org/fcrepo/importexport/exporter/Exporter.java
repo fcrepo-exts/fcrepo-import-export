@@ -95,6 +95,7 @@ import org.slf4j.Logger;
 /**
  * Fedora Export Utility
  *
+ * @author mikejritter
  * @author lsitu
  * @author awoods
  * @author escowles

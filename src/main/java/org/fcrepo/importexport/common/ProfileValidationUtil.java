@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 /**
  * Utility methods for validating profiles.
  *
+ * @author mikejritter
  * @author dbernstein
  * @since Dec 14, 2016
  */

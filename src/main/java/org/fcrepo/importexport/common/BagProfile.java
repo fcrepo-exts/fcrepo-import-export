@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
+ * @author mikejritter
  * @author escowles
  * @since 2016-12-12
  */
@@ -70,7 +71,7 @@ public class BagProfile {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
 
-        loadProfileInto(json);
+        loadProfileInfo(json);
 
         allowFetch = json.has("Allow-Fetch.txt") ? json.get("Allow-Fetch.txt").asBoolean() : true;
         serialization = json.has("Serialization") ? json.get("Serialization").asText() : "optional";
@@ -98,7 +99,7 @@ public class BagProfile {
         }
     }
 
-    private void loadProfileInto(final JsonNode json) {
+    private void loadProfileInfo(final JsonNode json) {
         final JsonNode tag = json.get("BagIt-Profile-Info");
         if (tag != null) {
             tag.fields().forEachRemaining(entry -> profileMetadata.put(entry.getKey(), entry.getValue().asText()));
