@@ -114,7 +114,6 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testExportDefault() throws Exception {
-        // todo: read bag-info for BagIt-Profile-Identifier
         final String exampleID = UUID.randomUUID().toString();
         runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
 
@@ -178,7 +177,7 @@ public class BagItIT extends AbstractResourceIT {
     }
 
     @Test
-    public void testImportBtRBag() throws FcrepoOperationFailedException {
+    public void testImportBeyondTheRepositoryBag() throws FcrepoOperationFailedException {
         final URI resourceURI = URI.create(serverAddress + "testBagImport");
         final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
 

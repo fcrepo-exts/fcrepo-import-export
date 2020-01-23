@@ -237,7 +237,7 @@ public class ExporterTest {
     }
 
     @Test
-    public void testExportBeyondBag() throws IOException {
+    public void testExportBeyondTheRepositoryBag() throws IOException {
         final Config config = new Config();
         config.setMode("export");
         config.setBaseDirectory(exportDirectory);
@@ -257,16 +257,16 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
 
-        final File baginfo = new File(exportDirectory + "/bag-info.txt");
-        Assert.assertTrue(baginfo.exists());
-        final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Bag-Size: 113 bytes"));
-        Assert.assertTrue(baginfoLines.contains("Payload-Oxum: 113.3"));
-        Assert.assertTrue(baginfoLines.contains("Source-Organization: My University"));
+        final File bagInfo = new File(exportDirectory + "/bag-info.txt");
+        Assert.assertTrue(bagInfo.exists());
+        final List<String> bagInfoLines = readLines(bagInfo, UTF_8);
+        Assert.assertTrue(bagInfoLines.contains("Bag-Size: 113 bytes"));
+        Assert.assertTrue(bagInfoLines.contains("Payload-Oxum: 113.3"));
+        Assert.assertTrue(bagInfoLines.contains("Source-Organization: My University"));
     }
 
     @Test(expected = Exception.class)
-    public void testExportBeyondBagValidationError() {
+    public void testExportBeyondTheRepositoryBagValidationError() {
         final Config config = new Config();
         config.setMode("export");
         config.setBaseDirectory(exportDirectory);
