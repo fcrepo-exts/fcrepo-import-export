@@ -22,6 +22,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -333,10 +334,13 @@ public class BagProfile {
      */
     public void validateConfig(final BagConfig config) {
         for (final String section : sections) {
-            if (config.hasTagFile(section.toLowerCase() + ".txt")) {
+            final String tagFile = section.toLowerCase() + ".txt";
+            if (config.hasTagFile(tagFile)) {
                 try {
                     ProfileValidationUtil.validate(section, getMetadataFields(section),
-                        config.getFieldsForTagFile(section.toLowerCase() + ".txt"));
+                        config.getFieldsForTagFile(tagFile));
+
+                    ProfileValidationUtil.validateTagIsAllowed(Paths.get(tagFile), tagFilesAllowed);
                 } catch (ProfileValidationException e) {
                     throw new RuntimeException(e.getMessage(), e);
                 }

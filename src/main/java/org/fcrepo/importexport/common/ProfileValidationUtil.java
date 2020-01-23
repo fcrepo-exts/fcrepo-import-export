@@ -122,7 +122,7 @@ public class ProfileValidationUtil {
 
             boolean match = false;
             for (String allowedTag : allowedTags) {
-                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + allowedTag);
+                final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + allowedTag);
 
                 if (matcher.matches(tag)) {
                     match = true;
