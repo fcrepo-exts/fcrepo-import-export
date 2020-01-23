@@ -154,7 +154,7 @@ public class BagProfile {
 
         final Map<String, ProfileFieldRule> results = new HashMap<>();
         for (final Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
-            // fields we set with
+            // fields to pass to the ProfileFieldRule constructor
             boolean required = false;
             boolean recommended = false;
             String description = "No description";
@@ -163,9 +163,7 @@ public class BagProfile {
             final String name = it.next();
             final JsonNode field = fields.get(name);
 
-
-            // not sure if this is exactly what we want but good enough for a first pass
-            // can probably move to BagProfileField constructor imo
+            // read each of the fields for the ProfileFieldRule - required, recommended, description, and values
             final JsonNode requiredNode = field.get("required");
             if (requiredNode != null && requiredNode.asBoolean()) {
                 required = requiredNode.asBoolean();
