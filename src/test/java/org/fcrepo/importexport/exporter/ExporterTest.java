@@ -238,6 +238,9 @@ public class ExporterTest {
 
     @Test
     public void testExportBeyondTheRepositoryBag() throws IOException {
+        final String bagConfigPath = "src/test/resources/configs/bagit-config-no-aptrust.yml";
+        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
+
         final Config config = new Config();
         config.setMode("export");
         config.setBaseDirectory(exportDirectory);
@@ -246,7 +249,7 @@ public class ExporterTest {
         config.setRdfLanguage("application/ld+json");
         config.setResource(resource3);
         config.setBagProfile("beyondtherepository");
-        config.setBagConfigPath("src/test/resources/configs/bagit-config-no-aptrust.yml");
+        config.setBagConfigPath(bagConfigPath);
 
         final ExporterWrapper exporter = new ExporterWrapper(config, clientBuilder);
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
@@ -263,6 +266,7 @@ public class ExporterTest {
         Assert.assertTrue(bagInfoLines.contains("Bag-Size: 113 bytes"));
         Assert.assertTrue(bagInfoLines.contains("Payload-Oxum: 113.3"));
         Assert.assertTrue(bagInfoLines.contains("Source-Organization: My University"));
+        Assert.assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test(expected = Exception.class)
