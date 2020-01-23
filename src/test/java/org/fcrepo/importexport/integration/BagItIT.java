@@ -120,7 +120,7 @@ public class BagItIT extends AbstractResourceIT {
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve("bag-info.txt");
         assertTrue(bagInfo.toFile().exists());
-        List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
         assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/default.json"));
     }
 
@@ -133,20 +133,21 @@ public class BagItIT extends AbstractResourceIT {
         final Path bagInfo = target.resolve("bag-info.txt");
         assertTrue(bagInfo.toFile().exists());
         assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
-        List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
         assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/aptrust.json"));
     }
 
     @Test
     public void testExportBeyondTheRepository() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
+        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
         runExportBag(exampleID, btrProfile, btrConfig);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve("bag-info.txt");
         assertTrue(bagInfo.toFile().exists());
-        List<String> bagInfoLines = Files.readAllLines(bagInfo);
-        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json"));
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test
@@ -178,7 +179,7 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testImportBeyondTheRepositoryBag() throws FcrepoOperationFailedException {
-        final URI resourceURI = URI.create(serverAddress + "testBagImport");
+        final URI resourceURI = URI.create(serverAddress + "testBagBtRImport");
         final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
 
         final Config config = new Config();
@@ -192,7 +193,8 @@ public class BagItIT extends AbstractResourceIT {
         config.setBagProfile(btrProfile);
         config.setLegacy(true);
 
-        // Resource doesn't exist
+        // Remove resource from any previously run ITs and verify it does not exist
+        removeAndReset(resourceURI);
         assertFalse(exists(resourceURI));
 
         final Importer importer = new Importer(config, clientBuilder);
