@@ -20,10 +20,14 @@ package org.fcrepo.importexport.common;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -97,6 +101,41 @@ public class ProfileValidationUtil {
             }
         }
 
+    }
+
+    /**
+     * Check if a given tag file is part of the allowed tags. Should not be used against non-tag files such as the
+     * manifests or bagit.txt.
+     *
+     * @param tag the tag file to check
+     * @param allowedTags the list of allowed tag files, with unix style globbing allowed
+     */
+    public static void validateTagIsAllowed(final Path tag, final Set<String> allowedTags)
+        throws ProfileValidationException {
+        if (tag != null && allowedTags != null && !allowedTags.isEmpty()) {
+            // sanity check against required BagIt files
+            final String systemFiles = "bagit\\.txt|bag-info\\.txt|manifest-.*|tagmanifest-.*";
+            if (Pattern.matches(systemFiles, tag.toString())) {
+                logger.warn("Tag validator used against required file {}; ignoring", tag);
+                return;
+            }
+
+            boolean match = false;
+            for (String allowedTag : allowedTags) {
+                PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + allowedTag);
+
+                if (matcher.matches(tag)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                throw new ProfileValidationException("Bag profile validation failure: tag " + tag +
+                                                     " is not allowed. List of allowed tag files are " +
+                                                     StringUtils.join(allowedTags, ","));
+            }
+        }
     }
 
 }

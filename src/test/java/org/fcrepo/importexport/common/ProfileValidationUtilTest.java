@@ -18,6 +18,7 @@
 
 package org.fcrepo.importexport.common;
 
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,6 +101,46 @@ public class ProfileValidationUtilTest {
 
         ProfileValidationUtil.validate("profile-section", rules, fields);
 
+    }
+
+    @Test
+    public void testGlobalTagMatch() throws ProfileValidationException {
+        Set<String> allowedTags = Collections.singleton("**");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info/test-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testEmptyListValidates() throws ProfileValidationException {
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), Collections.emptySet());
+    }
+
+    @Test
+    public void testUniqueTagMatch() throws ProfileValidationException {
+        Set<String> allowedTags = Collections.singleton("test-info.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+    }
+
+    @Test(expected = ProfileValidationException.class)
+    public void testTagIsNotAllowed() throws ProfileValidationException {
+        Set<String> allowedTags = Collections.singleton("test-tag.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testSubDirectoryMatch() throws ProfileValidationException {
+        Set<String> allowedTags = Collections.singleton("ddp-tags/test-*");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("ddp-tags/test-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("ddp-tags/test-extra-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testTagValidateIgnoresRequired() throws ProfileValidationException {
+        Set<String> allowedTags = Collections.singleton("test-info.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("bag-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("bagit.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("manifest-md5.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("tagmanifest-sha512.txt"), allowedTags);
     }
 
 }
