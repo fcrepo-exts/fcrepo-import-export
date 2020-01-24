@@ -1,5 +1,6 @@
 package org.fcrepo.importexport.common;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,7 +40,7 @@ public class BagValidator {
 
         // check fetch rule
         if (!profile.isAllowFetch() && (!bag.getItemsToFetch().isEmpty() || Files.exists(root.resolve("fetch.txt")))) {
-            errors.append("Profile does not allow a fetch.txt but fetch files found.\n");
+            errors.append("Profile does not allow a fetch.txt but fetch file found!\n");
         }
 
         // check manifest algorithms (required + allowed)
@@ -48,13 +49,19 @@ public class BagValidator {
         errors.append(checkManifests(bag.getTagManifests(), profile.getTagDigestAlgorithms(),
                                      profile.getAllowedTagAlgorithms(), "tag"));
 
-        // check tag files (required + allowed)
+        // check tag files allowed
+        try {
+            checkAllowedTagFiles(root, bag.getTagManifests(), profile.getTagFilesAllowed());
+        } catch (ProfileValidationException e) {
+            errors.append(e.getMessage());
+        }
 
+        // check tag files required
         // directory stream + filter (for manifest, bagit.txt, bag-info.txt)
         final Set<String> requiredTagFiles = profile.getTagFilesRequired();
         for (String requiredTag : requiredTagFiles) {
             if (!root.resolve(requiredTag).toFile().exists()) {
-                errors.append("Required tag file \"\" does not exist.");
+                errors.append("Required tag file \"").append(requiredTag).append("\" does not exist!\n");
             }
         }
 
@@ -66,8 +73,9 @@ public class BagValidator {
                 ProfileValidationUtil.validate(sectionName, profile.getMetadataFields(sectionName), infoData);
             } catch (IOException e) {
                 // error - could not read info
+                errors.append("Could not read file ").append(sectionName.toLowerCase()).append(".txt").append("!\n");
             } catch (ProfileValidationException e) {
-                // error - section did not validate
+                errors.append(e.getMessage());
             }
 
         }
@@ -80,13 +88,32 @@ public class BagValidator {
                   .append("\n");
         }
 
-        // check serialization (?)
+        // serialization seems unnecessary as the import export tool does not support importing serialized bags
+        if (profile.getSerialization().equalsIgnoreCase("required")) {
+            errors.append("Serialization is not supported in the import export utility\n");
+        }
 
         if (errors.length() > 0) {
             throw new RuntimeException("Bag profile validation failure: The following errors occurred: \n" +
                                        errors.toString());
         }
 
+    }
+
+    private static void checkAllowedTagFiles(final Path root, final Set<Manifest> tagManifests,
+                                             final Set<String> tagDigestAlgorithms) throws ProfileValidationException {
+        if (!tagManifests.isEmpty()) {
+            final Manifest manifest = tagManifests.iterator().next();
+            final HashMap<File, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+            for (File file : fileToChecksumMap.keySet()) {
+                Path fullPath = file.toPath();
+                Path relativePath = fullPath.relativize(root);
+
+                ProfileValidationUtil.validateTagIsAllowed(relativePath, tagDigestAlgorithms);
+            }
+        } else {
+            throw new ProfileValidationException("No tag files found in tag-manifest\n");
+        }
     }
 
     private static StringBuilder checkManifests(final Set<Manifest> manifests, final Set<String> required,
@@ -115,9 +142,7 @@ public class BagValidator {
         final Map<String, String> data = new HashMap<>();
         final AtomicReference<String> previousKey = new AtomicReference<>("");
 
-        // need to read a Bag-Info class for the fields and collect them into a Map<String, String>
-        // note: if a line starts indented, it is part of the previous key so we should we aware of what key
-        // we're working on
+        // if a line starts indented, it is part of the previous key so we track what key we're working on
         try (Stream<String> lines = Files.lines(info)) {
             lines.forEach(line -> {
                 if (line.matches("^\\s+")) {
@@ -126,7 +151,7 @@ public class BagValidator {
                     final String[] split = line.split(":");
                     final String key = split[0].trim();
                     final String value = split[1].trim();
-                    previousKey.getAndSet(key);
+                    previousKey.set(key);
                     data.put(key, value);
                 }
             });
