@@ -157,6 +157,7 @@ public class BagProfile {
         for (final Iterator<String> it = fields.fieldNames(); it.hasNext(); ) {
             // fields to pass to the ProfileFieldRule constructor
             boolean required = false;
+            boolean repeatable = true;
             boolean recommended = false;
             String description = "No description";
             Set<String> values = Collections.emptySet();
@@ -164,10 +165,16 @@ public class BagProfile {
             final String name = it.next();
             final JsonNode field = fields.get(name);
 
-            // read each of the fields for the ProfileFieldRule - required, recommended, description, and values
+            // read each of the fields for the ProfileFieldRule:
+            // required, repeated, recommended, description, and values
             final JsonNode requiredNode = field.get("required");
             if (requiredNode != null && requiredNode.asBoolean()) {
                 required = requiredNode.asBoolean();
+            }
+
+            final JsonNode repeatedNode = field.get("repeatable");
+            if (repeatedNode != null) {
+                repeatable = repeatedNode.asBoolean(true);
             }
 
             final JsonNode recommendedNode = field.get("recommended");
@@ -183,7 +190,7 @@ public class BagProfile {
             final Set<String> readValues = arrayValues(field, "values");
             values = readValues == null ? values : readValues;
 
-            results.put(name, new ProfileFieldRule(required, recommended, description, values));
+            results.put(name, new ProfileFieldRule(required, repeatable, recommended, description, values));
         }
 
         return results;

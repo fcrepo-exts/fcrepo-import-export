@@ -46,6 +46,10 @@ public class ProfileValidationUtilTest {
 
     private LinkedHashMap<String, String> fields;
 
+    private static final boolean required = true;
+    private static final boolean repeatable = true;
+    private static final boolean recommended = false;
+
     @Before
     public void setup() {
         rules = new HashMap<>();
@@ -54,7 +58,7 @@ public class ProfileValidationUtilTest {
         set.add("value1");
         set.add("value2");
         set.add("value3");
-        final ProfileFieldRule field = new ProfileFieldRule(true, false, "", set);
+        final ProfileFieldRule field = new ProfileFieldRule(required, repeatable, recommended, "", set);
         rules.put(FIELD1, field);
     }
 
@@ -79,7 +83,8 @@ public class ProfileValidationUtilTest {
     @Test
     public void testMultipleValidationErrorsInOneExceptionMessage() {
         fields.put(FIELD1, "invalidValue");
-        rules.put(FIELD2, new ProfileFieldRule(true, true, "field 2 should fail", Collections.emptySet()));
+        rules.put(FIELD2, new ProfileFieldRule(required, repeatable, recommended,
+                                               "field 2 should fail", Collections.emptySet()));
         fields.put("field3", "any value");
         try {
             ProfileValidationUtil.validate("profile-section", rules, fields);

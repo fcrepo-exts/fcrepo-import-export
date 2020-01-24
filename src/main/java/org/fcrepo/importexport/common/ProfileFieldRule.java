@@ -28,6 +28,7 @@ import java.util.Set;
 public class ProfileFieldRule {
 
     private final boolean required;
+    private final boolean repeatable;
     private final boolean recommended;
     private final String description;
     private final Set<String> values;
@@ -36,15 +37,18 @@ public class ProfileFieldRule {
      * Constructor for a ProfileFieldRule. Takes the 4 possible json fields from a BagIt Profile *-Info field.
      *
      * @param required boolean value stating if this rule is required
+     * @param repeatable boolean value allowing a field to be repeated
      * @param recommended boolean value stating if this rule is recommended
      * @param description a text description of this rule
      * @param values a set of string values which a field is allowed to be set to
      */
     public ProfileFieldRule(final boolean required,
+                            final boolean repeatable,
                             final boolean recommended,
                             final String description,
                             final Set<String> values) {
         this.required = required;
+        this.repeatable = repeatable;
         this.recommended = recommended;
         this.description = description;
         this.values = values;
@@ -56,6 +60,14 @@ public class ProfileFieldRule {
      */
     public boolean isRequired() {
         return required;
+    }
+
+    /**
+     *
+     * @return if the field is allowed to be repeated
+     */
+    public boolean isRepeatable() {
+        return repeatable;
     }
 
     /**
