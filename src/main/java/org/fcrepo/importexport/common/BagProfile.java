@@ -35,6 +35,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,7 +81,7 @@ public class BagProfile {
      * @param in InputStream containing the Bag profile JSON document
      * @throws IOException when there is an I/O error reading JSON
      */
-    public BagProfile(final InputStream in) throws IOException {
+    public BagProfile(final InputStream in) throws IOException, ProfileValidationException {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
 
@@ -109,6 +110,17 @@ public class BagProfile {
 
         if (json.get(OTHER_INFO) != null) {
             loadOtherTags(json);
+        }
+
+        if (!isSubset(tagFilesRequired, tagFilesAllowed)) {
+            throw new ProfileValidationException("Error in json! Tag-Files-Required must be a subset of " +
+                                                 "Tag-Files-Allowed!");
+        }
+        if (!isSubset(payloadDigestAlgorithms, allowedPayloadAlgorithms)) {
+            throw new ProfileValidationException("Error in json! Manifests-Required must be a subset of Manifests-Allowed!");
+        }
+        if (!isSubset(tagDigestAlgorithms, allowedTagAlgorithms)) {
+            throw new ProfileValidationException("Error in json! Tag-Manifests-Required must be a subset of Tag-Manifests-Allowed!");
         }
     }
 
@@ -206,6 +218,16 @@ public class BagProfile {
         }
 
         return results;
+    }
+
+    public <T> boolean isSubset(Collection<T> collection, Collection<T> iterator) {
+        for (T t : iterator) {
+            if (!collection.contains(t)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
