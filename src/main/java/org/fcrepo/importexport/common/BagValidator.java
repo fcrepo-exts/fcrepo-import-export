@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -51,7 +52,7 @@ public class BagValidator {
 
         // check tag files allowed
         try {
-            checkAllowedTagFiles(root, bag.getTagManifests(), profile.getTagFilesAllowed());
+            checkAllowedTagFiles(bag.getTagManifests(), profile.getTagFilesAllowed());
         } catch (ProfileValidationException e) {
             errors.append(e.getMessage());
         }
@@ -100,38 +101,42 @@ public class BagValidator {
 
     }
 
-    private static void checkAllowedTagFiles(final Path root, final Set<Manifest> tagManifests,
+    private static void checkAllowedTagFiles(final Set<Manifest> tagManifests,
                                              final Set<String> tagDigestAlgorithms) throws ProfileValidationException {
         if (!tagManifests.isEmpty()) {
             final Manifest manifest = tagManifests.iterator().next();
             final HashMap<File, String> fileToChecksumMap = manifest.getFileToChecksumMap();
-            for (File file : fileToChecksumMap.keySet()) {
-                Path fullPath = file.toPath();
-                Path relativePath = fullPath.relativize(root);
 
-                ProfileValidationUtil.validateTagIsAllowed(relativePath, tagDigestAlgorithms);
+            // As this was parsed by the LoC library, we should know that it conforms to the BagIt expectations
+            // so we should not see any back references or absolute paths - but if they are seen they should fail on
+            // validation (we are only comparing the file paths, no opportunity for reading sys files)
+            for (File file : fileToChecksumMap.keySet()) {
+                Path path = file.toPath();
+                ProfileValidationUtil.validateTagIsAllowed(path, tagDigestAlgorithms);
             }
         } else {
-            throw new ProfileValidationException("No tag files found in tag-manifest\n");
+            throw new ProfileValidationException("No tag manifest found!\n");
         }
     }
 
     private static StringBuilder checkManifests(final Set<Manifest> manifests, final Set<String> required,
                                                 final Set<String> allowed, final String type) {
-        final String missing = "Missing %s manifest algorithm: %s";
-        final String unsupported = "Unsupported %s manifest algorithm: %s";
+        final String missing = "Missing %s manifest algorithm: %s\n";
+        final String unsupported = "Unsupported %s manifest algorithm: %s\n";
         final StringBuilder errors = new StringBuilder();
+        final Set<String> requiredCopy = new HashSet<>(required);
 
         for (Manifest manifest : manifests) {
-            String algorithm = manifest.getAlgorithm().getBagitName();
-            required.remove(algorithm);
+            String algorithm = manifest.getAlgorithm().getBagitName().toLowerCase();
+            logger.debug("Found {} manifest algorithm {}", type, algorithm);
+            requiredCopy.remove(algorithm);
 
             if (!allowed.contains(algorithm)) {
                 errors.append(String.format(unsupported, type, algorithm));
             }
         }
 
-        if (!required.isEmpty()) {
+        if (!requiredCopy.isEmpty()) {
             errors.append(String.format(missing, type, StringUtils.join(required, ",")));
         }
 
