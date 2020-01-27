@@ -3,10 +3,11 @@ package org.fcrepo.importexport.common;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import gov.loc.repository.bagit.domain.Bag;
@@ -15,6 +16,8 @@ import gov.loc.repository.bagit.domain.Version;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -23,6 +26,7 @@ import org.junit.Test;
  */
 public class BagValidatorTest {
 
+    private final List<String> tagManifestExpected = Arrays.asList("manifest-sha1.txt", "bag-info.txt", "bagit.txt");
     private final String TARGET_DIR = System.getProperty("project.build.directory");
 
     @Test
@@ -41,6 +45,13 @@ public class BagValidatorTest {
     }
 
     private void putRequiredTags(Bag bag, BagProfile bagProfile) {
+        // If getTagFilesRequired is empty, populate with the files we expect to see
+        tagManifestExpected.forEach(expected -> {
+            Path required = Paths.get(expected);
+            bag.getTagManifests().forEach(manifest ->
+                                              manifest.getFileToChecksumMap().put(required.toFile(), "test-value"));
+        });
+
         for (String requiredTag : bagProfile.getTagFilesRequired()) {
             Path requiredPath = Paths.get(requiredTag);
             bag.getTagManifests().forEach(manifest ->
@@ -49,14 +60,15 @@ public class BagValidatorTest {
     }
 
     private void putRequiredManifests(Bag bag, BagProfile bagProfile) {
-        for (String algorithm : bagProfile.getTagDigestAlgorithms()) {
+        for (String algorithm : bagProfile.getAllowedTagAlgorithms()) {
             Manifest manifest = new Manifest(StandardSupportedAlgorithms.valueOf(algorithm.toUpperCase()));
             bag.getTagManifests().add(manifest);
         }
 
-        for (String algorithm : bagProfile.getPayloadDigestAlgorithms()) {
+        for (String algorithm : bagProfile.getAllowedPayloadAlgorithms()) {
             Manifest manifest = new Manifest(StandardSupportedAlgorithms.valueOf(algorithm.toUpperCase()));
             bag.getPayLoadManifests().add(manifest);
+            bag.getPayLoadManifests().add(new Manifest(StandardSupportedAlgorithms.valueOf(algorithm.toUpperCase())));
         }
     }
 
