@@ -27,13 +27,16 @@ public class BagValidator {
 
     public static final Logger logger = LoggerFactory.getLogger(BagValidator.class);
 
+    private BagValidator() {
+    }
+
     /**
      * Validate a {@link Bag} against a set of rules defined by a {@link BagProfile}
      *
      * @param bag the {@link Bag} to validate
      * @param profile the {@link BagProfile} to validate against
      */
-    public static void validate(Bag bag, BagProfile profile) {
+    public static void validate(final Bag bag, final BagProfile profile) {
         logger.info("Starting Bag to BagProfile conformance validator");
         final StringBuilder errors = new StringBuilder();
 
@@ -110,8 +113,8 @@ public class BagValidator {
             // As this was parsed by the LoC library, we should know that it conforms to the BagIt expectations
             // so we should not see any back references or absolute paths - but if they are seen they should fail on
             // validation (we are only comparing the file paths, no opportunity for reading sys files)
-            for (File file : fileToChecksumMap.keySet()) {
-                Path path = file.toPath();
+            for (final File file : fileToChecksumMap.keySet()) {
+                final Path path = file.toPath();
                 ProfileValidationUtil.validateTagIsAllowed(path, tagDigestAlgorithms);
             }
         } else {
@@ -126,8 +129,8 @@ public class BagValidator {
         final StringBuilder errors = new StringBuilder();
         final Set<String> requiredCopy = new HashSet<>(required);
 
-        for (Manifest manifest : manifests) {
-            String algorithm = manifest.getAlgorithm().getBagitName().toLowerCase();
+        for (final Manifest manifest : manifests) {
+            final String algorithm = manifest.getAlgorithm().getBagitName().toLowerCase();
             logger.debug("Found {} manifest algorithm {}", type, algorithm);
             requiredCopy.remove(algorithm);
 
@@ -143,7 +146,8 @@ public class BagValidator {
         return errors;
     }
 
-    private static Map<String, String> readInfo(Path info) throws IOException {
+    private static Map<String, String> readInfo(final Path info) throws IOException {
+        logger.debug("Trying to read info file {}", info);
         final Map<String, String> data = new HashMap<>();
         final AtomicReference<String> previousKey = new AtomicReference<>("");
 

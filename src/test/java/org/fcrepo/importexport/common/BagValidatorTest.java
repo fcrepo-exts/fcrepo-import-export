@@ -31,12 +31,12 @@ import org.junit.Test;
 public class BagValidatorTest {
 
     private final String testValue = "test-value";
-    private final String defaultBag = "/test-classes/sample/bag";
+    private final String defaultBag = "/bag";
     private final String defaultProfile = "src/test/resources/profiles/profile.json";
     private final String bagInfoIdentifier = "Bag-Info";
 
     private final Version defaultVersion = new Version(1, 0);
-    private final String targetDir = System.getProperty("project.build.directory");
+    private final String targetDir = "src/test/resources/sample";
     private final List<String> tagManifestExpected = Arrays.asList("manifest-sha1.txt", "bag-info.txt", "bagit.txt");
 
     @Test
@@ -92,8 +92,8 @@ public class BagValidatorTest {
 
     @Test(expected = RuntimeException.class)
     public void testValidateUnsupportedManifestAlgorithm() throws IOException {
-        String supported = StandardSupportedAlgorithms.SHA1.getBagitName().toLowerCase();
-        String unsupported = StandardSupportedAlgorithms.MD5.getBagitName().toLowerCase();
+        final String supported = StandardSupportedAlgorithms.SHA1.getBagitName().toLowerCase();
+        final String unsupported = StandardSupportedAlgorithms.MD5.getBagitName().toLowerCase();
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
@@ -281,14 +281,14 @@ public class BagValidatorTest {
     private void putRequiredTags(final Bag bag, final BagProfile bagProfile) {
         // Always populate with the files we expect to see
         for (String expected : tagManifestExpected) {
-            Path required = Paths.get(expected);
+            final Path required = Paths.get(expected);
             for (Manifest manifest : bag.getTagManifests()) {
                 manifest.getFileToChecksumMap().put(required.toFile(), testValue);
             }
         }
 
         for (String requiredTag : bagProfile.getTagFilesRequired()) {
-            Path requiredPath = Paths.get(requiredTag);
+            final Path requiredPath = Paths.get(requiredTag);
             for (Manifest manifest : bag.getTagManifests()) {
                 manifest.getFileToChecksumMap().put(requiredPath.toFile(), testValue);
             }
