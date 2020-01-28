@@ -24,14 +24,24 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author escowles
  * @since 2016-12-13
  */
 public class BagProfileTest {
+
+    private final Logger logger = LoggerFactory.getLogger(BagProfileTest.class);
 
     @Test
     public void testBasicProfileFromFile() throws Exception {
@@ -132,7 +142,37 @@ public class BagProfileTest {
         profile.validateConfig(config);
     }
 
-    public void testexport() {
-        assertTrue( true );
+    @Test
+    public void testAllProfilesPassValidation() throws IOException {
+        final Path profiles = Paths.get("src/main/resources/profiles");
+
+        Files.list(profiles).forEach(path -> {
+            logger.debug("Validating {}", path);
+            BagProfile profile = null;
+            try {
+                profile = new BagProfile(Files.newInputStream(path));
+            } catch (IOException e) {
+                Assert.fail(e.getMessage());
+            }
+
+            Objects.requireNonNull(profile).validateProfile();
+        });
+
     }
+
+    @Test(expected = RuntimeException.class)
+    public void testInvalidBagProfile() throws IOException {
+        final File profileFile = new File("src/test/resources/profiles/invalidProfile.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateProfile();
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testInvalidBagProfileSerializationTypo() throws IOException {
+        final File profileFile = new File("src/test/resources/profiles/invalidProfileSerializationError.json");
+        final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
+        profile.validateProfile();
+    }
+
+
 }
