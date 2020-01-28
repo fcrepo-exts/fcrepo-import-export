@@ -402,6 +402,9 @@ public class BagProfile {
      * Tag-Files-Allowed
      * If specified, the {@link BagProfile#getTagFilesRequired()} must be a subset of
      * {@link BagProfile#getTagFilesAllowed()}. If not specified, all tags must match the '*' glob
+     *
+     * Accept-BagIt-Version
+     * At least one version is required
      */
     public void validateProfile() {
         final StringBuilder errors = new StringBuilder();
@@ -413,7 +416,7 @@ public class BagProfile {
         for (final String expected : expectedInfoFields) {
             if (!bagInfo.containsKey(expected)) {
                 if (errors.length() == 0) {
-                    errors.append("Error in Bag-Info section:\n");
+                    errors.append("Error(s) in BagIt-Profile-Info:\n");
                 }
                 errors.append("  * Missing key ").append(expected).append("\n");
             }
@@ -423,11 +426,11 @@ public class BagProfile {
         if (serialization.equalsIgnoreCase("required") || serialization.equalsIgnoreCase("optional")) {
             if (acceptedSerializations.isEmpty()) {
                 errors.append("Serialization value of ").append(serialization)
-                      .append(" requires at least one value in the Accept-Serialization field\n");
+                      .append(" requires at least one value in the Accept-Serialization field!\n");
             }
         } else if (!serialization.equalsIgnoreCase("forbidden")) {
             errors.append("Unknown Serialization value ").append(serialization)
-                  .append(". Allowed values are forbidden, required, or optional\n");
+                  .append(". Allowed values are forbidden, required, or optional.\n");
         }
 
         // Manifests-Allowed / Manifests-Required
@@ -446,8 +449,13 @@ public class BagProfile {
             errors.append("Tag-Files-Required must be a subset of Tag-Files-Allowed!\n");
         }
 
+        if (acceptedBagItVersions.isEmpty()) {
+            errors.append("Accept-BagIt-Version requires at least one entry!");
+        }
+
         if (errors.length() > 0) {
-            errors.insert(0, "Bag Profile json does not conform to BagIt Profiles specification!\n");
+            errors.insert(0, "Bag Profile json does not conform to BagIt Profiles specification! " +
+                             "The following errors occurred:\n");
             throw new RuntimeException(errors.toString());
         }
     }
