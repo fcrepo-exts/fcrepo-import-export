@@ -78,6 +78,7 @@ public class BagProfile {
 
     /**
      * Default constructor.
+     *
      * @param in InputStream containing the Bag profile JSON document
      * @throws IOException when there is an I/O error reading JSON
      */
@@ -117,10 +118,12 @@ public class BagProfile {
                                                  "Tag-Files-Allowed!");
         }
         if (!isSubset(payloadDigestAlgorithms, allowedPayloadAlgorithms)) {
-            throw new ProfileValidationException("Error in json! Manifests-Required must be a subset of Manifests-Allowed!");
+            throw new ProfileValidationException(
+                "Error in bag profile json! Manifests-Required must be a subset of Manifests-Allowed!");
         }
         if (!isSubset(tagDigestAlgorithms, allowedTagAlgorithms)) {
-            throw new ProfileValidationException("Error in json! Tag-Manifests-Required must be a subset of Tag-Manifests-Allowed!");
+            throw new ProfileValidationException(
+                "Error in bag profile json! Tag-Manifests-Required must be a subset of Tag-Manifests-Allowed!");
         }
     }
 
@@ -167,7 +170,7 @@ public class BagProfile {
      * Loads required tags and allowed values
      *
      * @param json json to parse
-     * @param key key in json to load tags from
+     * @param key  key in json to load tags from
      * @return map of tags => set of allowed values
      */
     private static Map<String, ProfileFieldRule> metadataFields(final JsonNode json, final String key) {
@@ -208,7 +211,7 @@ public class BagProfile {
 
             final JsonNode descriptionNode = field.get("description");
             if (descriptionNode != null && descriptionNode.asText().isEmpty()) {
-               description = descriptionNode.asText();
+                description = descriptionNode.asText();
             }
 
             final Set<String> readValues = arrayValues(field, "values");
@@ -220,9 +223,24 @@ public class BagProfile {
         return results;
     }
 
-    public <T> boolean isSubset(Collection<T> collection, Collection<T> iterator) {
-        for (T t : iterator) {
-            if (!collection.contains(t)) {
+    /**
+     * This checks to see if a collection (labelled as {@code subCollection}) is a subset of a given superCollection. If
+     * the {@code superCollection} is empty, it is intended to be a catch-all and true is returned.
+     *
+     * @param superCollection the parent superCollection
+     * @param subCollection   the superCollection to iterate against and check if members are contained within
+     *                        {@code superCollection}
+     * @param <T>             the type to use when checking containment
+     * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
+     * {@code superCollection}
+     */
+    private <T> boolean isSubset(Collection<T> superCollection, Collection<T> subCollection) {
+        if (superCollection.isEmpty()) {
+            return true;
+        }
+
+        for (T t : subCollection) {
+            if (!superCollection.contains(t)) {
                 return false;
             }
         }
@@ -315,8 +333,9 @@ public class BagProfile {
         return allowedTagAlgorithms;
     }
 
-   /**
+    /**
      * Get the required digest algorithms for payload manifests.
+     *
      * @return Set of digest algorithm names
      */
     public Set<String> getPayloadDigestAlgorithms() {
@@ -325,6 +344,7 @@ public class BagProfile {
 
     /**
      * Get the required digest algorithms for tag manifests.
+     *
      * @return Set of digest algorithm names
      */
     public Set<String> getTagDigestAlgorithms() {
@@ -333,6 +353,7 @@ public class BagProfile {
 
     /**
      * Get the required Bag-Info metadata fields.
+     *
      * @return A map of field names to a ProfileFieldRule containing acceptance criteria
      */
     public Map<String, ProfileFieldRule> getMetadataFields() {
