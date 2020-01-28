@@ -45,14 +45,13 @@ public class BagProfileTest {
         assertTrue(profile.getTagDigestAlgorithms().contains("sha1"));
         assertFalse(profile.getTagDigestAlgorithms().contains("sha256"));
 
-        assertTrue(profile.getMetadataFields().containsKey("Source-Organization"));
-        assertTrue(profile.getMetadataFields().containsKey("Organization-Address"));
-        assertTrue(profile.getMetadataFields().containsKey("Contact-Name"));
-        assertTrue(profile.getMetadataFields().containsKey("Contact-Phone"));
-        assertTrue(profile.getMetadataFields().containsKey("Bag-Size"));
-        assertTrue(profile.getMetadataFields().containsKey("Bagging-Date"));
-        assertTrue(profile.getMetadataFields().containsKey("Payload-Oxum"));
-        assertTrue(profile.getMetadataFields().containsKey("Contact-Email"));
+        assertTrue(profile.getMetadataFields().get("Source-Organization").isRequired());
+        assertTrue(profile.getMetadataFields().get("Organization-Address").isRequired());
+        assertTrue(profile.getMetadataFields().get("Contact-Name").isRequired());
+        assertTrue(profile.getMetadataFields().get("Contact-Phone").isRequired());
+        assertTrue(profile.getMetadataFields().get("Bag-Size").isRequired());
+        assertTrue(profile.getMetadataFields().get("Bagging-Date").isRequired());
+        assertTrue(profile.getMetadataFields().get("Payload-Oxum").isRequired());
         assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
         assertFalse(
