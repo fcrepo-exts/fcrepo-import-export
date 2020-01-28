@@ -36,6 +36,7 @@ import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.domain.FetchItem;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.domain.Version;
+import gov.loc.repository.bagit.hash.StandardBagitAlgorithmNameToSupportedAlgorithmMapping;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class BagValidatorTest {
     public void testValidatePass() throws IOException {
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -76,7 +77,7 @@ public class BagValidatorTest {
     public void testValidateNoFetchButExists() throws IOException {
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -89,13 +90,13 @@ public class BagValidatorTest {
     @Test(expected = RuntimeException.class)
     public void testValidateNoFetchButNotEmpty() throws IOException {
         final Long fetchSize = 1L;
-        final String fetchFile = "data/fetch-one.txt";
+        final Path fetchFile = Paths.get("data/fetch-one.txt");
         final URL fetchUrl = new URL("http://localhost/fetch-one.txt");
 
         final Bag bag = new Bag();
         bag.getItemsToFetch().add(new FetchItem(fetchUrl, fetchSize, fetchFile));
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -114,7 +115,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
 
         // Only allow SHA-1 as a supported payload manifest algorithm
@@ -135,7 +136,7 @@ public class BagValidatorTest {
     public void testValidateMissingRequiredManifest() throws IOException {
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -153,7 +154,7 @@ public class BagValidatorTest {
     public void testValidateUnsupportedTag() throws IOException {
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -173,7 +174,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
         bagProfile.getTagFilesRequired().add(requiredInfo);
@@ -191,7 +192,7 @@ public class BagValidatorTest {
     public void testValidateMissingTagManifest() throws IOException {
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -211,7 +212,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(profilePath);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -231,7 +232,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -239,7 +240,7 @@ public class BagValidatorTest {
         putRequiredManifests(bag.getTagManifests(), bagProfile.getTagDigestAlgorithms());
         putRequiredManifests(bag.getPayLoadManifests(), bagProfile.getPayloadDigestAlgorithms());
         putRequiredTags(bag, bagProfile);
-        bag.getTagManifests().forEach(manifest -> manifest.getFileToChecksumMap().put(invalid.toFile(), checksum));
+        bag.getTagManifests().forEach(manifest -> manifest.getFileToChecksumMap().put(invalid, checksum));
 
         // Remove all manifests
         BagValidator.validate(bag, bagProfile);
@@ -252,7 +253,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(defaultVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
         bagProfile.getMetadataFields(bagInfoIdentifier).put(requiredField, rule);
@@ -272,7 +273,7 @@ public class BagValidatorTest {
 
         final Bag bag = new Bag();
         bag.setVersion(invalidVersion);
-        bag.setRootDir(Paths.get(targetDir + defaultBag).toFile());
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
         final File testFile = new File(defaultProfile);
         final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
 
@@ -300,14 +301,14 @@ public class BagValidatorTest {
         for (String expected : tagManifestExpected) {
             final Path required = Paths.get(expected);
             for (Manifest manifest : bag.getTagManifests()) {
-                manifest.getFileToChecksumMap().put(required.toFile(), testValue);
+                manifest.getFileToChecksumMap().put(required, testValue);
             }
         }
 
         for (String requiredTag : bagProfile.getTagFilesRequired()) {
             final Path requiredPath = Paths.get(requiredTag);
             for (Manifest manifest : bag.getTagManifests()) {
-                manifest.getFileToChecksumMap().put(requiredPath.toFile(), testValue);
+                manifest.getFileToChecksumMap().put(requiredPath, testValue);
             }
         }
     }
@@ -334,7 +335,7 @@ public class BagValidatorTest {
         final Map<String, ProfileFieldRule> bagInfoMeta = profile.getMetadataFields(bagInfoIdentifier);
         for (Map.Entry<String, ProfileFieldRule> entry : bagInfoMeta.entrySet()) {
             if (entry.getValue().isRequired())  {
-                bag.getMetadata().put(entry.getKey(), testValue);
+                bag.getMetadata().add(entry.getKey(), testValue);
             }
         }
     }

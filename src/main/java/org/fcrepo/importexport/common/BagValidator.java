@@ -17,7 +17,6 @@
  */
 package org.fcrepo.importexport.common;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +56,7 @@ public class BagValidator {
         logger.info("Starting Bag to BagProfile conformance validator");
         final StringBuilder errors = new StringBuilder();
 
-        final Path root = bag.getRootDir().toPath();
+        final Path root = bag.getRootDir();
 
         // check fetch rule
         if (!profile.isAllowFetch() && (!bag.getItemsToFetch().isEmpty() || Files.exists(root.resolve("fetch.txt")))) {
@@ -72,7 +71,7 @@ public class BagValidator {
 
         // check tag files allowed
         try {
-            checkAllowedTagFiles(bag.getTagManifests(), profile.getTagFilesAllowed());
+            checkAllowedTagFiles(bag.getRootDir(), bag.getTagManifests(), profile.getTagFilesAllowed());
         } catch (ProfileValidationException e) {
             errors.append(e.getMessage());
         }
@@ -121,18 +120,15 @@ public class BagValidator {
 
     }
 
-    private static void checkAllowedTagFiles(final Set<Manifest> tagManifests,
-                                             final Set<String> tagDigestAlgorithms) throws ProfileValidationException {
+    private static void checkAllowedTagFiles(final Path rootDir, final Set<Manifest> tagManifests,
+                                             final Set<String> allowedTags) throws ProfileValidationException {
         if (!tagManifests.isEmpty()) {
             final Manifest manifest = tagManifests.iterator().next();
-            final HashMap<File, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+            final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
 
-            // As this was parsed by the LoC library, we should know that it conforms to the BagIt expectations
-            // so we should not see any back references or absolute paths - but if they are seen they should fail on
-            // validation (we are only comparing the file paths, no opportunity for reading sys files)
-            for (final File file : fileToChecksumMap.keySet()) {
-                final Path path = file.toPath();
-                ProfileValidationUtil.validateTagIsAllowed(path, tagDigestAlgorithms);
+            for (final Path path : fileToChecksumMap.keySet()) {
+                final Path relativePath = path.startsWith(rootDir) ? rootDir.relativize(path) : path;
+                ProfileValidationUtil.validateTagIsAllowed(relativePath, allowedTags);
             }
         } else {
             throw new ProfileValidationException("No tag manifest found!\n");
@@ -151,7 +147,7 @@ public class BagValidator {
             logger.debug("Found {} manifest algorithm {}", type, algorithm);
             requiredCopy.remove(algorithm);
 
-            if (!allowed.contains(algorithm)) {
+            if (!allowed.isEmpty() && !allowed.contains(algorithm)) {
                 errors.append(String.format(unsupported, type, algorithm));
             }
         }
