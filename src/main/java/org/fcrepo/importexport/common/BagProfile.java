@@ -35,11 +35,13 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,7 +84,7 @@ public class BagProfile {
      * @param in InputStream containing the Bag profile JSON document
      * @throws IOException when there is an I/O error reading JSON
      */
-    public BagProfile(final InputStream in) throws IOException, ProfileValidationException {
+    public BagProfile(final InputStream in) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode json = mapper.readTree(in);
 
@@ -111,19 +113,6 @@ public class BagProfile {
 
         if (json.get(OTHER_INFO) != null) {
             loadOtherTags(json);
-        }
-
-        if (!isSubset(tagFilesRequired, tagFilesAllowed)) {
-            throw new ProfileValidationException("Error in json! Tag-Files-Required must be a subset of " +
-                                                 "Tag-Files-Allowed!");
-        }
-        if (!isSubset(payloadDigestAlgorithms, allowedPayloadAlgorithms)) {
-            throw new ProfileValidationException(
-                "Error in bag profile json! Manifests-Required must be a subset of Manifests-Allowed!");
-        }
-        if (!isSubset(tagDigestAlgorithms, allowedTagAlgorithms)) {
-            throw new ProfileValidationException(
-                "Error in bag profile json! Tag-Manifests-Required must be a subset of Tag-Manifests-Allowed!");
         }
     }
 
@@ -221,31 +210,6 @@ public class BagProfile {
         }
 
         return results;
-    }
-
-    /**
-     * This checks to see if a collection (labelled as {@code subCollection}) is a subset of a given superCollection. If
-     * the {@code superCollection} is empty, it is intended to be a catch-all and true is returned.
-     *
-     * @param superCollection the parent superCollection
-     * @param subCollection   the superCollection to iterate against and check if members are contained within
-     *                        {@code superCollection}
-     * @param <T>             the type to use when checking containment
-     * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
-     * {@code superCollection}
-     */
-    private <T> boolean isSubset(Collection<T> superCollection, Collection<T> subCollection) {
-        if (superCollection.isEmpty()) {
-            return true;
-        }
-
-        for (T t : subCollection) {
-            if (!superCollection.contains(t)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -410,4 +374,102 @@ public class BagProfile {
             }
         }
     }
+
+    /**
+     * Validates this {@link BagProfile} according to the BagIt Profiles specification found at
+     * https://bagit-profiles.github.io/bagit-profiles-specification/
+     *
+     * This checks the following fields:
+     *
+     * BagIt-Profile-Info
+     * Existence of the Source-Organization, External-Description, Version, BagIt-Profile-Identifier, and
+     * BagIt-Profile-Version fields
+     *
+     * Serialization
+     * Is equal to one of "forbidden", "required", or "optional"
+     *
+     * Accept-Serialization
+     * If serialization has a value of required or optional, at least one value is needed.
+     *
+     * Manifests-Allowed
+     * If specified, the {@link BagProfile#getPayloadDigestAlgorithms()} must be a subset of
+     * {@link BagProfile#getAllowedPayloadAlgorithms()}
+     *
+     * Tag-Manifests-Allowed
+     * If specified, the {@link BagProfile#getTagDigestAlgorithms()} must be a subset of
+     * {@link BagProfile#getAllowedTagAlgorithms()}
+     *
+     * Tag-Files-Allowed
+     * If specified, the {@link BagProfile#getTagFilesRequired()} must be a subset of
+     * {@link BagProfile#getTagFilesAllowed()}. If not specified, all tags must match the '*' glob
+     */
+    public void validateProfile() {
+        final StringBuilder errors = new StringBuilder();
+
+        // Bag-Info
+        final List<String> expectedInfoFields = Arrays.asList("Source-Organization", "External-Description", "Version",
+                                                              "BagIt-Profile-Identifier", "BagIt-Profile-Version");
+        final Map<String, String> bagInfo = getProfileMetadata();
+        for (final String expected : expectedInfoFields) {
+            if (!bagInfo.containsKey(expected)) {
+                if (errors.length() == 0) {
+                    errors.append("Error in Bag-Info section:\n");
+                }
+                errors.append("  * Missing key ").append(expected).append("\n");
+            }
+        }
+
+        // Serialization / Accept-Serialization
+        if (serialization.equalsIgnoreCase("required") || serialization.equalsIgnoreCase("optional")) {
+            if (acceptedSerializations.isEmpty()) {
+                errors.append("Serialization value of ").append(serialization)
+                      .append(" requires at least one value in the Accept-Serialization field\n");
+            }
+        } else if (!serialization.equalsIgnoreCase("forbidden")) {
+            errors.append("Unknown Serialization value ").append(serialization)
+                  .append(". Allowed values are forbidden, required, or optional\n");
+        }
+
+        // Manifests-Allowed / Manifests-Required
+        if (!(allowedPayloadAlgorithms.isEmpty() || isSubset(payloadDigestAlgorithms, allowedPayloadAlgorithms))) {
+            errors.append("Manifests-Required must be a subset of Manifests-Allowed!\n");
+        }
+
+        // Tag-Manifests-Allowed / Tag-Manifests-Required
+        if (!(allowedTagAlgorithms.isEmpty() || isSubset(tagDigestAlgorithms, allowedTagAlgorithms))) {
+            errors.append("Tag-Manifests-Required must be a subset of Tag-Manifests-Allowed!\n");
+        }
+
+        // Tag-Files-Allowed / Tag-Files-Required
+        // should this do strict matching on globs?
+        if (!(tagFilesAllowed.isEmpty() || isSubset(tagFilesRequired, tagFilesAllowed))) {
+            errors.append("Tag-Files-Required must be a subset of Tag-Files-Allowed!\n");
+        }
+
+        if (errors.length() > 0) {
+            errors.insert(0, "Bag Profile json does not conform to BagIt Profiles specification!\n");
+            throw new RuntimeException(errors.toString());
+        }
+    }
+
+    /**
+     * Check to see if a collection (labelled as {@code subCollection}) is a subset of the {@code superCollection}
+     *
+     * @param superCollection the super collection containing all the elements
+     * @param subCollection   the sub collection to iterate against and check if elements are contained within
+     *                        {@code superCollection}
+     * @param <T>             the type of each collection
+     * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
+     * {@code superCollection}
+     */
+    private <T> boolean isSubset(Collection<T> superCollection, Collection<T> subCollection) {
+        for (T t : subCollection) {
+            if (!superCollection.contains(t)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }
