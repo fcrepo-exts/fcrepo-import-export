@@ -463,14 +463,14 @@ public class BagProfile {
     /**
      * Check to see if a collection (labelled as {@code subCollection}) is a subset of the {@code superCollection}
      *
-     * @param superCollection the super collection containing all the elements
      * @param subCollection   the sub collection to iterate against and check if elements are contained within
      *                        {@code superCollection}
+     * @param superCollection the super collection containing all the elements
      * @param <T>             the type of each collection
      * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
      * {@code superCollection}
      */
-    private <T> boolean isSubset(Collection<T> superCollection, Collection<T> subCollection) {
+    private <T> boolean isSubset(Collection<T> subCollection, Collection<T> superCollection) {
         for (T t : subCollection) {
             if (!superCollection.contains(t)) {
                 return false;
