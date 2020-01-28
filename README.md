@@ -109,11 +109,11 @@ You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag f
 
 To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the following bag profiles:
 
-* [default](https://fedora.info/bagprofile/default.json)
-* [aptrust](https://fedora.info/bagprofile/aptrust.json)
-* [metaarchive](https://fedora.info/bagprofile/metaarchive.json)
-* [perseids](https://w3id.org/ro/bagit/profile)
-* [beyondtherepository](https://fedora.info/bagprofile/beyondtherepository.json)
+* [default](src/main/resources/profiles/default.json)
+* [aptrust](src/main/resources/profiles/aptrust.json)
+* [metaarchive](src/main/resources/profiles/metaarchive.json)
+* [perseids](src/main/resources/profiles/perseids.json)
+* [beyondtherepository](src/main/resources/profiles/beyondtherepository.json)
 
 
 For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
