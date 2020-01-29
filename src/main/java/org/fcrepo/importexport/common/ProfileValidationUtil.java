@@ -49,6 +49,7 @@ public class ProfileValidationUtil {
     protected static final Set<String> SYSTEM_GENERATED_FIELD_NAMES =
             new HashSet<>(Arrays.asList("Bagging-Date",
                                         "Bag-Size",
+                                        "Bag-Count",
                                         "Payload-Oxum",
                                         "BagIt-Profile-Identifier"));
 
