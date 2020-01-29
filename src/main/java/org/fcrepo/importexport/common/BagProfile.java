@@ -129,7 +129,7 @@ public class BagProfile {
         final JsonNode values = json.get(key);
 
         if (values == null) {
-            return null;
+            return Collections.emptySet();
         }
 
         final Set<String> results = new HashSet<>();
@@ -150,7 +150,7 @@ public class BagProfile {
         final JsonNode fields = json.get(key);
 
         if (fields == null) {
-            return null;
+            return Collections.emptyMap();
         }
 
         final Map<String, ProfileFieldRule> results = new HashMap<>();
