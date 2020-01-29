@@ -20,7 +20,9 @@ package org.fcrepo.importexport.common;
 import java.util.Set;
 
 /**
- *
+ * Rules which can be applied to the Bag-Info and Other-Info sections of a Bag Profile. Currently supports the
+ * parameters specified in version 1.3.0 of the bagit-profiles specification, in addition to the recommended parameter
+ * which is brought in from the Beyond the Repository bagit specification.
  *
  * @author mikejritter
  * @since 2020-01-20
