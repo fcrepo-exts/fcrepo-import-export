@@ -34,6 +34,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,6 +44,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -387,4 +392,91 @@ public class BagProfile {
         }
     }
 
+
+    /**
+     * Validate a given {@link Bag} against the current profile
+     *
+     * @param bag the Bag
+     */
+    public void validateBag(final Bag bag) {
+        logger.info("Starting Bag to BagProfile conformance validator");
+
+        final String tagIdentifier = "tag";
+        final String fetchIdentifier = "fetch.txt";
+        final String payloadIdentifier = "payload";
+        final StringBuilder errors = new StringBuilder();
+
+        final Path root = bag.getRootDir();
+        final Set<Manifest> foundPayloadManifests = bag.getPayLoadManifests();
+        final Set<Manifest> foundTagManifests = bag.getTagManifests();
+
+        // check fetch rule
+        if (!allowFetch && (!bag.getItemsToFetch().isEmpty() || Files.exists(root.resolve(fetchIdentifier)))) {
+            errors.append("Profile does not allow a fetch.txt but fetch file found!\n");
+        }
+
+        // check manifest algorithms (required + allowed)
+        errors.append(ProfileValidationUtil.validateManifest(foundPayloadManifests, payloadDigestAlgorithms,
+                                                             allowedPayloadAlgorithms, payloadIdentifier));
+        errors.append(ProfileValidationUtil.validateManifest(foundTagManifests, tagDigestAlgorithms,
+                                                             allowedTagAlgorithms, tagIdentifier));
+
+        // check tag files allowed
+        if (foundTagManifests.isEmpty()) {
+            errors.append("No tag manifest found!\n");
+        } else {
+            final Manifest manifest = foundTagManifests.iterator().next();
+            final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+
+            for (Path path : fileToChecksumMap.keySet()) {
+                final Path relativePath = path.startsWith(root) ? root.relativize(path) : path;
+                try {
+                    ProfileValidationUtil.validateTagIsAllowed(relativePath, tagFilesAllowed);
+                } catch (ProfileValidationException e) {
+                    errors.append(e.getMessage());
+                }
+            }
+        }
+
+        // check all required tag files exist
+        final Set<String> requiredTagFiles = tagFilesRequired;
+        for (String tagName : requiredTagFiles) {
+            final Path requiredTag = root.resolve(tagName);
+            if (!requiredTag.toFile().exists()) {
+                errors.append("Required tag file \"").append(tagName).append("\" does not exist!\n");
+            }
+        }
+
+        // check *-info required fields
+        for (String section : sections) {
+            final String tagFile = section.toLowerCase() + ".txt";
+            final Path resolved = root.resolve(tagFile);
+            try {
+                ProfileValidationUtil.validate(section, metadataFields.get(section), resolved);
+            } catch (IOException e) {
+                // error - could not read info
+                errors.append("Could not read file ").append(tagFile).append("!\n");
+            } catch (ProfileValidationException e) {
+                errors.append(e.getMessage());
+            }
+        }
+
+        // check allowed bagit versions
+        if (!acceptedBagItVersions.contains(bag.getVersion().toString())) {
+            errors.append("Version incompatible; accepted versions are ")
+                  .append(StringUtils.join(acceptedBagItVersions, ","))
+                  .append("\n");
+        }
+
+        // serialization seems unnecessary as the import export tool does not support importing serialized bags
+        if (serialization.equalsIgnoreCase("required")) {
+            errors.append("Serialization is not supported in the import export utility\n");
+        }
+
+        // finally, if we have any errors throw an exception
+        if (errors.length() > 0) {
+            throw new RuntimeException("Bag profile validation failure: The following errors occurred: \n" +
+                                       errors.toString());
+        }
+    }
 }

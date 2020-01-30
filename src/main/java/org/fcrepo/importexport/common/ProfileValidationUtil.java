@@ -20,15 +20,22 @@ package org.fcrepo.importexport.common;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+import gov.loc.repository.bagit.domain.Manifest;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -57,22 +64,53 @@ public class ProfileValidationUtil {
     }
 
     /**
-     * Validates the fields against the set of required fields and their constrained values.
+     * Validates a {@code tag} file against a set of {@code requiredFields} and their constrained values.
      *
      * @param profileSection describes the section of the profile that is being validated.
-     * @param requiredFields the required fields and any allowable values (if constrained).
-     * @param fields The key value pairs to be validated.
+     * @param requiredFields the required fields and associated rule
+     * @param tag the path to the info file to read
+     * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
+     *         description of all validation errors found.
+     */
+    public static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
+                                final Path tag) throws ProfileValidationException, IOException {
+        final Map<String, String> fields = readInfo(tag);
+        validate(profileSection, requiredFields, fields, Collections.emptySet());
+    }
+
+    /**
+     * Validates the {@code fields} against a set of {@code requiredFields} and their constrained values.
+     *
+     * @param profileSection describes the section of the profile that is being validated.
+     * @param requiredFields the required fields and associated rule
+     * @param fields the key value pairs to be validated
      * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
      *         description of all validation errors found.
      */
     public static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
                                 final Map<String, String> fields) throws ProfileValidationException {
+        validate(profileSection, requiredFields, fields, SYSTEM_GENERATED_FIELD_NAMES);
+    }
+
+
+    /**
+     * Validates the fields against the set of required fields and their constrained values.
+     *
+     * @param profileSection describes the section of the profile that is being validated.
+     * @param requiredFields the required fields and any allowable values (if constrained).
+     * @param fields The key value pairs to be validated.
+     * @param filter A set of fields to filter against. Useful for export.
+     * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
+     *         description of all validation errors found.
+     */
+    private static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
+                                final Map<String, String> fields, final Set<String> filter) throws ProfileValidationException {
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
 
             for (String requiredField : requiredFields.keySet()) {
                 // ignore validation on system generated fields
-                if (SYSTEM_GENERATED_FIELD_NAMES.contains(requiredField)) {
+                if (filter.contains(requiredField)) {
                     logger.debug("skipping system generated field {}...", requiredField);
                     continue;
                 }
@@ -105,6 +143,42 @@ public class ProfileValidationUtil {
     }
 
     /**
+     * Validate that a {@code manifests} found in a {@link gov.loc.repository.bagit.domain.Bag} are allowed according to
+     * both the {@code required} and {@code allowed} sets from a {@link BagProfile}.
+     *
+     * @param manifests the manifests found in a {@link gov.loc.repository.bagit.domain.Bag}
+     * @param required the set of required manifest algorithms
+     * @param allowed the set of allowed manifest algorithms
+     * @param type the type of manifest being processed, normally 'tag' or 'payload'
+     * @return A String with any validation errors associated with the {@code manifests}
+     */
+    public static StringBuilder validateManifest(final Set<Manifest> manifests, final Set<String> required,
+                                                 final Set<String> allowed, final String type) {
+        final String missing = "Missing %s manifest algorithm: %s\n";
+        final String unsupported = "Unsupported %s manifest algorithm: %s\n";
+        final StringBuilder errors = new StringBuilder();
+
+        // make a copy so we do not mutate the BagProfile
+        final Set<String> requiredCopy = new HashSet<>(required);
+
+        for (final Manifest manifest : manifests) {
+            final String algorithm = manifest.getAlgorithm().getBagitName();
+            requiredCopy.remove(algorithm);
+
+            if (!allowed.isEmpty() && !allowed.contains(algorithm)) {
+                errors.append(String.format(unsupported, type, algorithm));
+            }
+        }
+
+        if (!requiredCopy.isEmpty()) {
+            errors.append(String.format(missing, type, StringUtils.join(required, ",")));
+        }
+
+        return errors;
+    }
+
+
+    /**
      * Check if a given tag file is part of the allowed tags. Should not be used against non-tag files such as the
      * manifests or bagit.txt.
      *
@@ -117,6 +191,7 @@ public class ProfileValidationUtil {
             // sanity check against required BagIt files
             final String systemFiles = "bagit\\.txt|bag-info\\.txt|manifest-.*|tagmanifest-.*";
             if (Pattern.matches(systemFiles, tag.toString())) {
+                // debug?
                 logger.warn("Tag validator used against required file {}; ignoring", tag);
                 return;
             }
@@ -137,6 +212,36 @@ public class ProfileValidationUtil {
                                                      StringUtils.join(allowedTags, ","));
             }
         }
+    }
+
+    /**
+     * Read an info file (bag-info.txt, aptrust-info.txt, etc)
+     *
+     * @param info the {@link Path} to the info file to read
+     * @return a mapping of keys to values read from the info file
+     * @throws IOException if a file cannot be read
+     */
+    private static Map<String, String> readInfo(final Path info) throws IOException {
+        logger.debug("Trying to read info file {}", info);
+        final Map<String, String> data = new HashMap<>();
+        final AtomicReference<String> previousKey = new AtomicReference<>("");
+
+        // if a line starts indented, it is part of the previous key so we track what key we're working on
+        try (Stream<String> lines = Files.lines(info)) {
+            lines.forEach(line -> {
+                if (line.matches("^\\s+")) {
+                    data.merge(previousKey.get(), line, String::concat);
+                } else {
+                    final String[] split = line.split(":");
+                    final String key = split[0].trim();
+                    final String value = split[1].trim();
+                    previousKey.set(key);
+                    data.put(key, value);
+                }
+            });
+        }
+
+        return data;
     }
 
 }
