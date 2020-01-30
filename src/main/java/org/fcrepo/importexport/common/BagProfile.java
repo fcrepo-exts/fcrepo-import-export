@@ -415,16 +415,19 @@ public class BagProfile {
             errors.append("Profile does not allow a fetch.txt but fetch file found!\n");
         }
 
-        // check manifest algorithms (required + allowed)
+        // check payload manifest algorithms
         errors.append(ProfileValidationUtil.validateManifest(foundPayloadManifests, payloadDigestAlgorithms,
                                                              allowedPayloadAlgorithms, payloadIdentifier));
-        errors.append(ProfileValidationUtil.validateManifest(foundTagManifests, tagDigestAlgorithms,
-                                                             allowedTagAlgorithms, tagIdentifier));
 
-        // check tag files allowed
+        // check tag manifest rules files allowed
+        // the reporting can be redundant if no tag manifests are found, so only check the allowed algorithms and
+        // tag files IF we have at least one tag manifest
         if (foundTagManifests.isEmpty()) {
             errors.append("No tag manifest found!\n");
         } else {
+            errors.append(ProfileValidationUtil.validateManifest(foundTagManifests, tagDigestAlgorithms,
+                                                                 allowedTagAlgorithms, tagIdentifier));
+
             final Manifest manifest = foundTagManifests.iterator().next();
             final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
 
@@ -455,7 +458,7 @@ public class BagProfile {
                 ProfileValidationUtil.validate(section, metadataFields.get(section), resolved);
             } catch (IOException e) {
                 // error - could not read info
-                errors.append("Could not read file ").append(tagFile).append("!\n");
+                errors.append("Could not read info from \"").append(tagFile).append("\"!\n");
             } catch (ProfileValidationException e) {
                 errors.append(e.getMessage());
             }
@@ -463,7 +466,7 @@ public class BagProfile {
 
         // check allowed bagit versions
         if (!acceptedBagItVersions.contains(bag.getVersion().toString())) {
-            errors.append("Version incompatible; accepted versions are ")
+            errors.append("BagIt version incompatible; accepted versions are ")
                   .append(StringUtils.join(acceptedBagItVersions, ","))
                   .append("\n");
         }

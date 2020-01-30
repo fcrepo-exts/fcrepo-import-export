@@ -34,7 +34,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import org.junit.Assert;
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.FetchItem;
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.domain.Version;
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -45,6 +60,14 @@ import org.slf4j.LoggerFactory;
  * @since 2016-12-13
  */
 public class BagProfileTest {
+
+    private final String testValue = "test-value";
+    private final String defaultBag = "/bag";
+    private final String defaultProfile = "src/test/resources/profiles/profile.json";
+    private final String bagInfoIdentifier = "Bag-Info";
+
+    private final Version defaultVersion = new Version(1, 0);
+    private final String targetDir = "src/test/resources/sample";
 
     private final Logger logger = LoggerFactory.getLogger(BagProfileTest.class);
 
@@ -313,4 +336,101 @@ public class BagProfileTest {
         return true;
     }
 
+    @Test
+    public void testValidateBag() throws IOException {
+        final Bag bag = new Bag();
+        bag.setVersion(defaultVersion);
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
+        final File testFile = new File(defaultProfile);
+        final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
+
+        putRequiredBagInfo(bag, bagProfile);
+        putRequiredManifests(bag.getTagManifests(), bagProfile.getTagDigestAlgorithms());
+        putRequiredManifests(bag.getPayLoadManifests(), bagProfile.getPayloadDigestAlgorithms());
+        putRequiredTags(bag, bagProfile);
+
+        bagProfile.validateBag(bag);
+    }
+
+    @Test
+    public void testValidateBagFailure() throws IOException {
+        final Long fetchLength = 0L;
+        final Path fetchFile = Paths.get("data/fetch.txt");
+        final URL fetchUrl = new URL("http://localhost/data/fetch.txt");
+
+        final Bag bag = new Bag();
+        bag.setItemsToFetch(Collections.singletonList(new FetchItem(fetchUrl, fetchLength, fetchFile)));
+        bag.setVersion(new Version(0, 0));
+        bag.setRootDir(Paths.get(targetDir, defaultBag));
+        final File testFile = new File("src/main/resources/profiles/aptrust.json");
+        final BagProfile bagProfile = new BagProfile(new FileInputStream(testFile));
+
+        putRequiredBagInfo(bag, bagProfile);
+        putRequiredManifests(bag.getPayLoadManifests(), bagProfile.getPayloadDigestAlgorithms());
+        putRequiredTags(bag, bagProfile);
+
+        try {
+            bagProfile.validateBag(bag);
+            Assert.fail("Validation did not throw an exception");
+        } catch (RuntimeException e) {
+            final String message = e.getMessage();
+            Assert.assertTrue(message.contains("Profile does not allow a fetch.txt"));
+            Assert.assertTrue(message.contains("No tag manifest"));
+            Assert.assertTrue(message.contains("Required tag file \"aptrust-info.txt\" does not exist"));
+            Assert.assertTrue(message.contains("Could not read info from \"aptrust-info.txt\""));
+            Assert.assertTrue(message.contains("BagIt version incompatible"));
+
+            Assert.assertFalse(message.contains("Missing tag manifest algorithm"));
+        }
+    }
+
+    /**
+     * Add required tag files to a Bag from a BagProfile
+     *
+     * @param bag the Bag
+     * @param bagProfile the BagProfile defining the required files
+     */
+    private void putRequiredTags(final Bag bag, final BagProfile bagProfile) {
+        final List<String> tagManifestExpected = Arrays.asList("manifest-sha1.txt", "bag-info.txt", "bagit.txt");
+
+        // Always populate with the files we expect to see
+        for (String expected : tagManifestExpected) {
+            final Path required = Paths.get(expected);
+            for (Manifest manifest : bag.getTagManifests()) {
+                manifest.getFileToChecksumMap().put(required, testValue);
+            }
+        }
+
+        for (String requiredTag : bagProfile.getTagFilesRequired()) {
+            final Path requiredPath = Paths.get(requiredTag);
+            for (Manifest manifest : bag.getTagManifests()) {
+                manifest.getFileToChecksumMap().put(requiredPath, testValue);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param manifests the manifests to add algorithms to
+     * @param algorithms the algorithms to add
+     */
+    private void putRequiredManifests(final Set<Manifest> manifests, final Set<String> algorithms) {
+        for (String algorithm : algorithms) {
+            manifests.add(new Manifest(StandardSupportedAlgorithms.valueOf(algorithm.toUpperCase())));
+        }
+    }
+
+    /**
+     *
+     * @param bag the Bag to set info fields for
+     * @param profile the BagProfile defining the required info fields
+     */
+    private void putRequiredBagInfo(final Bag bag, final BagProfile profile) {
+        final Map<String, ProfileFieldRule> bagInfoMeta = profile.getMetadataFields(bagInfoIdentifier);
+        for (Map.Entry<String, ProfileFieldRule> entry : bagInfoMeta.entrySet()) {
+            if (entry.getValue().isRequired())  {
+                bag.getMetadata().add(entry.getKey(), testValue);
+            }
+        }
+    }
 }
