@@ -104,7 +104,9 @@ public class ProfileValidationUtil {
      *         description of all validation errors found.
      */
     private static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
-                                final Map<String, String> fields, final Set<String> filter) throws ProfileValidationException {
+                                final Map<String, String> fields, final Set<String> filter)
+        throws ProfileValidationException {
+
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
 
@@ -152,8 +154,8 @@ public class ProfileValidationUtil {
      * @param type the type of manifest being processed, normally 'tag' or 'payload'
      * @return A String with any validation errors associated with the {@code manifests}
      */
-    public static StringBuilder validateManifest(final Set<Manifest> manifests, final Set<String> required,
-                                                 final Set<String> allowed, final String type) {
+    public static String validateManifest(final Set<Manifest> manifests, final Set<String> required,
+                                          final Set<String> allowed, final String type) {
         final String missing = "Missing %s manifest algorithm: %s\n";
         final String unsupported = "Unsupported %s manifest algorithm: %s\n";
         final StringBuilder errors = new StringBuilder();
@@ -174,7 +176,7 @@ public class ProfileValidationUtil {
             errors.append(String.format(missing, type, StringUtils.join(required, ",")));
         }
 
-        return errors;
+        return errors.toString();
     }
 
 

@@ -18,6 +18,7 @@
 
 package org.fcrepo.importexport.common;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,6 +112,15 @@ public class ProfileValidationUtilTest {
     }
 
     @Test
+    public void testOnDiskInfoValidation() throws ProfileValidationException, IOException {
+        rules.clear();
+        rules.put("Source-Organization",
+                  new ProfileFieldRule(required, repeatable, recommended, "", Collections.emptySet()));
+        final String bagInfoPath = "src/test/resources/sample/bag/bag-info.txt";
+        ProfileValidationUtil.validate("profile-section", rules, Paths.get(bagInfoPath));
+    }
+
+    @Test
     public void testGlobalTagMatch() throws ProfileValidationException {
         final Set<String> allowedTags = Collections.singleton("**");
         ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
@@ -146,6 +158,31 @@ public class ProfileValidationUtilTest {
         ProfileValidationUtil.validateTagIsAllowed(Paths.get("bagit.txt"), allowedTags);
         ProfileValidationUtil.validateTagIsAllowed(Paths.get("manifest-md5.txt"), allowedTags);
         ProfileValidationUtil.validateTagIsAllowed(Paths.get("tagmanifest-sha512.txt"), allowedTags);
+    }
+
+    @Test
+    public void testVerifyManifests() {
+        final String type = "TEST";
+        final Manifest manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
+        final Set<Manifest> manifests = Collections.singleton(manifest);
+        final Set<String> constraints = Collections.singleton("sha1");
+
+        Assert.assertTrue(ProfileValidationUtil.validateManifest(manifests, constraints, constraints, type).isEmpty());
+        Assert.assertTrue(
+            ProfileValidationUtil.validateManifest(manifests, constraints, Collections.emptySet(), type).isEmpty());
+    }
+
+    @Test
+    public void testVerifyManifestFailure() {
+        final String type = "TEST";
+        final Manifest manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
+        final Set<Manifest> manifests = Collections.singleton(manifest);
+        final Set<String> required = Collections.singleton("md5");
+        final Set<String> allowed = Collections.singleton("md5");
+
+        final String result = ProfileValidationUtil.validateManifest(manifests, required, allowed, type);
+        Assert.assertTrue(result.contains("Missing"));
+        Assert.assertTrue(result.contains("Unsupported"));
     }
 
 }
