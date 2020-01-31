@@ -841,6 +841,11 @@ public class Importer implements TransferProcess {
      */
     private Bag verifyBag(final Path bagDir) {
         try {
+            if (profile.getSerialization().equalsIgnoreCase("optional")
+                || profile.getSerialization().equalsIgnoreCase("required")) {
+
+            }
+
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
 
