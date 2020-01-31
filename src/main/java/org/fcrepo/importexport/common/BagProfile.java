@@ -57,10 +57,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class BagProfile {
 
+    public enum Serialization {
+        FORBIDDEN, REQUIRED, OPTIONAL, UNKNOWN;
+
+        /**
+         * Retrieve the {@link Serialization} from a string representation
+         *
+         * @param value the String value to use
+         * @return the {@link Serialization} the {@code value} is equal to
+         */
+        public static Serialization of(final String value) {
+            switch (value.toLowerCase()) {
+                case "forbidden": return FORBIDDEN;
+                case "required": return REQUIRED;
+                case "optional": return OPTIONAL;
+                default: return UNKNOWN;
+            }
+        }
+    }
+
     private static final Logger logger = getLogger(BagProfile.class);
 
     private boolean allowFetch;
-    private String serialization;
+    private Serialization serialization;
 
     private Set<String> acceptedBagItVersions;
     private Set<String> acceptedSerializations;
@@ -91,7 +110,8 @@ public class BagProfile {
         loadProfileInfo(json);
 
         allowFetch = json.has(ALLOW_FETCH_TXT) ? json.get(ALLOW_FETCH_TXT).asBoolean() : true;
-        serialization = json.has(SERIALIZATION) ? json.get(SERIALIZATION).asText() : "optional";
+        serialization = json.has(SERIALIZATION) ? Serialization.of(json.get("Serialization").asText())
+                                                  : Serialization.OPTIONAL;
 
         acceptedBagItVersions = arrayValues(json, ACCEPT_BAGIT_VERSION);
         acceptedSerializations = arrayValues(json, ACCEPT_SERIALIZATION);
@@ -228,7 +248,7 @@ public class BagProfile {
      *
      * @return String value of "forbidden", "required", or "optional"
      */
-    public String getSerialization() {
+    public Serialization getSerialization() {
         return serialization;
     }
 
@@ -423,12 +443,12 @@ public class BagProfile {
         }
 
         // Serialization / Accept-Serialization
-        if (serialization.equalsIgnoreCase("required") || serialization.equalsIgnoreCase("optional")) {
+        if (serialization == Serialization.REQUIRED || serialization == Serialization.OPTIONAL) {
             if (acceptedSerializations.isEmpty()) {
                 errors.append("Serialization value of ").append(serialization)
                       .append(" requires at least one value in the Accept-Serialization field!\n");
             }
-        } else if (!serialization.equalsIgnoreCase("forbidden")) {
+        } else if(serialization == Serialization.UNKNOWN) {
             errors.append("Unknown Serialization value ").append(serialization)
                   .append(". Allowed values are forbidden, required, or optional.\n");
         }
@@ -470,7 +490,7 @@ public class BagProfile {
      * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
      * {@code superCollection}
      */
-    private <T> boolean isSubset(Collection<T> subCollection, Collection<T> superCollection) {
+    private <T> boolean isSubset(final Collection<T> subCollection, final Collection<T> superCollection) {
         for (T t : subCollection) {
             if (!superCollection.contains(t)) {
                 return false;
