@@ -51,22 +51,19 @@ public class BagDeserializer {
         final Path fileName = root.getFileName();
 
         final String trimmedName = pattern.matcher(fileName.toString()).replaceFirst("");
-        logger.info("{}", trimmedName);
-
-        final Path directory = Files.createDirectory(parent.resolve(trimmedName));
+        logger.info("Extracting serialized bag {}", trimmedName);
 
         ZipEntry entry;
         try (ZipInputStream inputStream = new ZipInputStream(Files.newInputStream(root))) {
             while ((entry = inputStream.getNextEntry()) != null) {
                 final String name = entry.getName();
-                logger.info("Found entry {}", entry.getName());
-                final Path inBagFile = directory.resolve(name);
+
+                logger.debug("Handling entry {}", entry.getName());
+                final Path inBagFile = parent.resolve(name);
 
                 if (entry.isDirectory()) {
-                    logger.info("Creating directory");
                     Files.createDirectories(inBagFile);
                 } else {
-                    logger.info("Copying file");
                     Files.copy(inputStream, inBagFile);
                 }
 
