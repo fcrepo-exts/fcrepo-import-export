@@ -41,10 +41,12 @@ public class BagProfileTest {
         assertTrue(profile.getPayloadDigestAlgorithms().contains("md5"));
         assertTrue(profile.getPayloadDigestAlgorithms().contains("sha1"));
         assertTrue(profile.getPayloadDigestAlgorithms().contains("sha256"));
+        assertTrue(profile.getPayloadDigestAlgorithms().contains("sha512"));
 
         assertFalse(profile.getTagDigestAlgorithms().contains("md5"));
         assertTrue(profile.getTagDigestAlgorithms().contains("sha1"));
-        assertFalse(profile.getTagDigestAlgorithms().contains("sha256"));
+        assertTrue(profile.getTagDigestAlgorithms().contains("sha256"));
+        assertTrue(profile.getTagDigestAlgorithms().contains("sha512"));
 
         assertTrue(profile.getMetadataFields().get("Source-Organization").isRequired());
         assertTrue(profile.getMetadataFields().get("Organization-Address").isRequired());
