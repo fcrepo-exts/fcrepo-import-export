@@ -104,10 +104,10 @@ public class ProfileFieldRule {
     @Override
     public String toString() {
         return "ProfileFieldRule{" +
-               "required=" + required +
-               ", recommended=" + recommended +
-               ", description='" + description + '\'' +
-               ", values=" + values +
-               '}';
+               "\nrequired=" + required +
+               ",\nrecommended=" + recommended +
+               ",\ndescription='" + description + '\'' +
+               ",\nvalues=" + values +
+               "\n}";
     }
 }
