@@ -170,7 +170,7 @@ public class Exporter implements TransferProcess {
                 bagProfile.validateConfig(bagConfig);
                 final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
 
-                // assume this is already valid?
+                // the profile identifier must exist per the bagit-profiles spec
                 bagProfileId = profileMetadata.get("BagIt-Profile-Identifier");
 
                 // setup bag
