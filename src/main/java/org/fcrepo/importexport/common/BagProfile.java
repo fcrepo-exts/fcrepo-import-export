@@ -174,7 +174,7 @@ public class BagProfile {
 
             final JsonNode repeatedNode = field.get("repeatable");
             if (repeatedNode != null) {
-                repeatable = repeatedNode.asBoolean(true);
+                repeatable = repeatedNode.asBoolean();
             }
 
             final JsonNode recommendedNode = field.get("recommended");
@@ -215,7 +215,6 @@ public class BagProfile {
     public String getSerialization() {
         return serialization;
     }
-
 
     /**
      * Get the supported BagIt versions

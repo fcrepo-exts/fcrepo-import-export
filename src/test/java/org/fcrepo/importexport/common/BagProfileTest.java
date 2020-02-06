@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -56,6 +57,15 @@ public class BagProfileTest {
 
         assertFalse(
             profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+
+        assertFalse(profile.isAllowFetch());
+        assertEquals("optional", profile.getSerialization());
+        assertTrue(profile.getAcceptedBagItVersions().contains("0.97"));
+        assertTrue(profile.getAcceptedSerializations().isEmpty());
+        assertTrue(profile.getTagFilesAllowed().isEmpty());
+        assertTrue(profile.getTagFilesRequired().isEmpty());
+        assertTrue(profile.getAllowedTagAlgorithms().isEmpty());
+        assertTrue(profile.getAllowedPayloadAlgorithms().isEmpty());
     }
 
     @Test
