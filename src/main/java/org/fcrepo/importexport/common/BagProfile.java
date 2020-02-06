@@ -17,6 +17,18 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.BagProfileConstants.ACCEPT_BAGIT_VERSION;
+import static org.fcrepo.importexport.common.BagProfileConstants.ACCEPT_SERIALIZATION;
+import static org.fcrepo.importexport.common.BagProfileConstants.ALLOW_FETCH_TXT;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_PROFILE_INFO;
+import static org.fcrepo.importexport.common.BagProfileConstants.MANIFESTS_ALLOWED;
+import static org.fcrepo.importexport.common.BagProfileConstants.MANIFESTS_REQUIRED;
+import static org.fcrepo.importexport.common.BagProfileConstants.OTHER_INFO;
+import static org.fcrepo.importexport.common.BagProfileConstants.SERIALIZATION;
+import static org.fcrepo.importexport.common.BagProfileConstants.TAG_FILES_ALLOWED;
+import static org.fcrepo.importexport.common.BagProfileConstants.TAG_FILES_REQUIRED;
+import static org.fcrepo.importexport.common.BagProfileConstants.TAG_MANIFESTS_ALLOWED;
+import static org.fcrepo.importexport.common.BagProfileConstants.TAG_MANIFESTS_REQUIRED;
 import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -74,20 +86,20 @@ public class BagProfile {
 
         loadProfileInfo(json);
 
-        allowFetch = json.has("Allow-Fetch.txt") ? json.get("Allow-Fetch.txt").asBoolean() : true;
-        serialization = json.has("Serialization") ? json.get("Serialization").asText() : "optional";
+        allowFetch = json.has(ALLOW_FETCH_TXT) ? json.get(ALLOW_FETCH_TXT).asBoolean() : true;
+        serialization = json.has(SERIALIZATION) ? json.get(SERIALIZATION).asText() : "optional";
 
-        acceptedBagItVersions = arrayValues(json, "Accept-BagIt-Version");
-        acceptedSerializations = arrayValues(json, "Accept-Serialization");
+        acceptedBagItVersions = arrayValues(json, ACCEPT_BAGIT_VERSION);
+        acceptedSerializations = arrayValues(json, ACCEPT_SERIALIZATION);
 
-        tagFilesAllowed = arrayValues(json, "Tag-Files-Allowed");
-        tagFilesRequired = arrayValues(json, "Tag-Files-Required");
+        tagFilesAllowed = arrayValues(json, TAG_FILES_ALLOWED);
+        tagFilesRequired = arrayValues(json, TAG_FILES_REQUIRED);
 
-        allowedPayloadAlgorithms = arrayValues(json, "Manifests-Allowed");
-        allowedTagAlgorithms = arrayValues(json, "Tag-Manifests-Allowed");
+        allowedPayloadAlgorithms = arrayValues(json, MANIFESTS_ALLOWED);
+        allowedTagAlgorithms = arrayValues(json, TAG_MANIFESTS_ALLOWED);
 
-        payloadDigestAlgorithms = arrayValues(json, "Manifests-Required");
-        tagDigestAlgorithms = arrayValues(json, "Tag-Manifests-Required");
+        payloadDigestAlgorithms = arrayValues(json, MANIFESTS_REQUIRED);
+        tagDigestAlgorithms = arrayValues(json, TAG_MANIFESTS_REQUIRED);
         if (tagDigestAlgorithms == null) {
             tagDigestAlgorithms = payloadDigestAlgorithms;
         }
@@ -95,20 +107,20 @@ public class BagProfile {
         metadataFields.put(BAG_INFO_FIELDNAME, metadataFields(json, BAG_INFO_FIELDNAME));
         sections.add(BAG_INFO_FIELDNAME);
 
-        if (json.get("Other-Info") != null) {
+        if (json.get(OTHER_INFO) != null) {
             loadOtherTags(json);
         }
     }
 
     private void loadProfileInfo(final JsonNode json) {
-        final JsonNode tag = json.get("BagIt-Profile-Info");
+        final JsonNode tag = json.get(BAGIT_PROFILE_INFO);
         if (tag != null) {
             tag.fields().forEachRemaining(entry -> profileMetadata.put(entry.getKey(), entry.getValue().asText()));
         }
     }
 
     private void loadOtherTags(final JsonNode json) {
-        final JsonNode arrayTags = json.get("Other-Info");
+        final JsonNode arrayTags = json.get(OTHER_INFO);
         if (arrayTags != null && arrayTags.isArray()) {
             arrayTags.forEach(tag -> tag.fieldNames().forEachRemaining(sections::add));
             final Iterator<JsonNode> arrayEntries = arrayTags.elements();
