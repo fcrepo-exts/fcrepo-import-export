@@ -35,14 +35,15 @@ public class BagDeserializerTest {
     }
 
     @Test
-    @Ignore
     public void testExtractZip() {
         final String serializedBag = expectedDir + ".zip";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
+            final String contentType = Files.probeContentType(path);
             final BagProfile profile = new BagProfile(Files.newInputStream(
-                Paths.get("src/main/resources/profiles/beyondtherepository.json")));
-            // BagDeserializer.deserialize(path, profile);
+                    Paths.get("src/main/resources/profiles/beyondtherepository.json")));
+            BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+            deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
         }
@@ -55,8 +56,30 @@ public class BagDeserializerTest {
     }
 
     @Test
-    public void testExtractZip2() {
-        final String serializedBag = expectedDir + ".zip";
+    public void testExtractTar() {
+        final String serializedBag = expectedDir + ".tar";
+        final Path path = target.resolve(group).resolve(serializedBag);
+        try {
+            final String contentType = Files.probeContentType(path);
+            final BagProfile profile = new BagProfile(Files.newInputStream(
+                    Paths.get("src/main/resources/profiles/beyondtherepository.json")));
+            BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+            deserializer.deserialize(path);
+        } catch (IOException e) {
+            Assert.fail("Unexpected exception:\n" + e.getMessage());
+        }
+
+        final Path bag = target.resolve(group).resolve(expectedDir);
+        Assert.assertTrue(Files.exists(bag));
+        Assert.assertTrue(Files.exists(bag.resolve("bag-info.txt")));
+        Assert.assertTrue(Files.exists(bag.resolve("data")));
+        Assert.assertTrue(Files.isDirectory(bag.resolve("data")));
+    }
+
+    @Test
+    @Ignore
+    public void testExtractGZip() {
+        final String serializedBag = expectedDir + ".tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
             final String contentType = Files.probeContentType(path);

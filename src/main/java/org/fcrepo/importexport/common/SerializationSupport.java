@@ -23,16 +23,16 @@ public class SerializationSupport {
             if (ZIP_TYPES.contains(contentType)) {
                 return new ZipBagDeserializer();
             } else if (TAR_TYPES.contains(contentType)) {
-
+                return new TarBagDeserializer();
             } else if (GZIP_TYPES.contains(contentType)) {
-
+                return new GZipBagDeserializer();
             } else {
                 throw new UnsupportedOperationException("Unsupported content type " + contentType);
             }
         }
 
         throw new RuntimeException("BagProfile does not allow " + contentType + ". Accepted serializations are:\n" +
-                StringUtils.join(profile.getAcceptedSerializations(), ","));
+                StringUtils.join(profile.getAcceptedSerializations(), ", "));
     }
 
 
