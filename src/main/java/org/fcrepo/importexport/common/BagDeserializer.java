@@ -21,15 +21,11 @@ import org.slf4j.LoggerFactory;
  * sup
  *
  */
-public class BagDeserializer {
+public interface BagDeserializer {
 
-    private static final Logger logger = LoggerFactory.getLogger(BagDeserializer.class);
+    void deserialize(final Path path) throws IOException;
 
-    private static final Set<String> supportedSerializations = new HashSet<>(Arrays.asList("application/zip"));
-
-    private BagDeserializer() {
-    }
-
+    /*
     public static void deserialize(final Path root, final BagProfile profile) throws IOException {
         final Set<String> acceptedTypes = profile.getAcceptedSerializations();
         final String contentType = Files.probeContentType(root);
@@ -71,6 +67,7 @@ public class BagDeserializer {
             }
         }
     }
+     */
 
 
 }
