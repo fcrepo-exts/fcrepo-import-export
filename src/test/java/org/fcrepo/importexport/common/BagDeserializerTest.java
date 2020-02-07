@@ -1,3 +1,20 @@
+/*
+ * Licensed to DuraSpace under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * DuraSpace licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except in
+ * compliance with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.fcrepo.importexport.common;
 
 
@@ -18,6 +35,9 @@ import org.junit.Test;
 
 public class BagDeserializerTest {
 
+    public static final String BEYONDTHEREPOSITORY_JSON = "src/main/resources/profiles/beyondtherepository.json";
+    public static final String BAG_INFO_TXT = "bag-info.txt";
+    public static final String DATA_DIR = "data";
     private final String expectedDir = "example";
     private final String group = "compress";
     private Path target;
@@ -41,8 +61,8 @@ public class BagDeserializerTest {
         try {
             final String contentType = Files.probeContentType(path);
             final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get("src/main/resources/profiles/beyondtherepository.json")));
-            BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
@@ -50,9 +70,9 @@ public class BagDeserializerTest {
 
         final Path bag = target.resolve(group).resolve(expectedDir);
         Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve("bag-info.txt")));
-        Assert.assertTrue(Files.exists(bag.resolve("data")));
-        Assert.assertTrue(Files.isDirectory(bag.resolve("data")));
+        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
     }
 
     @Test
@@ -62,8 +82,8 @@ public class BagDeserializerTest {
         try {
             final String contentType = Files.probeContentType(path);
             final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get("src/main/resources/profiles/beyondtherepository.json")));
-            BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
@@ -71,9 +91,9 @@ public class BagDeserializerTest {
 
         final Path bag = target.resolve(group).resolve(expectedDir);
         Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve("bag-info.txt")));
-        Assert.assertTrue(Files.exists(bag.resolve("data")));
-        Assert.assertTrue(Files.isDirectory(bag.resolve("data")));
+        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
     }
 
     @Test
@@ -84,8 +104,8 @@ public class BagDeserializerTest {
         try {
             final String contentType = Files.probeContentType(path);
             final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get("src/main/resources/profiles/beyondtherepository.json")));
-            BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
@@ -93,8 +113,8 @@ public class BagDeserializerTest {
 
         final Path bag = target.resolve(group).resolve(expectedDir);
         Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve("bag-info.txt")));
-        Assert.assertTrue(Files.exists(bag.resolve("data")));
-        Assert.assertTrue(Files.isDirectory(bag.resolve("data")));
+        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
     }
 }
