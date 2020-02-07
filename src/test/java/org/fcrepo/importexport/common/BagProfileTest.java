@@ -95,8 +95,7 @@ public class BagProfileTest {
         assertTrue(profile.getMetadataFields().get("Payload-Oxum").isRequired());
         assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
-        assertFalse(
-            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+        assertFalse(profile.getSectionNames().stream().anyMatch(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)));
 
         assertFalse(profile.isAllowFetch());
         assertEquals(BagProfile.Serialization.OPTIONAL, profile.getSerialization());
