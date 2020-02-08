@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -93,6 +94,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -163,9 +165,22 @@ public class Importer implements TransferProcess {
         if (bagProfile == null) {
             this.bagItFileMap = null;
         } else {
-            final File bagDir = config.getBaseDirectory().getParentFile();
-            final Bag bag = verifyBag(bagDir.toPath());
-            configureBagItFileMap(bag);
+
+            try {
+                final File bagDir = config.getBaseDirectory().getParentFile();
+
+                // load the bag profile
+                final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
+                final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
+                final BagProfile profile = new BagProfile(in);
+
+                verifyBag(bagDir.toPath(), profile);
+                confgureBagItFileMap(bag);
+            } catch (IOException e) {
+                // shouldn't happen but will handle separately
+                logger.error("Unable to open BagProfile for {}!", bagProfile, e);
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -837,19 +852,21 @@ public class Importer implements TransferProcess {
      * Verify the bag we are going to import
      *
      * @param bagDir root directory of the bag
+     * @param profile the {@link BagProfile} to validate against
      * @return the {@link Bag} if valid
      */
-    private Bag verifyBag(final Path bagDir) {
+    private Bag verifyBag(final Path bagDir, final BagProfile profile) {
         try {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
+            profile.validateBag(bag);
 
             final BagVerifier bagVerifier = new BagVerifier();
             bagVerifier.isValid(bag, false);
 
             return bag;
         } catch (Exception e) {
-            logger.error("Unable to read bag ", e);
+            logger.error("Unable to verify bag ", e);
             throw new RuntimeException(String.format("Error reading bag: %s", e.getMessage()), e);
         }
     }
