@@ -62,11 +62,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -77,9 +76,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.loc.repository.bagit.domain.Manifest;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoLink;
@@ -88,6 +89,8 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.BagItDigest;
+import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -106,7 +109,6 @@ import org.slf4j.Logger;
 
 import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.reader.BagReader;
-import gov.loc.repository.bagit.verify.BagVerifier;
 
 /**
  * Fedora Import Utility
@@ -118,18 +120,15 @@ import gov.loc.repository.bagit.verify.BagVerifier;
  */
 public class Importer implements TransferProcess {
     private static final Logger logger = getLogger(Importer.class);
-    private Config config;
+    private final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
     private final List<URI> relatedResources = new ArrayList<>();
     private final List<URI> importedResources = new ArrayList<>();
     private URI repositoryRoot = null;
 
-    private Bag bag;
-
-    private MessageDigest sha1;
-
-    private Map<String, String> sha1FileMap;
+    private Map<String, String> bagItFileMap;
+    private String bagItAlgorithm;
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -155,22 +154,24 @@ public class Importer implements TransferProcess {
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
-        if (config.getBagProfile() == null) {
-            this.bag = null;
-            this.sha1 = null;
-            this.sha1FileMap = null;
+        final String bagProfile = config.getBagProfile();
+        if (bagProfile == null) {
+            this.bagItFileMap = null;
         } else {
 
             try {
-                final File bagdir = config.getBaseDirectory().getParentFile();
-                // TODO: Maybe use this once we get an updated release of bagit-java library
-                //if (verifyBag(bagdir)) {
-                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-sha1.txt");
-                this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
-                this.sha1 = MessageDigest.getInstance("SHA-1");
-                // }
-            } catch (NoSuchAlgorithmException e) {
-                // never happens with known algorithm names
+                final File bagDir = config.getBaseDirectory().getParentFile();
+
+                // load the bag profile
+                final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
+                final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
+                final BagProfile profile = new BagProfile(in);
+
+                verifyBag(bagDir.toPath(), profile);
+            } catch (IOException e) {
+                // shouldn't happen but will handle separately
+                logger.error("Unable to open BagProfile for {}!", bagProfile, e);
+                throw new RuntimeException(e);
             }
         }
     }
@@ -610,11 +611,12 @@ public class Importer implements TransferProcess {
         } else {
             builder.body(new FileInputStream(binaryFile), contentType).ifUnmodifiedSince(currentTimestamp());
 
-            if (sha1FileMap != null) {
+            if (bagItFileMap != null) {
                 // Use the bagIt checksum
-                final String checksum = sha1FileMap.get(binaryFile.getAbsolutePath());
+                logger.info("{}", binaryFile.getAbsolutePath());
+                final String checksum = bagItFileMap.get(binaryFile.getAbsolutePath());
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
-                builder = builder.digest(checksum);
+                builder = builder.digest(checksum, bagItAlgorithm);
             } else {
                 builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
                                           .getObject().toString().replaceAll(".*:",""));
@@ -635,17 +637,16 @@ public class Importer implements TransferProcess {
         }
     }
 
-    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers)
-        throws FcrepoOperationFailedException {
+    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers) {
         PutBuilder builder = client().put(uri)
                                      .body(modelToStream(model), config.getRdfLanguage())
                                      .ifUnmodifiedSince(currentTimestamp());
-        if (sha1FileMap != null && config.getBagProfile() != null) {
+        if (bagItFileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
             final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
-            final String checksum = sha1FileMap.get(containerFile.getAbsolutePath());
+            final String checksum = bagItFileMap.get(containerFile.getAbsolutePath());
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
-            builder = builder.digest(checksum);
+            builder = builder.digest(checksum, bagItAlgorithm);
         }
 
         addInteractionModels(builder, headers);
@@ -844,14 +845,37 @@ public class Importer implements TransferProcess {
      * Verify the bag we are going to import
      *
      * @param bagDir root directory of the bag
+     * @param profile the {@link BagProfile} to validate against
      * @return true if valid
      */
-    public static boolean verifyBag(final File bagDir) {
+    public boolean verifyBag(final Path bagDir, final BagProfile profile) {
         try {
-            final Bag bag = BagReader.read(bagDir);
-            BagVerifier.isValid(bag, true);
+            final BagReader bagReader = new BagReader();
+            final Bag bag = bagReader.read(bagDir);
+            // BagVerifier.isValid(bag, true);
+            profile.validateBag(bag);
+
+            // mutating so creating a new set
+            final List<Manifest> manifests = new ArrayList<>(bag.getPayLoadManifests());
+            // we know all manifests at this point are supported so... just get the best alg
+            manifests.sort((Manifest m1, Manifest m2) -> {
+                final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
+                final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
+                return m1Digest.getPriority() - m2Digest.getPriority();
+            });
+
+            final Manifest manifest = manifests.get(0);
+            final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+            this.bagItFileMap = fileToChecksumMap.entrySet().stream()
+                                                 .collect(Collectors.toMap(
+                                                     entry -> entry.getKey().toAbsolutePath().toString(),
+                                                     Map.Entry::getValue));
+            logger.debug("loaded checksum map: {}", bagItFileMap);
+            this.bagItAlgorithm = manifest.getAlgorithm().getBagitName();
+
             return true;
         } catch (Exception e) {
+            logger.error("Unable to verify bag ", e);
             throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
     }

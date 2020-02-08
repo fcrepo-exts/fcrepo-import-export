@@ -305,7 +305,7 @@ public class ImporterTest {
         final FcrepoResponse badBinResponse = mock(FcrepoResponse.class);
         when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
+        when(badBinBuilder.digest(isA(String.class), isA(String.class))).thenReturn(badBinBuilder);
         when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
         when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
         when(badBinBuilder.preferLenient()).thenReturn(badBinBuilder);
@@ -319,7 +319,7 @@ public class ImporterTest {
         verify(client).put(badBinURI);
 
         // verify that the checksum from the manifest-sha1 file is used
-        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"));
+        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"), eq("sha1"));
     }
 
     @Test
