@@ -72,10 +72,11 @@ public class BagProfileTest {
             profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
 
         assertFalse(profile.isAllowFetch());
-        assertEquals("optional", profile.getSerialization());
+        assertEquals(BagProfile.Serialization.OPTIONAL, profile.getSerialization());
         assertTrue(profile.getAcceptedBagItVersions().contains("0.97"));
-        assertTrue(profile.getAcceptedSerializations().isEmpty());
-        assertTrue(profile.getTagFilesAllowed().isEmpty());
+        assertTrue(profile.getAcceptedBagItVersions().contains("1.0"));
+        assertTrue(profile.getAcceptedSerializations().contains("application/tar"));
+        assertTrue(profile.getTagFilesAllowed().contains("*"));
         assertTrue(profile.getTagFilesRequired().isEmpty());
         assertTrue(profile.getAllowedTagAlgorithms().isEmpty());
         assertTrue(profile.getAllowedPayloadAlgorithms().isEmpty());
