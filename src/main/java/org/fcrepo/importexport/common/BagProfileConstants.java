@@ -30,4 +30,8 @@ public abstract class BagProfileConstants {
     public static final String TAG_MANIFESTS_REQUIRED = "Tag-Manifests-Required";
     public static final String BAGIT_PROFILE_INFO = "BagIt-Profile-Info";
     public static final String OTHER_INFO = "Other-Info";
+
+    public static final String BAGIT_MD5 = "md5";
+    public static final String BAGIT_SHA1 = "sha1";
+    public static final String BAGIT_SHA_256 = "sha256";
 }

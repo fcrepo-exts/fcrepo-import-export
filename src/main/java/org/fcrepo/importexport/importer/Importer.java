@@ -23,6 +23,9 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_MD5;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA1;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA_256;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
@@ -91,6 +94,7 @@ import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.FcrepoConstants;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
@@ -856,7 +860,7 @@ public class Importer implements TransferProcess {
     public void readBagItManifest(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256, so we really only need to check against each of
         // md5, sha1, and sha256
-        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList("md5", "sha1", "sha256"));
+        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
         final Optional<Manifest> priorityManifest = bag.getPayLoadManifests().stream()
                .filter(manifest -> fcrepoSupported.contains(manifest.getAlgorithm().getBagitName()))
                .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2);
@@ -874,14 +878,14 @@ public class Importer implements TransferProcess {
         logger.debug("loaded checksum map: {}", bagItFileMap);
 
         switch(manifest.getAlgorithm().getBagitName()) {
-            case "md5":
-                this.digestAlgorithm = "md5";
+            case BAGIT_MD5:
+                this.digestAlgorithm = BAGIT_MD5;
                 break;
-            case "sha1":
+            case BAGIT_SHA1:
                 this.digestAlgorithm = "sha";
                 break;
-            case "sha256":
-                this.digestAlgorithm = "sha256";
+            case BAGIT_SHA_256:
+                this.digestAlgorithm = BAGIT_SHA_256;
                 break;
             default: throw new RuntimeException("Invalid state");
         }
@@ -896,9 +900,9 @@ public class Importer implements TransferProcess {
     private int manifestPriority(Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
         switch (bagItAlgorithm) {
-            case "md5": return 0;
-            case "sha1": return 1;
-            case "sha256": return 2;
+            case BAGIT_MD5: return 0;
+            case BAGIT_SHA1: return 1;
+            case BAGIT_SHA_256: return 2;
             default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }
