@@ -174,8 +174,8 @@ public class Importer implements TransferProcess {
                 final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
                 final BagProfile profile = new BagProfile(in);
 
-                verifyBag(bagDir.toPath(), profile);
-                confgureBagItFileMap(bag);
+                final Bag bag = verifyBag(bagDir.toPath(), profile);
+                configureBagItFileMap(bag);
             } catch (IOException e) {
                 // shouldn't happen but will handle separately
                 logger.error("Unable to open BagProfile for {}!", bagProfile, e);
