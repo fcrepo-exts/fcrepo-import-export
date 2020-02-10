@@ -90,7 +90,6 @@ import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.BagItDigest;
-import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -158,21 +157,9 @@ public class Importer implements TransferProcess {
         if (bagProfile == null) {
             this.bagItFileMap = null;
         } else {
-
-            try {
-                final File bagDir = config.getBaseDirectory().getParentFile();
-
-                // load the bag profile
-                final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
-                final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
-                final BagProfile profile = new BagProfile(in);
-
-                verifyBag(bagDir.toPath(), profile);
-            } catch (IOException e) {
-                // shouldn't happen but will handle separately
-                logger.error("Unable to open BagProfile for {}!", bagProfile, e);
-                throw new RuntimeException(e);
-            }
+            final File bagDir = config.getBaseDirectory().getParentFile();
+            final Bag bag = verifyBag(bagDir.toPath());
+            readBagItManifest(bag);
         }
     }
 
@@ -845,39 +832,45 @@ public class Importer implements TransferProcess {
      * Verify the bag we are going to import
      *
      * @param bagDir root directory of the bag
-     * @param profile the {@link BagProfile} to validate against
-     * @return true if valid
+     * @return the {@link Bag} if valid
      */
-    public boolean verifyBag(final Path bagDir, final BagProfile profile) {
+    public Bag verifyBag(final Path bagDir) {
         try {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
             // BagVerifier.isValid(bag, true);
-            profile.validateBag(bag);
 
-            // mutating so creating a new set
-            final List<Manifest> manifests = new ArrayList<>(bag.getPayLoadManifests());
-            // we know all manifests at this point are supported so... just get the best alg
-            manifests.sort((Manifest m1, Manifest m2) -> {
-                final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
-                final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
-                return m1Digest.getPriority() - m2Digest.getPriority();
-            });
-
-            final Manifest manifest = manifests.get(0);
-            final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
-            this.bagItFileMap = fileToChecksumMap.entrySet().stream()
-                                                 .collect(Collectors.toMap(
-                                                     entry -> entry.getKey().toAbsolutePath().toString(),
-                                                     Map.Entry::getValue));
-            logger.debug("loaded checksum map: {}", bagItFileMap);
-            this.bagItAlgorithm = manifest.getAlgorithm().getBagitName();
-
-            return true;
+            return bag;
         } catch (Exception e) {
             logger.error("Unable to verify bag ", e);
             throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
         }
+    }
+
+    /**
+     * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to populate the
+     * {@code bagItFileMap} and {@code bagItAlgorithm} for use when importing files into a fedora repository
+     *
+     * @param bag The {@link Bag} to read from
+     */
+    public void readBagItManifest(final Bag bag) {
+        // mutating so creating a new set
+        final List<Manifest> manifests = new ArrayList<>(bag.getPayLoadManifests());
+        // we know all manifests at this point are supported so... just get the best alg
+        manifests.sort((Manifest m1, Manifest m2) -> {
+            final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
+            final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
+            return m1Digest.getPriority() - m2Digest.getPriority();
+        });
+
+        final Manifest manifest = manifests.get(0);
+        final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+        this.bagItFileMap = fileToChecksumMap.entrySet().stream()
+                                             .collect(Collectors.toMap(
+                                                 entry -> entry.getKey().toAbsolutePath().toString(),
+                                                 Map.Entry::getValue));
+        logger.debug("loaded checksum map: {}", bagItFileMap);
+        this.bagItAlgorithm = manifest.getAlgorithm().getBagitName();
     }
 
     /**
