@@ -115,9 +115,11 @@ public class Exporter implements TransferProcess {
     private String bagProfileId;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
+    private MessageDigest sha512 = null;
     private MessageDigest md5 = null;
     private HashMap<File, String> sha1FileMap = null;
     private HashMap<File, String> sha256FileMap = null;
+    private HashMap<File, String> sha512FileMap = null;
     private HashMap<File, String> md5FileMap = null;
 
     private Logger exportLogger;
@@ -164,6 +166,11 @@ public class Exporter implements TransferProcess {
                     this.sha256FileMap = new HashMap<>();
                     this.sha256 = MessageDigest.getInstance("SHA-256");
                     algorithms.add("sha256");
+                }
+                if (bagProfile.getPayloadDigestAlgorithms().contains("sha512")) {
+                    this.sha512FileMap = new HashMap<>();
+                    this.sha512 = MessageDigest.getInstance("SHA-512");
+                    algorithms.add("sha512");
                 }
 
                 //enforce default metadata
@@ -242,6 +249,9 @@ public class Exporter implements TransferProcess {
                 bag.registerChecksums("sha1", sha1FileMap);
                 if (sha256 != null) {
                     bag.registerChecksums("sha256", sha256FileMap);
+                }
+                if (sha512 != null) {
+                    bag.registerChecksums("sha512", sha512FileMap);
                 }
                 if (md5 != null) {
                     bag.registerChecksums("md5", md5FileMap);
@@ -585,6 +595,9 @@ public class Exporter implements TransferProcess {
             if (sha256FileMap != null) {
                 sha256FileMap.put(file, new String(encodeHex(sha256.digest())));
             }
+            if (sha512FileMap != null) {
+                sha512FileMap.put(file, new String(encodeHex(sha512.digest())));
+            }
         }
 
         if (describedby != null) {
@@ -610,6 +623,9 @@ public class Exporter implements TransferProcess {
         if (sha256 != null) {
             sha256.reset();
         }
+        if (sha512 != null) {
+            sha512.reset();
+        }
 
         int read = 0;
         final byte[] buf = new byte[8192];
@@ -622,6 +638,9 @@ public class Exporter implements TransferProcess {
             }
             if (sha256 != null) {
                 sha256.update(buf, 0, read);
+            }
+            if (sha512 != null) {
+                sha512.update(buf, 0, read);
             }
             if (out != null) {
                 out.write(buf, 0, read);

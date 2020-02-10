@@ -155,6 +155,7 @@ public class BagWriter {
             MessageDigest md5 = null;
             MessageDigest sha1 = null;
             MessageDigest sha256 = null;
+            MessageDigest sha512 = null;
             if (algorithms.contains("md5")) {
                 md5 = MessageDigest.getInstance("MD5");
             }
@@ -163,6 +164,9 @@ public class BagWriter {
             }
             if (algorithms.contains("sha256")) {
                 sha256 = MessageDigest.getInstance("SHA-256");
+            }
+            if (algorithms.contains("sha512")) {
+                sha512 = MessageDigest.getInstance("SHA-512");
             }
 
             try (OutputStream out = new FileOutputStream(f)) {
@@ -180,12 +184,16 @@ public class BagWriter {
                     if (sha256 != null) {
                         sha256.update(bytes);
                     }
+                    if (sha512 != null) {
+                        sha512.update(bytes);
+                    }
                 }
             }
 
             addTagChecksum("md5", f, md5);
             addTagChecksum("sha1", f, sha1);
             addTagChecksum("sha256", f, sha256);
+            addTagChecksum("sha512", f, sha512);
         }
     }
 

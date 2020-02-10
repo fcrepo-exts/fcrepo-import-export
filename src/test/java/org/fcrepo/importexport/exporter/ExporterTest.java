@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -161,7 +162,7 @@ public class ExporterTest {
     }
 
     @Test
-    public void testExportBag() throws Exception, FcrepoOperationFailedException {
+    public void testExportBag() throws Exception {
         final String basedir = exportDirectory + "/2";
         final Config bagArgs = new Config();
         bagArgs.setMode("export");
@@ -170,7 +171,7 @@ public class ExporterTest {
         bagArgs.setPredicates(predicates);
         bagArgs.setRdfLanguage("application/ld+json");
         bagArgs.setResource(resource3);
-        bagArgs.setBagProfile("default");
+        bagArgs.setBagProfile("src/test/resources/profiles/profile.json");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
@@ -189,7 +190,33 @@ public class ExporterTest {
         Assert.assertTrue(baginfoLines.contains("Bag-Size: 113 bytes"));
         Assert.assertTrue(baginfoLines.contains("Payload-Oxum: 113.3"));
         Assert.assertTrue(baginfoLines.contains("Source-Organization: My University"));
-        Assert.assertTrue(new File(basedir + "/tagmanifest-sha1.txt").exists());
+
+        // verify all manifests are written and contain entries for the exported files
+        final String manifestFiles = ".*alt_description\\.jsonld|.*file1\\.binary|.*fcr%3Ametadata\\.jsonld";
+        final File md5Manifest = new File(basedir + "/manifest-md5.txt");
+        final File sha1Manifest = new File(basedir + "/manifest-sha1.txt");
+        final File sha256Manifest = new File(basedir + "/manifest-sha256.txt");
+        final File sha512Manifest = new File(basedir + "/manifest-sha512.txt");
+        Assert.assertTrue(md5Manifest.exists());
+        Assert.assertTrue(sha1Manifest.exists());
+        Assert.assertTrue(sha256Manifest.exists());
+        Assert.assertTrue(sha512Manifest.exists());
+        Assert.assertTrue(Files.lines(md5Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        Assert.assertTrue(Files.lines(sha1Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        Assert.assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        Assert.assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+
+        // verify all tag manifests are written
+        final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt";
+        final File sha1TagManifest = new File(basedir + "/tagmanifest-sha1.txt");
+        final File sha256TagManifest = new File(basedir + "/tagmanifest-sha256.txt");
+        final File sha512TagManifest = new File(basedir + "/tagmanifest-sha512.txt");
+        Assert.assertTrue(sha1TagManifest.exists());
+        Assert.assertTrue(sha256TagManifest.exists());
+        Assert.assertTrue(sha512TagManifest.exists());
+        Assert.assertTrue(Files.lines(sha1TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
+        Assert.assertTrue(Files.lines(sha256TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
+        Assert.assertTrue(Files.lines(sha512TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
     }
 
     @Test
