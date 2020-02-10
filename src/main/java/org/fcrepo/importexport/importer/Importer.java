@@ -76,7 +76,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -858,20 +857,17 @@ public class Importer implements TransferProcess {
     public void configureBagItFileMap(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
-        final Optional<Manifest> priorityManifest = bag.getPayLoadManifests().stream()
-               .filter(manifest -> fcrepoSupported.contains(manifest.getAlgorithm().getBagitName()))
-               .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2);
+        final Manifest manifest = bag.getPayLoadManifests().stream()
+               .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
+               .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
+               .orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
+                                                       "utility can use available algorithms are: " +
+                                                       StringUtils.join(fcrepoSupported, ",")));
 
-        final Manifest manifest =
-            priorityManifest.orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
-                                                                    "utility can use available algorithms are: " +
-                                                                    StringUtils.join(fcrepoSupported, ",")));
-
-        final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
-        this.bagItFileMap = fileToChecksumMap.entrySet().stream()
-                                             .collect(Collectors.toMap(
-                                                 entry -> entry.getKey().toAbsolutePath().toString(),
-                                                 Map.Entry::getValue));
+        this.bagItFileMap = manifest.getFileToChecksumMap().entrySet().stream()
+                                    .collect(Collectors.toMap(
+                                        entry -> entry.getKey().toAbsolutePath().toString(),
+                                        Map.Entry::getValue));
         logger.debug("loaded checksum map: {}", bagItFileMap);
 
         switch(manifest.getAlgorithm().getBagitName()) {
