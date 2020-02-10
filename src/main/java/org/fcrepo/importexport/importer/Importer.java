@@ -90,7 +90,6 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.BagItDigest;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -858,18 +857,9 @@ public class Importer implements TransferProcess {
         // The fcrepo-client-java only supports up to sha256, so we really only need to check against each of
         // md5, sha1, and sha256
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList("md5", "sha1", "sha256"));
-        final Optional<Manifest> priorityManifest =
-            bag.getPayLoadManifests().stream()
+        final Optional<Manifest> priorityManifest = bag.getPayLoadManifests().stream()
                .filter(manifest -> fcrepoSupported.contains(manifest.getAlgorithm().getBagitName()))
-               .reduce((m1, m2) -> {
-                   final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
-                   final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
-                   if (m1Digest.getPriority() > m2Digest.getPriority()) {
-                       return m1;
-                   }
-
-                   return m2;
-               });
+               .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2);
 
         final Manifest manifest =
             priorityManifest.orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
@@ -894,6 +884,22 @@ public class Importer implements TransferProcess {
                 this.digestAlgorithm = "sha256";
                 break;
             default: throw new RuntimeException("Invalid state");
+        }
+    }
+
+    /**
+     * Receive the priority for a given {@link Manifest} by its digest algorithm
+     *
+     * @param manifest the manifest to prioritize
+     * @return the weight of the algorithm
+     */
+    private int manifestPriority(Manifest manifest) {
+        final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
+        switch (bagItAlgorithm) {
+            case "md5": return 0;
+            case "sha1": return 1;
+            case "sha256": return 2;
+            default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }
 
