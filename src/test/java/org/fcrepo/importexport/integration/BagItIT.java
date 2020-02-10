@@ -194,8 +194,10 @@ public class BagItIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // Remove resource from any previously run ITs and verify it does not exist
-        removeAndReset(resourceURI);
-        assertFalse(exists(resourceURI));
+        if (exists(resourceURI)) {
+            removeAndReset(resourceURI);
+            assertFalse(exists(resourceURI));
+        }
 
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
