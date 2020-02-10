@@ -161,28 +161,6 @@ public interface TransferProcess {
     }
 
     /**
-     * Gets a Map of files and sha1 checksums from the BagIt manifest file.
-     *
-     * @param manifestFile the manifest file
-     * @param baseDir the base directory in the export package
-     * @return the map
-     */
-    public static Map<String, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
-        final Map<String, String> sha1FileMap = new HashMap<String, String>();
-        try (final Stream<String> stream = Files.lines(manifestFile)) {
-            stream.forEach(l -> {
-                final String[] manifestTokens = l.split(BAGIT_CHECKSUM_DELIMITER);
-                final File file = Paths.get(baseDir.toURI()).resolve(Paths.get(manifestTokens[1])).toFile();
-                final String checksum = manifestTokens[0].trim();
-                sha1FileMap.put(file.getAbsolutePath(), checksum);
-            });
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading manifest: " + manifestFile.toString(), e);
-        }
-        return sha1FileMap;
-    }
-
-    /**
      * Checks the response code and throws a RuntimeException with a helpful
      * message (when possible) for non 2xx codes.
      * @param response the response from a REST call to Fedora
