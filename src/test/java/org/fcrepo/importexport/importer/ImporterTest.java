@@ -319,7 +319,7 @@ public class ImporterTest {
         verify(client).put(badBinURI);
 
         // verify that the checksum from the manifest-sha1 file is used
-        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"), eq("sha1"));
+        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"), eq("sha"));
     }
 
     @Test

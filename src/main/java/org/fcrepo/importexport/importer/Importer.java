@@ -62,7 +62,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -74,6 +73,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -81,6 +81,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.loc.repository.bagit.domain.Manifest;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoLink;
@@ -127,7 +128,7 @@ public class Importer implements TransferProcess {
     private URI repositoryRoot = null;
 
     private Map<String, String> bagItFileMap;
-    private String bagItAlgorithm;
+    private String digestAlgorithm;
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -603,7 +604,7 @@ public class Importer implements TransferProcess {
                 logger.info("{}", binaryFile.getAbsolutePath());
                 final String checksum = bagItFileMap.get(binaryFile.getAbsolutePath());
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
-                builder = builder.digest(checksum, bagItAlgorithm);
+                builder = builder.digest(checksum, digestAlgorithm);
             } else {
                 builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
                                           .getObject().toString().replaceAll(".*:",""));
@@ -633,7 +634,7 @@ public class Importer implements TransferProcess {
             final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
             final String checksum = bagItFileMap.get(containerFile.getAbsolutePath());
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
-            builder = builder.digest(checksum, bagItAlgorithm);
+            builder = builder.digest(checksum, digestAlgorithm);
         }
 
         addInteractionModels(builder, headers);
@@ -849,28 +850,51 @@ public class Importer implements TransferProcess {
 
     /**
      * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to populate the
-     * {@code bagItFileMap} and {@code bagItAlgorithm} for use when importing files into a fedora repository
+     * {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files into a fedora repository
      *
      * @param bag The {@link Bag} to read from
      */
     public void readBagItManifest(final Bag bag) {
-        // mutating so creating a new set
-        final List<Manifest> manifests = new ArrayList<>(bag.getPayLoadManifests());
-        // we know all manifests at this point are supported so... just get the best alg
-        manifests.sort((Manifest m1, Manifest m2) -> {
-            final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
-            final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
-            return m1Digest.getPriority() - m2Digest.getPriority();
-        });
+        // The fcrepo-client-java only supports up to sha256, so we really only need to check against each of
+        // md5, sha1, and sha256
+        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList("md5", "sha1", "sha256"));
+        final Optional<Manifest> priorityManifest =
+            bag.getPayLoadManifests().stream()
+               .filter(manifest -> fcrepoSupported.contains(manifest.getAlgorithm().getBagitName()))
+               .reduce((m1, m2) -> {
+                   final BagItDigest m1Digest = BagItDigest.fromString(m1.getAlgorithm().getBagitName());
+                   final BagItDigest m2Digest = BagItDigest.fromString(m2.getAlgorithm().getBagitName());
+                   if (m1Digest.getPriority() > m2Digest.getPriority()) {
+                       return m1;
+                   }
 
-        final Manifest manifest = manifests.get(0);
+                   return m2;
+               });
+
+        final Manifest manifest =
+            priorityManifest.orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
+                                                                    "utility can use available  algorithms are: " +
+                                                                    StringUtils.join(fcrepoSupported, ",")));
+
         final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
         this.bagItFileMap = fileToChecksumMap.entrySet().stream()
                                              .collect(Collectors.toMap(
                                                  entry -> entry.getKey().toAbsolutePath().toString(),
                                                  Map.Entry::getValue));
         logger.debug("loaded checksum map: {}", bagItFileMap);
-        this.bagItAlgorithm = manifest.getAlgorithm().getBagitName();
+
+        switch(manifest.getAlgorithm().getBagitName()) {
+            case "md5":
+                this.digestAlgorithm = "md5";
+                break;
+            case "sha1":
+                this.digestAlgorithm = "sha";
+                break;
+            case "sha256":
+                this.digestAlgorithm = "sha256";
+                break;
+            default: throw new RuntimeException("Invalid state");
+        }
     }
 
     /**
