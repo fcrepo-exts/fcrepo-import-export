@@ -30,12 +30,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
