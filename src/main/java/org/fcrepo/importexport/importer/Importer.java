@@ -94,7 +94,6 @@ import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.FcrepoConstants;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
 import org.fcrepo.importexport.common.TransferProcess;
 
@@ -604,7 +603,6 @@ public class Importer implements TransferProcess {
 
             if (bagItFileMap != null) {
                 // Use the bagIt checksum
-                logger.info("{}", binaryFile.getAbsolutePath());
                 final String checksum = bagItFileMap.get(binaryFile.getAbsolutePath());
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
                 builder = builder.digest(checksum, digestAlgorithm);
@@ -853,13 +851,12 @@ public class Importer implements TransferProcess {
 
     /**
      * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to populate the
-     * {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files into a fedora repository
+     * {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files
      *
      * @param bag The {@link Bag} to read from
      */
     public void readBagItManifest(final Bag bag) {
-        // The fcrepo-client-java only supports up to sha256, so we really only need to check against each of
-        // md5, sha1, and sha256
+        // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
         final Optional<Manifest> priorityManifest = bag.getPayLoadManifests().stream()
                .filter(manifest -> fcrepoSupported.contains(manifest.getAlgorithm().getBagitName()))
@@ -867,7 +864,7 @@ public class Importer implements TransferProcess {
 
         final Manifest manifest =
             priorityManifest.orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
-                                                                    "utility can use available  algorithms are: " +
+                                                                    "utility can use available algorithms are: " +
                                                                     StringUtils.join(fcrepoSupported, ",")));
 
         final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
@@ -882,6 +879,7 @@ public class Importer implements TransferProcess {
                 this.digestAlgorithm = BAGIT_MD5;
                 break;
             case BAGIT_SHA1:
+                // fcrepo-client expects only "sha" for sha1 headers
                 this.digestAlgorithm = "sha";
                 break;
             case BAGIT_SHA_256:
@@ -897,7 +895,7 @@ public class Importer implements TransferProcess {
      * @param manifest the manifest to prioritize
      * @return the weight of the algorithm
      */
-    private int manifestPriority(Manifest manifest) {
+    private int manifestPriority(final Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
         switch (bagItAlgorithm) {
             case BAGIT_MD5: return 0;
