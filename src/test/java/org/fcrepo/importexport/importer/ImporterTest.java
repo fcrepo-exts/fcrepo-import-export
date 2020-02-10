@@ -342,6 +342,41 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportBagMultipleDigests() throws URISyntaxException, FcrepoOperationFailedException {
+        final URI imageBinaryURI  = new URI("http://example.org:9999/rest/image0");
+        final URI imageBinaryDescriptionURI = new URI("http://example.org:9999/rest/image0/fcr:metadata");
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory("src/test/resources/sample/bag-sha256");
+        config.setIncludeBinaries(true);
+        config.setRdfLanguage("application/ld+json");
+        config.setResource(new URI("http://example.org:9999/rest/"));
+        config.setMap(new String[] { "http://localhost:8080/rest/", "http://example.org:9999/rest/" });
+        config.setBagProfile("default");
+        config.setUsername("tester");
+
+        final PutBuilder imageBuilder = mock(PutBuilder.class);
+        final FcrepoResponse imageResponse = mock(FcrepoResponse.class);
+        when(client.put(isA(URI.class))).thenReturn(imageBuilder);
+        when(imageBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(imageBuilder);
+        when(imageBuilder.digest(isA(String.class), isA(String.class))).thenReturn(imageBuilder);
+        when(imageBuilder.filename(any())).thenReturn(imageBuilder);
+        when(imageBuilder.ifUnmodifiedSince(any())).thenReturn(imageBuilder);
+        when(imageBuilder.preferLenient()).thenReturn(imageBuilder);
+        when(imageBuilder.perform()).thenReturn(imageResponse);
+        when(imageResponse.getStatusCode()).thenReturn(201);
+        when(imageResponse.getLinkHeaders(eq("describedby"))).thenReturn(
+            Collections.singletonList(imageBinaryDescriptionURI));
+
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        verify(client).put(imageBinaryURI);
+        verify(imageBuilder, atLeastOnce()).digest(any(), eq("sha256"));
+    }
+
+    @Test
     public void testRepositoryRoot() throws FcrepoOperationFailedException {
         final Config config = new Config();
         config.setMode("import");
