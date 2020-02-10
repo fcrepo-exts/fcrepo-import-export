@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -45,32 +46,42 @@ public class BagProfileTest {
         assertTrue(profile.getTagDigestAlgorithms().contains("sha1"));
         assertFalse(profile.getTagDigestAlgorithms().contains("sha256"));
 
-        assertTrue(profile.getMetadataFields().keySet().contains("Source-Organization"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Organization-Address"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Contact-Name"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Contact-Phone"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Bag-Size"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Bagging-Date"));
-        assertTrue(profile.getMetadataFields().keySet().contains("Payload-Oxum"));
-        assertFalse(profile.getMetadataFields().keySet().contains("Contact-Email"));
+        assertTrue(profile.getMetadataFields().get("Source-Organization").isRequired());
+        assertTrue(profile.getMetadataFields().get("Organization-Address").isRequired());
+        assertTrue(profile.getMetadataFields().get("Contact-Name").isRequired());
+        assertTrue(profile.getMetadataFields().get("Contact-Phone").isRequired());
+        assertTrue(profile.getMetadataFields().get("Bag-Size").isRequired());
+        assertTrue(profile.getMetadataFields().get("Bagging-Date").isRequired());
+        assertTrue(profile.getMetadataFields().get("Payload-Oxum").isRequired());
+        assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
         assertFalse(
             profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+
+        assertFalse(profile.isAllowFetch());
+        assertEquals("optional", profile.getSerialization());
+        assertTrue(profile.getAcceptedBagItVersions().contains("0.97"));
+        assertTrue(profile.getAcceptedSerializations().isEmpty());
+        assertTrue(profile.getTagFilesAllowed().isEmpty());
+        assertTrue(profile.getTagFilesRequired().isEmpty());
+        assertTrue(profile.getAllowedTagAlgorithms().isEmpty());
+        assertTrue(profile.getAllowedPayloadAlgorithms().isEmpty());
     }
 
     @Test
     public void testExtendedProfile() throws Exception {
+        final String aptrustInfo = "APTrust-Info";
         final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
         assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
-        assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals("APTrust-Info")));
+        assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals(aptrustInfo)));
         assertFalse(profile.getSectionNames().stream().anyMatch(t -> t.equals("Wrong-Tags")));
-        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Title"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").keySet().contains("Access"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Consortia"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Institution"));
-        assertTrue(profile.getMetadataFields("APTrust-Info").get("Access").contains("Restricted"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Title"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Access"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Consortia"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Institution"));
+        assertTrue(profile.getMetadataFields(aptrustInfo).get("Access").getValues().contains("Restricted"));
 
     }
 

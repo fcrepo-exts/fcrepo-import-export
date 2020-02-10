@@ -18,6 +18,8 @@
 
 package org.fcrepo.importexport.common;
 
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,9 +42,13 @@ public class ProfileValidationUtilTest {
 
     private static final String FIELD2 = "field2";
 
-    private Map<String, Set<String>> rules;
+    private Map<String, ProfileFieldRule> rules;
 
     private LinkedHashMap<String, String> fields;
+
+    private static final boolean required = true;
+    private static final boolean repeatable = true;
+    private static final boolean recommended = false;
 
     @Before
     public void setup() {
@@ -52,7 +58,8 @@ public class ProfileValidationUtilTest {
         set.add("value1");
         set.add("value2");
         set.add("value3");
-        rules.put(FIELD1, set);
+        final ProfileFieldRule field = new ProfileFieldRule(required, repeatable, recommended, "", set);
+        rules.put(FIELD1, field);
     }
 
     @Test
@@ -76,7 +83,8 @@ public class ProfileValidationUtilTest {
     @Test
     public void testMultipleValidationErrorsInOneExceptionMessage() {
         fields.put(FIELD1, "invalidValue");
-        rules.put(FIELD2, null);
+        rules.put(FIELD2, new ProfileFieldRule(required, repeatable, recommended,
+                                               "field 2 should fail", Collections.emptySet()));
         fields.put("field3", "any value");
         try {
             ProfileValidationUtil.validate("profile-section", rules, fields);
@@ -98,6 +106,46 @@ public class ProfileValidationUtilTest {
 
         ProfileValidationUtil.validate("profile-section", rules, fields);
 
+    }
+
+    @Test
+    public void testGlobalTagMatch() throws ProfileValidationException {
+        final Set<String> allowedTags = Collections.singleton("**");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info/test-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testEmptyListValidates() throws ProfileValidationException {
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), Collections.emptySet());
+    }
+
+    @Test
+    public void testUniqueTagMatch() throws ProfileValidationException {
+        final Set<String> allowedTags = Collections.singleton("test-info.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+    }
+
+    @Test(expected = ProfileValidationException.class)
+    public void testTagIsNotAllowed() throws ProfileValidationException {
+        final Set<String> allowedTags = Collections.singleton("test-tag.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("test-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testSubDirectoryMatch() throws ProfileValidationException {
+        final Set<String> allowedTags = Collections.singleton("ddp-tags/test-*");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("ddp-tags/test-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("ddp-tags/test-extra-info.txt"), allowedTags);
+    }
+
+    @Test
+    public void testTagValidateIgnoresRequired() throws ProfileValidationException {
+        final Set<String> allowedTags = Collections.singleton("test-info.txt");
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("bag-info.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("bagit.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("manifest-md5.txt"), allowedTags);
+        ProfileValidationUtil.validateTagIsAllowed(Paths.get("tagmanifest-sha512.txt"), allowedTags);
     }
 
 }

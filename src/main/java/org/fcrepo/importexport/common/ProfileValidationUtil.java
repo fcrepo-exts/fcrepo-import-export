@@ -20,10 +20,14 @@ package org.fcrepo.importexport.common;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,6 +35,7 @@ import org.slf4j.Logger;
 /**
  * Utility methods for validating profiles.
  *
+ * @author mikejritter
  * @author dbernstein
  * @since Dec 14, 2016
  */
@@ -44,7 +49,9 @@ public class ProfileValidationUtil {
     protected static final Set<String> SYSTEM_GENERATED_FIELD_NAMES =
             new HashSet<>(Arrays.asList("Bagging-Date",
                                         "Bag-Size",
-                                        "Payload-Oxum"));
+                                        "Bag-Count",
+                                        "Payload-Oxum",
+                                        "BagIt-Profile-Identifier"));
 
     private ProfileValidationUtil() {
     }
@@ -58,30 +65,33 @@ public class ProfileValidationUtil {
      * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
      *         description of all validation errors found.
      */
-    public static void validate(final String profileSection, final Map<String, Set<String>> requiredFields,
-            final Map<String, String> fields) throws ProfileValidationException {
+    public static void validate(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
+                                final Map<String, String> fields) throws ProfileValidationException {
         if (requiredFields != null) {
             final StringBuilder errors = new StringBuilder();
 
-            for (String fieldName : requiredFields.keySet()) {
+            for (String requiredField : requiredFields.keySet()) {
                 // ignore validation on system generated fields
-                if (SYSTEM_GENERATED_FIELD_NAMES.contains(fieldName)) {
-                    logger.debug("skipping system generated field {}...", fieldName);
+                if (SYSTEM_GENERATED_FIELD_NAMES.contains(requiredField)) {
+                    logger.debug("skipping system generated field {}...", requiredField);
                     continue;
                 }
 
-                if (fields.containsKey(fieldName)) {
-                    final String value = fields.get(fieldName);
-                    final Set<String> validValues = requiredFields.get(fieldName);
+                final ProfileFieldRule rule = requiredFields.get(requiredField);
+                if (fields.containsKey(requiredField)) {
+                    final String value = fields.get(requiredField);
+                    final Set<String> validValues = rule.getValues();
                     if (validValues != null && !validValues.isEmpty()) {
                         if (!validValues.contains(value)) {
-                            errors.append("\"" + value + "\" is not valid for \"" + fieldName + "\". Valid values: " +
-                                    StringUtils.join(validValues, ",") + "\n");
+                            final String invalidMessage = "\"%s\" is not valid for \"%s\". Valid values: %s\n";
+                            errors.append(String.format(invalidMessage, value, requiredField,
+                                                        StringUtils.join(validValues, ",")));
                         }
                     }
-
-                } else {
-                    errors.append("\"" + fieldName + "\" is a required field.\n");
+                } else if (rule.isRequired()) {
+                    errors.append("\"" + requiredField + "\" is a required field.\n");
+                } else if (rule.isRecommended()) {
+                    logger.warn("{} does not contain the recommended field {}", profileSection, requiredField);
                 }
             }
 
@@ -92,6 +102,41 @@ public class ProfileValidationUtil {
             }
         }
 
+    }
+
+    /**
+     * Check if a given tag file is part of the allowed tags. Should not be used against non-tag files such as the
+     * manifests or bagit.txt.
+     *
+     * @param tag the tag file to check
+     * @param allowedTags the list of allowed tag files, with unix style globbing allowed
+     */
+    public static void validateTagIsAllowed(final Path tag, final Set<String> allowedTags)
+        throws ProfileValidationException {
+        if (tag != null && allowedTags != null && !allowedTags.isEmpty()) {
+            // sanity check against required BagIt files
+            final String systemFiles = "bagit\\.txt|bag-info\\.txt|manifest-.*|tagmanifest-.*";
+            if (Pattern.matches(systemFiles, tag.toString())) {
+                logger.warn("Tag validator used against required file {}; ignoring", tag);
+                return;
+            }
+
+            boolean match = false;
+            for (String allowedTag : allowedTags) {
+                final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + allowedTag);
+
+                if (matcher.matches(tag)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                throw new ProfileValidationException("Bag profile validation failure: tag " + tag +
+                                                     " is not allowed. List of allowed tag files are " +
+                                                     StringUtils.join(allowedTags, ","));
+            }
+        }
     }
 
 }

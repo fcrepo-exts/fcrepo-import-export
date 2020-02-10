@@ -31,16 +31,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.List;
 import java.util.UUID;
 
+import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -50,10 +52,21 @@ import org.slf4j.Logger;
  */
 public class BagItIT extends AbstractResourceIT {
 
-    @Test
-    public void testExportBag() throws Exception {
-        final String exampleID = UUID.randomUUID().toString();
-        final URI uri = URI.create(serverAddress + exampleID);
+    private final String apTrustProfile = "aptrust";
+    private final String btrProfile = "beyondtherepository";
+    private final String defaultConfig = "src/test/resources/configs/bagit-config.yml";
+    private final String btrConfig = "src/test/resources/configs/bagit-config-no-aptrust.yml";
+
+    /**
+     * Common ops for export
+     *
+     * @param id the id to assign to the bag
+     * @param bagProfile the bag profile to use
+     * @param bagConfig the path to the bag config for bag-info data
+     * @throws Exception
+     */
+    public void runExportBag(final String id, final String bagProfile, final String bagConfig) throws Exception {
+        final URI uri = URI.create(serverAddress + id);
 
         final FcrepoResponse response = create(uri);
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -61,7 +74,7 @@ public class BagItIT extends AbstractResourceIT {
 
         final Config config = new Config();
         config.setMode("export");
-        config.setBaseDirectory(TARGET_DIR + File.separator + exampleID);
+        config.setBaseDirectory(TARGET_DIR + File.separator + id);
         config.setIncludeBinaries(true);
         config.setResource(uri);
         config.setPredicates(new String[]{CONTAINS.toString()});
@@ -69,11 +82,11 @@ public class BagItIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(DEFAULT_BAG_PROFILE);
-        config.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+        config.setBagProfile(bagProfile);
+        config.setBagConfigPath(bagConfig);
         new Exporter(config, clientBuilder).run();
 
-        final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path target = Paths.get(TARGET_DIR, id);
         assertTrue(target.resolve("bagit.txt").toFile().exists());
         assertTrue(target.resolve("manifest-sha1.txt").toFile().exists());
 
@@ -100,6 +113,44 @@ public class BagItIT extends AbstractResourceIT {
     }
 
     @Test
+    public void testExportDefault() throws Exception {
+        final String exampleID = UUID.randomUUID().toString();
+        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/default.json"));
+    }
+
+    @Test
+    public void testExportApTrust() throws Exception {
+        final String exampleID = UUID.randomUUID().toString();
+        runExportBag(exampleID, apTrustProfile, defaultConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
+        assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/aptrust.json"));
+    }
+
+    @Test
+    public void testExportBeyondTheRepository() throws Exception {
+        final String exampleID = UUID.randomUUID().toString();
+        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
+        runExportBag(exampleID, btrProfile, btrConfig);
+
+        final Path target = Paths.get(TARGET_DIR, exampleID);
+        final Path bagInfo = target.resolve("bag-info.txt");
+        assertTrue(bagInfo.toFile().exists());
+        final List<String> bagInfoLines = Files.readAllLines(bagInfo);
+        assertTrue(bagInfoLines.contains(bagProfileId));
+    }
+
+    @Test
     public void testImportBag() throws Exception {
         final URI resourceURI = URI.create(serverAddress + "testBagImport");
         final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
@@ -119,6 +170,33 @@ public class BagItIT extends AbstractResourceIT {
         assertFalse(exists(resourceURI));
 
         // run import
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // Resource does exist.
+        assertTrue(exists(resourceURI));
+    }
+
+    @Test
+    public void testImportBeyondTheRepositoryBag() throws FcrepoOperationFailedException {
+        final URI resourceURI = URI.create(serverAddress + "testBagBtRImport");
+        final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(btrProfile);
+        config.setLegacy(true);
+
+        // Remove resource from any previously run ITs and verify it does not exist
+        removeAndReset(resourceURI);
+        assertFalse(exists(resourceURI));
+
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 

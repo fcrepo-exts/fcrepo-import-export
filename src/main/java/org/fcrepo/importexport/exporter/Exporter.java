@@ -83,6 +83,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.importexport.common.BagConfig;
 import org.fcrepo.importexport.common.BagProfile;
+import org.fcrepo.importexport.common.ProfileFieldRule;
 import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ProfileValidationException;
@@ -94,6 +95,7 @@ import org.slf4j.Logger;
 /**
  * Fedora Export Utility
  *
+ * @author mikejritter
  * @author lsitu
  * @author awoods
  * @author escowles
@@ -110,6 +112,7 @@ public class Exporter implements TransferProcess {
     private URI containerURI;
     private URI rdfSourceURI;
     private BagWriter bag;
+    private String bagProfileId;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
     private MessageDigest md5 = null;
@@ -165,6 +168,10 @@ public class Exporter implements TransferProcess {
 
                 //enforce default metadata
                 bagProfile.validateConfig(bagConfig);
+                final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
+
+                // the profile identifier must exist per the bagit-profiles spec
+                bagProfileId = profileMetadata.get("BagIt-Profile-Identifier");
 
                 // setup bag
                 final File bagdir = config.getBaseDirectory().getParentFile();
@@ -196,7 +203,7 @@ public class Exporter implements TransferProcess {
         return new BagConfig(bagConfigFile);
     }
 
-    protected void validateProfile(final String profileSection, final Map<String, Set<String>> requiredFields,
+    protected void validateProfile(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
             final Map<String, String> fields) throws ProfileValidationException {
         ProfileValidationUtil.validate(profileSection, requiredFields, fields);
     }
@@ -252,6 +259,7 @@ public class Exporter implements TransferProcess {
 
     private Map<String, String> bagTechMetadata() {
         final Map<String, String> metadata = new HashMap<>();
+        metadata.put("BagIt-Profile-Identifier", bagProfileId);
         metadata.put("Bag-Size", byteCountToDisplaySize(successBytes.longValue()));
         metadata.put("Payload-Oxum", successBytes.toString() + "." + successCount.toString());
         metadata.put("Bagging-Date", dateFormat.format(new Date()));

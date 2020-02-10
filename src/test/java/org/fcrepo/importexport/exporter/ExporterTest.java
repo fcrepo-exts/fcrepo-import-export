@@ -193,7 +193,7 @@ public class ExporterTest {
     }
 
     @Test
-    public void testExportApTrustBag() throws Exception, FcrepoOperationFailedException {
+    public void testExportApTrustBag() throws Exception {
         final Config bagArgs = createAptrustBagConfig();
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
@@ -234,6 +234,58 @@ public class ExporterTest {
         bagArgs.setResource(resource3);
         bagArgs.setBagProfile("aptrust");
         return bagArgs;
+    }
+
+    @Test
+    public void testExportBeyondTheRepositoryBag() throws IOException {
+        final String bagConfigPath = "src/test/resources/configs/bagit-config-no-aptrust.yml";
+        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
+
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(exportDirectory);
+        config.setIncludeBinaries(true);
+        config.setPredicates(predicates);
+        config.setRdfLanguage("application/ld+json");
+        config.setResource(resource3);
+        config.setBagProfile("beyondtherepository");
+        config.setBagConfigPath(bagConfigPath);
+
+        final ExporterWrapper exporter = new ExporterWrapper(config, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+
+        final File bagInfo = new File(exportDirectory + "/bag-info.txt");
+        Assert.assertTrue(bagInfo.exists());
+        final List<String> bagInfoLines = readLines(bagInfo, UTF_8);
+        Assert.assertTrue(bagInfoLines.contains("Bag-Size: 113 bytes"));
+        Assert.assertTrue(bagInfoLines.contains("Payload-Oxum: 113.3"));
+        Assert.assertTrue(bagInfoLines.contains("Source-Organization: My University"));
+        Assert.assertTrue(bagInfoLines.contains(bagProfileId));
+    }
+
+    @Test(expected = Exception.class)
+    public void testExportBeyondTheRepositoryBagValidationError() {
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(exportDirectory);
+        config.setIncludeBinaries(true);
+        config.setPredicates(predicates);
+        config.setRdfLanguage("application/ld+json");
+        config.setResource(resource3);
+        config.setBagProfile("beyondtherepository");
+        config.setBagConfigPath("src/test/resources/configs/bagit-config-missing-source-org.yml");
+
+        final ExporterWrapper exporter = new ExporterWrapper(config, clientBuilder);
+        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+        when(headResponse.getContentType()).thenReturn("image/tiff");
+        exporter.run();
     }
 
     @Test

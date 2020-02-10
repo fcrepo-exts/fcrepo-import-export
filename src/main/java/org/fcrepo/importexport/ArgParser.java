@@ -183,7 +183,8 @@ public class ArgParser {
                 .longOpt(BAG_PROFILE_OPTION_KEY).argName("profile")
                 .hasArg(true).numberOfArgs(1).argName("profile")
                 .required(false)
-                .desc("Export and import BagIt bags using profile [default|aptrust]")
+                .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|" +
+                      "beyondtherepository]")
                 .build());
 
         configOptions.addOption(Option.builder("G")
