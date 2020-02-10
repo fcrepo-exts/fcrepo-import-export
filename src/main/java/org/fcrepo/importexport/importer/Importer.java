@@ -842,8 +842,8 @@ public class Importer implements TransferProcess {
 
             return bag;
         } catch (Exception e) {
-            logger.error("Unable to verify bag ", e);
-            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
+            logger.error("Unable to read bag ", e);
+            throw new RuntimeException(String.format("Error reading bag: %s", e.getMessage()), e);
         }
     }
 
