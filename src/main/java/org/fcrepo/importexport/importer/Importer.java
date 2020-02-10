@@ -162,7 +162,7 @@ public class Importer implements TransferProcess {
         } else {
             final File bagDir = config.getBaseDirectory().getParentFile();
             final Bag bag = verifyBag(bagDir.toPath());
-            readBagItManifest(bag);
+            configureBagItFileMap(bag);
         }
     }
 
@@ -855,7 +855,7 @@ public class Importer implements TransferProcess {
      *
      * @param bag The {@link Bag} to read from
      */
-    public void readBagItManifest(final Bag bag) {
+    public void configureBagItFileMap(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
         final Optional<Manifest> priorityManifest = bag.getPayLoadManifests().stream()
@@ -885,7 +885,7 @@ public class Importer implements TransferProcess {
             case BAGIT_SHA_256:
                 this.digestAlgorithm = BAGIT_SHA_256;
                 break;
-            default: throw new RuntimeException("Invalid state");
+            default: throw new RuntimeException("Unsupported bagit algorithm!");
         }
     }
 
