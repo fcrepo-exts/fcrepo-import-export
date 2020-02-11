@@ -27,7 +27,10 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 /**
+ * Deserializer for {@link gov.loc.repository.bagit.domain.Bag}s serialized using zip
  *
+ * @author mikejritter
+ * @since 2020-02-011
  */
 public class ZipBagDeserializer implements BagDeserializer {
 

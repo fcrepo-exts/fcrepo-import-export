@@ -27,24 +27,32 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * sup
+ * Interface for common deserialization operations for {@link gov.loc.repository.bagit.domain.Bag}s. Each deserializer
+ * is instantiated independently of what it is working on so that only  {@link BagDeserializer#deserialize(Path)}
+ * needs to be called.
  *
+ * @author mikejritter
+ * @since 2020-02-11
  */
 public interface BagDeserializer {
 
     Logger logger = LoggerFactory.getLogger(BagDeserializer.class);
 
     /**
+     * Deserialize a {@link gov.loc.repository.bagit.domain.Bag} located at the give {@code path}. This will create a
+     * version of the bag in the parent directory of the given {@code path}.
      *
-     * @param path
-     * @throws IOException
+     * @param path the {@link Path} to the serialized version of a {@link gov.loc.repository.bagit.domain.Bag}
+     * @throws IOException if there are any errors deserializing the Bag
      */
     void deserialize(final Path path) throws IOException;
 
     /**
+     * Common {@link ArchiveEntry} extraction handling for Bags which are serialized with a format handled by the
+     * commons-compress library.
      *
-     * @param is
-     * @param parent
+     * @param is the {@link ArchiveInputStream}
+     * @param parent the parent directory of the serialized bag
      * @throws IOException
      */
     default void extract(final ArchiveInputStream is, final Path parent) throws IOException {

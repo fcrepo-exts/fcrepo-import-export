@@ -31,7 +31,10 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 /**
+ * Deserializer for bags which are serialized using tar+gzip
  *
+ * @author mikejritter
+ * @since 2020-02-11
  */
 public class GZipBagDeserializer implements BagDeserializer {
 

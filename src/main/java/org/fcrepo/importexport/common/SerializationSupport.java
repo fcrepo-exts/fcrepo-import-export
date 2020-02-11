@@ -25,7 +25,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ * Support class to retrieve {@link BagDeserializer}s from a mime type
  *
+ * @author mikejritter
+ * @since 2020-02-11
  */
 public class SerializationSupport {
 
@@ -38,10 +41,16 @@ public class SerializationSupport {
     }
 
     /**
+     * Get a {@link BagDeserializer} for a given content type. Currently supported are:
+     * zip - {@link ZipBagDeserializer}
+     * tar - {@link TarBagDeserializer}
+     * tar+gz - {@link GZipBagDeserializer}
      *
-     * @param contentType
-     * @param profile
-     * @return
+     * @param contentType the content type to get a {@link BagDeserializer} for
+     * @param profile the {@link BagProfile} to ensure that the content type is allowed
+     * @return the {@link BagDeserializer}
+     * @throws UnsupportedOperationException if the content type is not supported
+     * @throws RuntimeException if the {@link BagProfile} does not allow serialization
      */
     public static BagDeserializer deserializerFor(final String contentType, final BagProfile profile) {
         if (profile.getAcceptedSerializations().contains(contentType)) {
