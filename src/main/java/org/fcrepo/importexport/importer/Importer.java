@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -93,8 +94,11 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.BagDeserializer;
+import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
+import org.fcrepo.importexport.common.SerializationSupport;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
@@ -163,9 +167,29 @@ public class Importer implements TransferProcess {
         if (bagProfile == null) {
             this.bagItFileMap = null;
         } else {
-            final File bagDir = config.getBaseDirectory().getParentFile();
-            final Bag bag = verifyBag(bagDir.toPath());
-            configureBagItFileMap(bag);
+            try {
+                // load the bag profile
+                final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
+                final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
+                final BagProfile profile = new BagProfile(in);
+
+                final Path root;
+                final File bagDir = config.getBaseDirectory().getParentFile();
+                // if the given file is serialized (a single file), try to extract first
+                if ((profile.getSerialization().equals("optional") || profile.getSerialization().equals("required")) &&
+                    bagDir.isFile()) {
+                    final String contentType = Files.probeContentType(bagDir.toPath());
+                    BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+                    root = deserializer.deserialize(bagDir.toPath());
+                } else {
+                    root = bagDir.toPath();
+                }
+                final Bag bag = verifyBag(root, profile);
+                configureBagItFileMap(bag);
+            } catch (IOException e) {
+                logger.error("Unable to open BagProfile for {}!", bagProfile);
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -841,11 +865,6 @@ public class Importer implements TransferProcess {
      */
     private Bag verifyBag(final Path bagDir) {
         try {
-            if (profile.getSerialization().equalsIgnoreCase("optional")
-                || profile.getSerialization().equalsIgnoreCase("required")) {
-
-            }
-
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
 
