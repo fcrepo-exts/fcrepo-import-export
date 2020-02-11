@@ -167,6 +167,7 @@ public class ProfileValidationUtilTest {
         final Set<Manifest> manifests = Collections.singleton(manifest);
         final Set<String> constraints = Collections.singleton("sha1");
 
+        // check that no errors were returned
         Assert.assertTrue(ProfileValidationUtil.validateManifest(manifests, constraints, constraints, type).isEmpty());
         Assert.assertTrue(
             ProfileValidationUtil.validateManifest(manifests, constraints, Collections.emptySet(), type).isEmpty());
