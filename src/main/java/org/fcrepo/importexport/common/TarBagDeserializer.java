@@ -40,7 +40,7 @@ public class TarBagDeserializer implements BagDeserializer {
     }
 
     @Override
-    public void deserialize(final Path root) throws IOException {
+    public Path deserialize(final Path root) throws IOException {
         final String regex = "\\.tar";
         final Pattern pattern = Pattern.compile(regex);
         final Path parent = root.getParent();
@@ -52,5 +52,7 @@ public class TarBagDeserializer implements BagDeserializer {
         try (TarArchiveInputStream tais = new TarArchiveInputStream(Files.newInputStream(root))) {
             extract(tais, parent);
         }
+
+        return parent.resolve(trimmedName);
     }
 }

@@ -40,7 +40,7 @@ public class ZipBagDeserializer implements BagDeserializer {
     }
 
     @Override
-    public void deserialize(final Path root) throws IOException {
+    public Path deserialize(final Path root) throws IOException {
         final String regex = "\\.zip";
         final Pattern pattern = Pattern.compile(regex);
         final Path parent = root.getParent();
@@ -52,5 +52,7 @@ public class ZipBagDeserializer implements BagDeserializer {
         try (ZipArchiveInputStream inputStream = new ZipArchiveInputStream(Files.newInputStream(root))) {
             extract(inputStream, parent);
         }
+
+        return parent.resolve(trimmedName);
     }
 }

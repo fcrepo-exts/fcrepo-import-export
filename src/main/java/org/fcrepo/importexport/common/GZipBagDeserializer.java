@@ -44,7 +44,7 @@ public class GZipBagDeserializer implements BagDeserializer {
     }
 
     @Override
-    public void deserialize(final Path root) throws IOException {
+    public Path deserialize(final Path root) throws IOException {
         final String regex = "\\.tar.gz";
         final Pattern pattern = Pattern.compile(regex);
         final Path parent = root.getParent();
@@ -59,5 +59,7 @@ public class GZipBagDeserializer implements BagDeserializer {
             final ArchiveInputStream archiveIs = new TarArchiveInputStream(gzipIs);
             extract(archiveIs, parent);
         }
+
+        return parent.resolve(trimmedName);
     }
 }
