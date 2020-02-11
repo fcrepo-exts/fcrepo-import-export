@@ -110,8 +110,8 @@ public class BagProfile {
         loadProfileInfo(json);
 
         allowFetch = json.has(ALLOW_FETCH_TXT) ? json.get(ALLOW_FETCH_TXT).asBoolean() : true;
-        serialization = json.has(SERIALIZATION) ? Serialization.of(json.get("Serialization").asText())
-                                                  : Serialization.OPTIONAL;
+        serialization = json.has(SERIALIZATION) ? Serialization.of(json.get(SERIALIZATION).asText())
+                                                : Serialization.OPTIONAL;
 
         acceptedBagItVersions = arrayValues(json, ACCEPT_BAGIT_VERSION);
         acceptedSerializations = arrayValues(json, ACCEPT_SERIALIZATION);
