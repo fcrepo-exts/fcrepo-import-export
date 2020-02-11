@@ -425,7 +425,7 @@ public class BagProfile {
     public void validateProfile() {
         final StringBuilder errors = new StringBuilder();
 
-        // Bag-Info
+        // Bag-Profile-Info
         final List<String> expectedInfoFields = Arrays.asList("Source-Organization", "External-Description", "Version",
                                                               "BagIt-Profile-Identifier", "BagIt-Profile-Version");
         final Map<String, String> bagInfo = getProfileMetadata();
