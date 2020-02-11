@@ -79,7 +79,9 @@ public class ProfileValidationUtil {
     }
 
     /**
-     * Validates the {@code fields} against a set of {@code requiredFields} and their constrained values.
+     * Validates the {@code fields} against a set of {@code requiredFields} and their constrained values. This is
+     * intended to be used in conjunction with {@link BagConfig} and will filter on certain fields defined by the
+     * {@code SYSTEM_GENERATED_FIELD_NAMES} constant.
      *
      * @param profileSection describes the section of the profile that is being validated.
      * @param requiredFields the required fields and associated rule
@@ -193,8 +195,7 @@ public class ProfileValidationUtil {
             // sanity check against required BagIt files
             final String systemFiles = "bagit\\.txt|bag-info\\.txt|manifest-.*|tagmanifest-.*";
             if (Pattern.matches(systemFiles, tag.toString())) {
-                // debug?
-                logger.warn("Tag validator used against required file {}; ignoring", tag);
+                logger.debug("Tag validator used against required file {}; ignoring", tag);
                 return;
             }
 
