@@ -124,9 +124,6 @@ public class BagProfile {
 
         payloadDigestAlgorithms = arrayValues(json, MANIFESTS_REQUIRED);
         tagDigestAlgorithms = arrayValues(json, TAG_MANIFESTS_REQUIRED);
-        if (tagDigestAlgorithms == null) {
-            tagDigestAlgorithms = payloadDigestAlgorithms;
-        }
 
         metadataFields.put(BAG_INFO_FIELDNAME, metadataFields(json, BAG_INFO_FIELDNAME));
         sections.add(BAG_INFO_FIELDNAME);
@@ -196,7 +193,7 @@ public class BagProfile {
             boolean repeatable = true;
             boolean recommended = false;
             String description = "No description";
-            Set<String> values = Collections.emptySet();
+            final Set<String> values;
 
             final String name = it.next();
             final JsonNode field = fields.get(name);
@@ -223,8 +220,7 @@ public class BagProfile {
                 description = descriptionNode.asText();
             }
 
-            final Set<String> readValues = arrayValues(field, "values");
-            values = readValues == null ? values : readValues;
+            values = arrayValues(field, "values");
 
             results.put(name, new ProfileFieldRule(required, repeatable, recommended, description, values));
         }
