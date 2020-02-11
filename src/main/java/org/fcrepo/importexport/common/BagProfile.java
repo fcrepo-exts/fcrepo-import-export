@@ -179,7 +179,7 @@ public class BagProfile {
      * Loads required tags and allowed values
      *
      * @param json json to parse
-     * @param key  key in json to load tags from
+     * @param key key in json to load tags from
      * @return map of tags => set of allowed values
      */
     private static Map<String, ProfileFieldRule> metadataFields(final JsonNode json, final String key) {
