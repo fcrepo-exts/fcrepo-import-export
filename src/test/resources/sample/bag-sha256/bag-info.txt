@@ -1,3 +1,4 @@
-Bag-Size : 19 KB
-Payload-Oxum : 19156.3
-Bagging-Date : 2020-02-10
+Bag-Size: 19 KB
+Payload-Oxum: 19156.3
+Bagging-Date: 2020-02-10
+Source-Organization: fcrepo-import-export
