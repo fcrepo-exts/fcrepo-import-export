@@ -184,7 +184,7 @@ public class Importer implements TransferProcess {
                 } else {
                     root = bagDir.toPath();
                 }
-                final Bag bag = verifyBag(root, profile);
+                final Bag bag = verifyBag(root);
                 configureBagItFileMap(bag);
             } catch (IOException e) {
                 logger.error("Unable to open BagProfile for {}!", bagProfile);
