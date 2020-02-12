@@ -27,10 +27,10 @@ import java.nio.file.Paths;
 import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.tika.Tika;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class BagDeserializerTest {
@@ -97,12 +97,12 @@ public class BagDeserializerTest {
     }
 
     @Test
-    @Ignore
     public void testExtractGZip() {
         final String serializedBag = expectedDir + ".tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);
+        final Tika tika = new Tika();
         try {
-            final String contentType = Files.probeContentType(path);
+            final String contentType = tika.detect(path);
             final BagProfile profile = new BagProfile(Files.newInputStream(
                     Paths.get(BEYONDTHEREPOSITORY_JSON)));
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);

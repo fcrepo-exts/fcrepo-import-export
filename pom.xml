@@ -39,7 +39,11 @@
   </properties>
 
   <dependencies>
-
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>1.23</version>
+    </dependency>
     <dependency>
       <groupId>org.fcrepo.client</groupId>
       <artifactId>fcrepo-java-client</artifactId>
