@@ -1,11 +1,12 @@
 {
    "BagIt-Profile-Info":{
       "BagIt-Profile-Identifier":"http://fedora.info/bagprofile/aptrust.json",
+      "BagIt-Profile-Version":"1.3.0",
       "Source-Organization":"Duraspace",
       "Contact-Name":"Esmé Cowles",
       "Contact-Email":"escowles@ticklefish.org",
       "External-Description":"Bag Profile for Fedora and APTrust.",
-      "Version":"1.2"
+      "Version":"2.2"
    },
    "Bag-Info":{
       "Source-Organization":{
@@ -59,21 +60,43 @@
          "Access":{
             "required":true,
             "values":["Consortia","Institution","Restricted"]
+         },
+         "Storage-Option": {
+            "required": true,
+            "values": [
+               "Standard",
+               "Glacier-OH",
+               "Glacier-OR",
+               "Glacier-VA",
+               "Glacier-Deep-OH",
+               "Glacier-Deep-OR",
+               "Glacier-Deep-VA"
+            ]
          }
       }}
    ],
    "Manifests-Required":[
       "md5"
    ],
+   "Manifests-Allowed": [
+      "md5", "sha256"
+   ],
    "Allow-Fetch.txt":false,
    "Serialization":"optional",
+   "Accept-Serialization":[
+      "application/tar"
+   ],
    "Tag-Files-Required":[
      "aptrust-info.txt"
    ],
    "Tag-Manifests-Required":[
-     "sha1"
+     "md5"
+   ],
+   "Tag-Manifests-Allowed":[
+     "md5", "sha256"
    ],
    "Accept-BagIt-Version":[
-      "0.97"
+      "0.97",
+      "1.0"
    ]
 }
