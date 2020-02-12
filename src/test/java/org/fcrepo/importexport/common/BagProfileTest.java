@@ -178,5 +178,4 @@ public class BagProfileTest {
         profile.validateProfile();
     }
 
-
 }

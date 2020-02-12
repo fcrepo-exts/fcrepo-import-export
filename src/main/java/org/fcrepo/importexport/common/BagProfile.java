@@ -193,7 +193,6 @@ public class BagProfile {
             boolean repeatable = true;
             boolean recommended = false;
             String description = "No description";
-            final Set<String> values;
 
             final String name = it.next();
             final JsonNode field = fields.get(name);
@@ -220,7 +219,7 @@ public class BagProfile {
                 description = descriptionNode.asText();
             }
 
-            values = arrayValues(field, "values");
+            final Set<String> values = arrayValues(field, "values");
 
             results.put(name, new ProfileFieldRule(required, repeatable, recommended, description, values));
         }
@@ -483,8 +482,7 @@ public class BagProfile {
      *                        {@code superCollection}
      * @param superCollection the super collection containing all the elements
      * @param <T>             the type of each collection
-     * @return true if {@code superCollection} is empty or if all elements of {@code subCollection} are contained within
-     * {@code superCollection}
+     * @return true if all elements of {@code subCollection} are contained within {@code superCollection}
      */
     private <T> boolean isSubset(final Collection<T> subCollection, final Collection<T> superCollection) {
         for (T t : subCollection) {
