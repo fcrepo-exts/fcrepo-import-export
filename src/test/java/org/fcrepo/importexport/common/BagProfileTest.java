@@ -145,7 +145,6 @@ public class BagProfileTest {
 
     @Test
     public void testAllProfilesPassValidation() throws IOException {
-        // TODO: the provided bag profiles need to be updated in order to pass validation
         final Path profiles = Paths.get("src/main/resources/profiles");
 
         Files.list(profiles).forEach(path -> {
