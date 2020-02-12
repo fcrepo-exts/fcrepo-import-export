@@ -175,7 +175,6 @@ public class BagProfileTest {
             Assert.assertTrue(message.contains("Accept-Serialization"));
             Assert.assertTrue(message.contains("Manifests-Required"));
             Assert.assertTrue(message.contains("Tag-Manifests-Required"));
-            Assert.assertTrue(message.contains("Tag-Manifests-Required"));
             Assert.assertTrue(message.contains("Tag-Files-Required"));
             Assert.assertTrue(message.contains("Accept-BagIt-Version"));
         }
