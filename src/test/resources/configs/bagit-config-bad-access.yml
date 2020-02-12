@@ -12,3 +12,4 @@ bag-info.txt:
 aptrust-info.txt:
   Access: Invalid
   Title: Sample APTrust bag
+  Storage-Option: Standard

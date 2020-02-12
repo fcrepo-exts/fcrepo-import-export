@@ -11,3 +11,4 @@ bag-info.txt:
   Internal-Sender-Description: ???
 aptrust-info.txt:
   Title: Sample APTrust bag
+  Storage-Option: Standard

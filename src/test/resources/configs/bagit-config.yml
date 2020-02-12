@@ -12,3 +12,4 @@ bag-info.txt:
 aptrust-info.txt:
   Access: Restricted
   Title: My Title
+  Storage-Option: Standard
