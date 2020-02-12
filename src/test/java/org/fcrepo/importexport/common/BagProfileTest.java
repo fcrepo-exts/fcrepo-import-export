@@ -163,18 +163,37 @@ public class BagProfileTest {
 
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testInvalidBagProfile() throws IOException {
         final File profileFile = new File("src/test/resources/profiles/invalidProfile.json");
         final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
-        profile.validateProfile();
+        try {
+            profile.validateProfile();
+            Assert.fail("Should throw an exception");
+        } catch (RuntimeException e) {
+            final String message = e.getMessage();
+            Assert.assertTrue(message.contains("BagIt-Profile-Info"));
+            Assert.assertTrue(message.contains("BagIt-Profile-Identifier"));
+            Assert.assertTrue(message.contains("Accept-Serialization"));
+            Assert.assertTrue(message.contains("Manifests-Required"));
+            Assert.assertTrue(message.contains("Tag-Manifests-Required"));
+            Assert.assertTrue(message.contains("Tag-Manifests-Required"));
+            Assert.assertTrue(message.contains("Tag-Files-Required"));
+            Assert.assertTrue(message.contains("Accept-BagIt-Version"));
+        }
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testInvalidBagProfileSerializationTypo() throws IOException {
         final File profileFile = new File("src/test/resources/profiles/invalidProfileSerializationError.json");
         final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
-        profile.validateProfile();
+        try {
+            profile.validateProfile();
+            Assert.fail("Should throw an exception");
+        } catch (RuntimeException e) {
+            final String message = e.getMessage();
+            Assert.assertTrue(message.contains("Unknown Serialization"));
+        }
     }
 
 }
