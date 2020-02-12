@@ -163,6 +163,7 @@ public class BagProfileTest {
 
     @Test
     public void testInvalidBagProfile() throws IOException {
+        final String bagItProfileId = "BagIt-Profile-Identifier";
         final File profileFile = new File("src/test/resources/profiles/invalidProfile.json");
         final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
         try {
@@ -170,13 +171,14 @@ public class BagProfileTest {
             Assert.fail("Should throw an exception");
         } catch (RuntimeException e) {
             final String message = e.getMessage();
-            Assert.assertTrue(message.contains("BagIt-Profile-Info"));
-            Assert.assertTrue(message.contains("BagIt-Profile-Identifier"));
-            Assert.assertTrue(message.contains("Accept-Serialization"));
-            Assert.assertTrue(message.contains("Manifests-Required"));
-            Assert.assertTrue(message.contains("Tag-Manifests-Required"));
-            Assert.assertTrue(message.contains("Tag-Files-Required"));
-            Assert.assertTrue(message.contains("Accept-BagIt-Version"));
+            // check that the error message contains each failed section
+            Assert.assertTrue(message.contains(BagProfileConstants.BAGIT_PROFILE_INFO));
+            Assert.assertTrue(message.contains(bagItProfileId));
+            Assert.assertTrue(message.contains(BagProfileConstants.ACCEPT_SERIALIZATION));
+            Assert.assertTrue(message.contains(BagProfileConstants.MANIFESTS_REQUIRED));
+            Assert.assertTrue(message.contains(BagProfileConstants.TAG_MANIFESTS_REQUIRED));
+            Assert.assertTrue(message.contains(BagProfileConstants.TAG_FILES_REQUIRED));
+            Assert.assertTrue(message.contains(BagProfileConstants.ACCEPT_BAGIT_VERSION));
         }
     }
 
@@ -189,6 +191,7 @@ public class BagProfileTest {
             Assert.fail("Should throw an exception");
         } catch (RuntimeException e) {
             final String message = e.getMessage();
+            // check that the serialization field failed to parse
             Assert.assertTrue(message.contains("Unknown Serialization"));
         }
     }
