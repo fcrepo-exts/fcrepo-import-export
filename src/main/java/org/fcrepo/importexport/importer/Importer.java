@@ -861,7 +861,7 @@ public class Importer implements TransferProcess {
                .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
                .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
                .orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
-                                                       "utility can use available algorithms are: " +
+                                                       "utility can use! Available algorithms are: " +
                                                        StringUtils.join(fcrepoSupported, ",")));
 
         this.bagItFileMap = manifest.getFileToChecksumMap().entrySet().stream()
@@ -886,10 +886,10 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * Receive the priority for a given {@link Manifest} by its digest algorithm
+     * Receive the priority for a given {@link Manifest} based on its digest algorithm
      *
      * @param manifest the manifest to prioritize
-     * @return the weight of the algorithm
+     * @return the priority of the digest algorithm
      */
     private int manifestPriority(final Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
