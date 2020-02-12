@@ -11,14 +11,6 @@
     "Bagging-Date": {"required": false},
     "Payload-Oxum": {"required": false}
   },
-  "Manifests-Required": [],
-  "Manifests-Allowed": [],
-  "Allow-Fetch.txt": false,
   "Serialization": "typo",
-  "Accept-Serialization": [],
-  "Tag-Manifests-Required": [],
-  "Tag-Manifests-Allowed": [],
-  "Tag-Files-Required": [],
-  "Tag-Files-Allowed": [],
-  "Accept-BagIt-Version": []
+  "Accept-BagIt-Version": ["1.0"]
 }
