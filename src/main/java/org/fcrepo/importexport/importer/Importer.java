@@ -181,6 +181,8 @@ public class Importer implements TransferProcess {
                     final String contentType = Files.probeContentType(bagDir.toPath());
                     BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
                     root = deserializer.deserialize(bagDir.toPath());
+                    // update the base directory so we don't attempt to work on the serialized bag later
+                    config.setBaseDirectory(root.toString());
                 } else {
                     root = bagDir.toPath();
                 }
