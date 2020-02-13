@@ -178,8 +178,7 @@ public class Importer implements TransferProcess {
                 // if the given file is serialized (a single file), try to extract first
                 if ((profile.getSerialization().equals("optional") || profile.getSerialization().equals("required")) &&
                     bagDir.isFile()) {
-                    final String contentType = Files.probeContentType(bagDir.toPath());
-                    BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+                    final BagDeserializer deserializer = SerializationSupport.deserializerFor(bagDir.toPath(), profile);
                     root = deserializer.deserialize(bagDir.toPath());
                     // update the base directory so we don't attempt to work on the serialized bag later
                     config.setBaseDirectory(root.toString());

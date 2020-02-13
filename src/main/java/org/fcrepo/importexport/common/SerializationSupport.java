@@ -18,7 +18,12 @@
 package org.fcrepo.importexport.common;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tika.Tika;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,6 +36,8 @@ import java.util.Set;
  * @since 2020-02-11
  */
 public class SerializationSupport {
+
+    private static final Logger logger = LoggerFactory.getLogger(SerializationSupport.class);
 
     public static final Set<String> ZIP_TYPES = Collections.singleton("application/zip");
     public static final Set<String> TAR_TYPES = new HashSet<>(Arrays.asList("application/tar", "application/x-tar"));
@@ -46,13 +53,24 @@ public class SerializationSupport {
      * tar - {@link TarBagDeserializer}
      * tar+gz - {@link GZipBagDeserializer}
      *
-     * @param contentType the content type to get a {@link BagDeserializer} for
+     * @param serializedBag the Bag (still serialized) to get a {@link BagDeserializer} for
      * @param profile the {@link BagProfile} to ensure that the content type is allowed
      * @return the {@link BagDeserializer}
      * @throws UnsupportedOperationException if the content type is not supported
      * @throws RuntimeException if the {@link BagProfile} does not allow serialization
      */
-    public static BagDeserializer deserializerFor(final String contentType, final BagProfile profile) {
+    public static BagDeserializer deserializerFor(final Path serializedBag, final BagProfile profile) {
+        final Tika tika = new Tika();
+        final String contentType;
+
+        try {
+            contentType = tika.detect(serializedBag);
+            logger.debug("{}: {}", serializedBag, contentType);
+        } catch (IOException e) {
+            logger.error("Unable to get content type for {}", serializedBag);
+            throw new RuntimeException(e);
+        }
+
         if (profile.getAcceptedSerializations().contains(contentType)) {
             if (ZIP_TYPES.contains(contentType)) {
                 return new ZipBagDeserializer();

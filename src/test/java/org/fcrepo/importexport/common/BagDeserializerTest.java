@@ -27,7 +27,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.tika.Tika;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,10 +58,8 @@ public class BagDeserializerTest {
         final String serializedBag = expectedDir + ".zip";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
-            final String contentType = Files.probeContentType(path);
-            final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+            final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
@@ -80,10 +77,8 @@ public class BagDeserializerTest {
         final String serializedBag = expectedDir + ".tar";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
-            final String contentType = Files.probeContentType(path);
-            final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+            final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
@@ -100,12 +95,9 @@ public class BagDeserializerTest {
     public void testExtractGZip() {
         final String serializedBag = expectedDir + ".tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);
-        final Tika tika = new Tika();
         try {
-            final String contentType = tika.detect(path);
-            final BagProfile profile = new BagProfile(Files.newInputStream(
-                    Paths.get(BEYONDTHEREPOSITORY_JSON)));
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(contentType, profile);
+            final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
