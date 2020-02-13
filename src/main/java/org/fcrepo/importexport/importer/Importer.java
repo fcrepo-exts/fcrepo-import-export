@@ -174,7 +174,7 @@ public class Importer implements TransferProcess {
                 final BagProfile profile = new BagProfile(in);
 
                 final Path root;
-                final File bagDir = config.getBaseDirectory().getParentFile();
+                final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
                 // if the given file is serialized (a single file), try to extract first
                 if ((profile.getSerialization().equals("optional") || profile.getSerialization().equals("required")) &&
                     bagDir.isFile()) {
