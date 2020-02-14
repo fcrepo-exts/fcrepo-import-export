@@ -835,7 +835,7 @@ public class Importer implements TransferProcess {
      * @param bagDir root directory of the bag
      * @return the {@link Bag} if valid
      */
-    public Bag verifyBag(final Path bagDir) {
+    private Bag verifyBag(final Path bagDir) {
         try {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
@@ -854,7 +854,7 @@ public class Importer implements TransferProcess {
      *
      * @param bag The {@link Bag} to read from
      */
-    public void configureBagItFileMap(final Bag bag) {
+    private void configureBagItFileMap(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
         final Manifest manifest = bag.getPayLoadManifests().stream()
