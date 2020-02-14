@@ -92,9 +92,9 @@ public class SerializationSupport {
 
     /**
      * Get a {@link BagDeserializer} for a given content type. Currently supported are:
-     * zip - {@link SerializationSupport#ZIP_TYPES} -> {@link ZipBagDeserializer}
-     * tar - {@link SerializationSupport#TAR_TYPES} -> {@link TarBagDeserializer}
-     * tar+gz - {@link SerializationSupport#GZIP_TYPES} -> {@link GZipBagDeserializer}
+     * zip ({@link SerializationSupport#ZIP_TYPES}) - {@link ZipBagDeserializer}
+     * tar ({@link SerializationSupport#TAR_TYPES}) - {@link TarBagDeserializer}
+     * tar+gz ({@link SerializationSupport#GZIP_TYPES}) - {@link GZipBagDeserializer}
      *
      * @param serializedBag the Bag (still serialized) to get a {@link BagDeserializer} for
      * @param profile the {@link BagProfile} to ensure that the content type is allowed
