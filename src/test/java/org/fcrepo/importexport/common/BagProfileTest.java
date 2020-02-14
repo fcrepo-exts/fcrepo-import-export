@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -72,7 +73,7 @@ public class BagProfileTest {
         assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
         assertFalse(
-            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(FcrepoConstants.BAG_INFO_FIELDNAME)).count() > 0);
+            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
 
         assertFalse(profile.isAllowFetch());
         assertEquals(BagProfile.Serialization.OPTIONAL, profile.getSerialization());
@@ -91,8 +92,7 @@ public class BagProfileTest {
         final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
-        assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(
-            FcrepoConstants.BAG_INFO_FIELDNAME)).count() > 0);
+        assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
         assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals(aptrustInfo)));
         assertFalse(profile.getSectionNames().stream().anyMatch(t -> t.equals("Wrong-Tags")));
         assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Title"));
