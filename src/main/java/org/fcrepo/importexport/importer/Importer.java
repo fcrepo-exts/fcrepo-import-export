@@ -128,6 +128,9 @@ public class Importer implements TransferProcess {
     private final List<URI> importedResources = new ArrayList<>();
     private URI repositoryRoot = null;
 
+    /**
+     * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's payload manifest
+      */
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
 
