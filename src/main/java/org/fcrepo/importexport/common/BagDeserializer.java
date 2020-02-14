@@ -54,7 +54,7 @@ public interface BagDeserializer {
      *
      * @param is the {@link ArchiveInputStream}
      * @param parent the parent directory of the serialized bag
-     * @throws IOException
+     * @throws IOException if there is an error creating a directory or file when extracting the archive
      */
     default void extract(final ArchiveInputStream is, final Path parent) throws IOException {
         ArchiveEntry entry;
@@ -67,7 +67,11 @@ public interface BagDeserializer {
             if (entry.isDirectory()) {
                 Files.createDirectories(archiveFile);
             } else {
-                Files.copy(is, archiveFile);
+                if (Files.exists(parent.resolve(name))) {
+                    logger.warn("File {} already exists!", name);
+                } else{
+                    Files.copy(is, archiveFile);
+                }
             }
         }
     }
