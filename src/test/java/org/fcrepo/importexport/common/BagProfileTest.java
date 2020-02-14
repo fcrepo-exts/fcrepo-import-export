@@ -17,7 +17,6 @@
  */
 package org.fcrepo.importexport.common;
 
-import static org.fcrepo.importexport.common.FcrepoConstants.BAG_INFO_FIELDNAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -73,7 +72,7 @@ public class BagProfileTest {
         assertFalse(profile.getMetadataFields().get("Contact-Email").isRequired());
 
         assertFalse(
-            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+            profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(FcrepoConstants.BAG_INFO_FIELDNAME)).count() > 0);
 
         assertFalse(profile.isAllowFetch());
         assertEquals(BagProfile.Serialization.OPTIONAL, profile.getSerialization());
@@ -92,7 +91,8 @@ public class BagProfileTest {
         final File testFile = new File("src/test/resources/profiles/profileWithExtraTags.json");
         final BagProfile profile = new BagProfile(new FileInputStream(testFile));
 
-        assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(BAG_INFO_FIELDNAME)).count() > 0);
+        assertTrue(profile.getSectionNames().stream().filter(t -> !t.equalsIgnoreCase(
+            FcrepoConstants.BAG_INFO_FIELDNAME)).count() > 0);
         assertTrue(profile.getSectionNames().stream().anyMatch(t -> t.equals(aptrustInfo)));
         assertFalse(profile.getSectionNames().stream().anyMatch(t -> t.equals("Wrong-Tags")));
         assertTrue(profile.getMetadataFields(aptrustInfo).containsKey("Title"));
@@ -168,7 +168,6 @@ public class BagProfileTest {
 
     @Test
     public void testInvalidBagProfile() throws IOException {
-        final String bagItProfileId = "BagIt-Profile-Identifier";
         final File profileFile = new File("src/test/resources/profiles/invalidProfile.json");
         final BagProfile profile = new BagProfile(new FileInputStream(profileFile));
         try {
@@ -178,7 +177,7 @@ public class BagProfileTest {
             final String message = e.getMessage();
             // check that the error message contains each failed section
             Assert.assertTrue(message.contains(BagProfileConstants.BAGIT_PROFILE_INFO));
-            Assert.assertTrue(message.contains(bagItProfileId));
+            Assert.assertTrue(message.contains(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER));
             Assert.assertTrue(message.contains(BagProfileConstants.ACCEPT_SERIALIZATION));
             Assert.assertTrue(message.contains(BagProfileConstants.MANIFESTS_REQUIRED));
             Assert.assertTrue(message.contains(BagProfileConstants.TAG_MANIFESTS_REQUIRED));
@@ -236,8 +235,11 @@ public class BagProfileTest {
         final StringBuilder errors = new StringBuilder();
 
         // Bag-Profile-Info
-        final List<String> expectedInfoFields = Arrays.asList("Source-Organization", "External-Description", "Version",
-                                                              "BagIt-Profile-Identifier", "BagIt-Profile-Version");
+        final List<String> expectedInfoFields = Arrays.asList(BagConfig.SOURCE_ORGANIZATION_KEY,
+                                                              BagConfig.EXTERNAL_DESCRIPTION_KEY,
+                                                              BagProfileConstants.PROFILE_VERSION,
+                                                              BagProfileConstants.BAGIT_PROFILE_IDENTIFIER,
+                                                              BagProfileConstants.BAGIT_PROFILE_VERSION);
         final Map<String, String> bagInfo = profile.getProfileMetadata();
         for (final String expected : expectedInfoFields) {
             if (!bagInfo.containsKey(expected)) {
