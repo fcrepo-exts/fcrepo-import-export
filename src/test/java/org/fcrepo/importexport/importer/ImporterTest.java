@@ -299,30 +299,11 @@ public class ImporterTest {
         verify(client, never()).put(pairtreeURI);
     }
 
-    @Test
-    public void testImportBagVerifyBinaryDigest() throws Exception {
-        final URI badBinURI = new URI("http://example.org:9999/rest/bad_bin1");
-
-        // mock bad binary interactions
-        final PutBuilder badBinBuilder = mock(PutBuilder.class);
-        final FcrepoResponse badBinResponse = mock(FcrepoResponse.class);
-        when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.digest(isA(String.class), isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
-        when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
-        when(badBinBuilder.preferLenient()).thenReturn(badBinBuilder);
-        when(badBinBuilder.perform()).thenReturn(badBinResponse);
-        when(badBinResponse.getStatusCode()).thenReturn(409);
-        when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
-
+    @Test(expected = RuntimeException.class)
+    public void testImportBagVerifyBinaryDigest() {
+        // this fails Bag validation
         final Importer importer = new Importer(bagItArgs, clientBuilder);
         importer.run();
-
-        verify(client).put(badBinURI);
-
-        // verify that the checksum from the manifest-sha1 file is used
-        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"), eq("sha"));
     }
 
     @Test

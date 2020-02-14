@@ -206,12 +206,10 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(exists(resourceURI));
     }
 
-    @Test
-    public void testImportBagVerifyBinaryDigest() throws Exception {
+    @Test(expected = RuntimeException.class)
+    public void testImportBagVerifyBinaryDigest() {
         final URI resourceURI = URI.create(serverAddress);
-        final URI file = URI.create(serverAddress + "image0");
-        final URI badFile = URI.create(serverAddress + "bad_file");
-        final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
+        final String bagPath = TARGET_DIR + "/test-classes/sample/bagcorrupted";
 
         final Config config = new Config();
         config.setMode("import");
@@ -224,16 +222,9 @@ public class BagItIT extends AbstractResourceIT {
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);
 
-        // run import
+        // run import, expected to fail on bag validation
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
-
-        // verify resource and good binary does exist.
-        assertTrue(exists(resourceURI));
-        assertTrue(exists(file));
-
-        // verify bad binary shouldn't be imported
-        assertFalse(exists(badFile));
     }
 
     @Override
