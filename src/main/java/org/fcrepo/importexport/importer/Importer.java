@@ -83,6 +83,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
@@ -842,7 +843,9 @@ public class Importer implements TransferProcess {
         try {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
-            // BagVerifier.isValid(bag, true);
+
+            final BagVerifier bagVerifier = new BagVerifier();
+            bagVerifier.isValid(bag, false);
 
             return bag;
         } catch (Exception e) {
