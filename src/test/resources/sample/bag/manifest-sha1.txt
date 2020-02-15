@@ -1,2 +1,4 @@
+847caaf7a9080ce23aea0700748a6d7489d8d79c  data/fcrepo/rest/image0/fcr%3Ametadata.ttl
 c537ab534deef7493140106c2151eccf2a219b8e  data/fcrepo/rest/testBagImport.ttl
 9b040aa0ceca4cdff2069b46769dcf1f04214833  data/fcrepo/rest/testBagBtRImport.ttl
+da39a3ee5e6b4b0d3255bfef95601890afd80709  data/fcrepo/rest/image0.binary
