@@ -24,6 +24,7 @@ import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -152,18 +153,21 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testImportBag() throws Exception {
+        final URI rootURI = URI.create(serverAddress);
         final URI resourceURI = URI.create(serverAddress + "testBagImport");
+        final URI metadataURI = URI.create(serverAddress + "image0/fcr:metadata");
         final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
 
         final Config config = new Config();
         config.setMode("import");
         config.setBaseDirectory(bagPath);
         config.setRdfLanguage(DEFAULT_RDF_LANG);
-        config.setResource(resourceURI);
+        config.setResource(rootURI);
         config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);
+        config.setIncludeBinaries(true);
         config.setLegacy(true);
 
         // Resource doesn't exist
@@ -175,6 +179,11 @@ public class BagItIT extends AbstractResourceIT {
 
         // Resource does exist.
         assertTrue(exists(resourceURI));
+        assertTrue(exists(metadataURI));
+
+        final String metadata = getAsString(metadataURI);
+        assertNotNull(metadata);
+        assertTrue(metadata.contains("urn:sha-256"));
     }
 
     @Test
