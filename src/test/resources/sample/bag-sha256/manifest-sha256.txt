@@ -1,0 +1,3 @@
+53e1666dabb29f790e28c3d45556ff451059a316ba0ea2a323a695ccef89743e  data/rest.jsonld
+6cd9b112f98ba0d3e58d7026288bdcbb8e970351f97155a8456985fdd4b2dd45  data/rest/image0/fcr_metadata.jsonld
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  data/rest/image0.binary

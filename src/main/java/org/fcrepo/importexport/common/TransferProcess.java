@@ -30,12 +30,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
@@ -158,28 +152,6 @@ public interface TransferProcess {
     public static File directoryForContainer(final URI uri, final String sourcePath,
             final String destinationPath, final File baseDir) {
         return fileForURI(uri, sourcePath, destinationPath, baseDir, "");
-    }
-
-    /**
-     * Gets a Map of files and sha1 checksums from the BagIt manifest file.
-     *
-     * @param manifestFile the manifest file
-     * @param baseDir the base directory in the export package
-     * @return the map
-     */
-    public static Map<String, String> getSha1FileMap(final File baseDir, final Path manifestFile) {
-        final Map<String, String> sha1FileMap = new HashMap<String, String>();
-        try (final Stream<String> stream = Files.lines(manifestFile)) {
-            stream.forEach(l -> {
-                final String[] manifestTokens = l.split(BAGIT_CHECKSUM_DELIMITER);
-                final File file = Paths.get(baseDir.toURI()).resolve(Paths.get(manifestTokens[1])).toFile();
-                final String checksum = manifestTokens[0].trim();
-                sha1FileMap.put(file.getAbsolutePath(), checksum);
-            });
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading manifest: " + manifestFile.toString(), e);
-        }
-        return sha1FileMap;
     }
 
     /**
