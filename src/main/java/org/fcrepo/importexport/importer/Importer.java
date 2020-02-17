@@ -133,7 +133,7 @@ public class Importer implements TransferProcess {
 
     /**
      * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's payload manifest
-      */
+     */
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
 
