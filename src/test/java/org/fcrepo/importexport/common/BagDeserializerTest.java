@@ -32,6 +32,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * Test that zip, tar, and tar+gz extraction works as expected
+ *
+ * @author mikejritter
+ * @since 2020-02-13
+ */
 public class BagDeserializerTest {
 
     public static final String BEYONDTHEREPOSITORY_JSON = "src/main/resources/profiles/beyondtherepository.json";
