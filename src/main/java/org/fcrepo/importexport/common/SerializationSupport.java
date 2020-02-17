@@ -55,15 +55,11 @@ public class SerializationSupport {
     private static final String APPLICATION_X_GZIP = "application/x-gzip";
     private static final String APPLICATION_X_COMPRESSED_TAR = "application/x-compressed-tar";
 
-    // 7zip
-    // private static final String APPLICATION_X_7Z_COMPRESSED = "application/x-7zip-compressed";
-
     public static final Set<String> ZIP_TYPES = Collections.singleton(APPLICATION_ZIP);
     public static final Set<String> TAR_TYPES = new HashSet<>(Arrays.asList(APPLICATION_TAR, APPLICATION_X_TAR,
                                                                             APPLICATION_GTAR, APPLICATION_X_GTAR));
     public static final Set<String> GZIP_TYPES = new HashSet<>(Arrays.asList(APPLICATION_GZIP, APPLICATION_X_GTAR,
                                                                              APPLICATION_X_COMPRESSED_TAR));
-    // public static final Set<String> SEVEN_ZIP_TYPES = Collections.singleton("application/x-7zip-compressed");
 
     /**
      * The commonTypeMap acts as a way to coerce various types onto a single format. E.g. handing application/gtar and
