@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,23 @@ public class TarBagDeserializer implements BagDeserializer {
         logger.info("Extracting serialized bag {}", trimmedName);
 
         try (TarArchiveInputStream tais = new TarArchiveInputStream(Files.newInputStream(root))) {
-            extract(tais, parent);
+            ArchiveEntry entry;
+            while ((entry = tais.getNextEntry()) != null) {
+                final String name = entry.getName();
+
+                logger.debug("Handling entry {}", entry.getName());
+                final Path archiveFile = parent.resolve(name);
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(archiveFile);
+                } else {
+                    if (Files.exists(parent.resolve(name))) {
+                        logger.warn("File {} already exists!", name);
+                    } else{
+                        Files.copy(tais, archiveFile);
+                    }
+                }
+            }
         }
 
         return parent.resolve(trimmedName);

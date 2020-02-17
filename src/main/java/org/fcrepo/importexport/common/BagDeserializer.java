@@ -17,13 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -36,8 +30,6 @@ import java.nio.file.Path;
  */
 public interface BagDeserializer {
 
-    Logger logger = LoggerFactory.getLogger(BagDeserializer.class);
-
     /**
      * Deserialize a {@link gov.loc.repository.bagit.domain.Bag} located at the give {@code path}. This will create a
      * version of the bag in the parent directory of the given {@code path}.
@@ -48,31 +40,4 @@ public interface BagDeserializer {
      */
     Path deserialize(final Path path) throws IOException;
 
-    /**
-     * Common {@link ArchiveEntry} extraction handling for Bags which are serialized with a format handled by the
-     * commons-compress library.
-     *
-     * @param is the {@link ArchiveInputStream}
-     * @param parent the parent directory of the serialized bag
-     * @throws IOException if there is an error creating a directory or file when extracting the archive
-     */
-    default void extract(final ArchiveInputStream is, final Path parent) throws IOException {
-        ArchiveEntry entry;
-        while ((entry = is.getNextEntry()) != null) {
-            final String name = entry.getName();
-
-            logger.debug("Handling entry {}", entry.getName());
-            final Path archiveFile = parent.resolve(name);
-
-            if (entry.isDirectory()) {
-                Files.createDirectories(archiveFile);
-            } else {
-                if (Files.exists(parent.resolve(name))) {
-                    logger.warn("File {} already exists!", name);
-                } else{
-                    Files.copy(is, archiveFile);
-                }
-            }
-        }
-    }
 }

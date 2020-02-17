@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.slf4j.Logger;
@@ -56,8 +57,24 @@ public class GZipBagDeserializer implements BagDeserializer {
         try (InputStream is = Files.newInputStream(root)) {
             final InputStream buffedIs = new BufferedInputStream(is);
             final GZIPInputStream gzipIs = new GZIPInputStream(buffedIs);
-            final ArchiveInputStream archiveIs = new TarArchiveInputStream(gzipIs);
-            extract(archiveIs, parent);
+            final ArchiveInputStream tarStream = new TarArchiveInputStream(gzipIs);
+            ArchiveEntry entry;
+            while ((entry = tarStream.getNextEntry()) != null) {
+                final String name = entry.getName();
+
+                logger.debug("Handling entry {}", entry.getName());
+                final Path archiveFile = parent.resolve(name);
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(archiveFile);
+                } else {
+                    if (Files.exists(parent.resolve(name))) {
+                        logger.warn("File {} already exists!", name);
+                    } else{
+                        Files.copy(is, archiveFile);
+                    }
+                }
+            }
         }
 
         return parent.resolve(trimmedName);
