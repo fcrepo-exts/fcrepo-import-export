@@ -171,6 +171,9 @@ public class BagItIT extends AbstractResourceIT {
         config.setLegacy(true);
 
         // Resource doesn't exist
+        if (exists(resourceURI)) {
+            removeAndReset(resourceURI);
+        }
         assertFalse(exists(resourceURI));
 
         // run import
@@ -208,6 +211,38 @@ public class BagItIT extends AbstractResourceIT {
             assertFalse(exists(resourceURI));
         }
 
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        // Resource does exist.
+        assertTrue(exists(resourceURI));
+    }
+
+    @Test
+    public void testImportSerializedBag() throws FcrepoOperationFailedException {
+        final URI rootURI = URI.create(serverAddress);
+        final URI resourceURI = URI.create(serverAddress + "testBagImport");
+        final String bagPath = TARGET_DIR + "/test-classes/sample/compress/bag.tar";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(rootURI);
+        config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(btrProfile);
+        config.setIncludeBinaries(true);
+        config.setLegacy(true);
+
+        // Resource doesn't exist
+        if (exists(resourceURI)) {
+            removeAndReset(resourceURI);
+        }
+        assertFalse(exists(resourceURI));
+
+        // run import
         final Importer importer = new Importer(config, clientBuilder);
         importer.run();
 
