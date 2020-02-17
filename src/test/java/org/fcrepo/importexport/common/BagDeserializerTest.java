@@ -37,7 +37,7 @@ public class BagDeserializerTest {
     public static final String BEYONDTHEREPOSITORY_JSON = "src/main/resources/profiles/beyondtherepository.json";
     public static final String BAG_INFO_TXT = "bag-info.txt";
     public static final String DATA_DIR = "data";
-    private final String expectedDir = "example";
+    private final String expectedDir = "bag";
     private final String group = "compress";
     private Path target;
 
