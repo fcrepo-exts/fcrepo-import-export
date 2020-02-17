@@ -94,7 +94,6 @@ public class ProfileValidationUtil {
         validate(profileSection, requiredFields, fields, SYSTEM_GENERATED_FIELD_NAMES);
     }
 
-
     /**
      * Validates the fields against the set of required fields and their constrained values.
      *

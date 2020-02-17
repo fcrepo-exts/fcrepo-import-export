@@ -245,7 +245,7 @@ public class BagProfileTest {
      * Accept-BagIt-Version
      * At least one version is required
      */
-    public void validateProfile(final BagProfile profile) {
+    private void validateProfile(final BagProfile profile) {
         final StringBuilder errors = new StringBuilder();
 
         // Bag-Profile-Info
