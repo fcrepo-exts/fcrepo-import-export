@@ -100,7 +100,7 @@ public class ProfileValidationUtil {
      * @param profileSection describes the section of the profile that is being validated.
      * @param requiredFields the required fields and any allowable values (if constrained).
      * @param fields The key value pairs to be validated.
-     * @param filter A set of fields to filter against. Useful for export.
+     * @param filter A set of fields to ignore when validating. Useful for export.
      * @throws ProfileValidationException when the fields do not pass muster. The exception message contains a
      *         description of all validation errors found.
      */
