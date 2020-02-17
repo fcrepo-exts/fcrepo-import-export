@@ -428,11 +428,12 @@ public class BagProfile {
             errors.append(ProfileValidationUtil.validateManifest(foundTagManifests, tagDigestAlgorithms,
                                                                  allowedTagAlgorithms, tagIdentifier));
 
+            // grab the first tag manifest and use that to check all registered tag files
             final Manifest manifest = foundTagManifests.iterator().next();
-            final Map<Path, String> fileToChecksumMap = manifest.getFileToChecksumMap();
+            final Set<Path> existingTagFiles = manifest.getFileToChecksumMap().keySet();
 
-            for (Path path : fileToChecksumMap.keySet()) {
-                final Path relativePath = path.startsWith(root) ? root.relativize(path) : path;
+            for (Path tag : existingTagFiles) {
+                final Path relativePath = tag.startsWith(root) ? root.relativize(tag) : tag;
                 try {
                     ProfileValidationUtil.validateTagIsAllowed(relativePath, tagFilesAllowed);
                 } catch (ProfileValidationException e) {
@@ -442,8 +443,7 @@ public class BagProfile {
         }
 
         // check all required tag files exist
-        final Set<String> requiredTagFiles = tagFilesRequired;
-        for (String tagName : requiredTagFiles) {
+        for (String tagName : tagFilesRequired) {
             final Path requiredTag = root.resolve(tagName);
             if (!requiredTag.toFile().exists()) {
                 errors.append("Required tag file \"").append(tagName).append("\" does not exist!\n");
