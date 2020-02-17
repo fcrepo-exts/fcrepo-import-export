@@ -472,7 +472,7 @@ public class BagProfile {
         }
 
         // serialization seems unnecessary as the import export tool does not support importing serialized bags
-        if (serialization.equalsIgnoreCase("required")) {
+        if (serialization == Serialization.REQUIRED) {
             logger.warn("Bag Profile requires serialization, import will continue if the bag has been deserialized");
         }
 
