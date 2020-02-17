@@ -31,7 +31,7 @@ import java.nio.file.Path;
 public interface BagDeserializer {
 
     /**
-     * Deserialize a {@link gov.loc.repository.bagit.domain.Bag} located at the give {@code path}. This will create a
+     * Deserialize a {@link gov.loc.repository.bagit.domain.Bag} located at the given {@code path}. This will create a
      * version of the bag in the parent directory of the given {@code path}.
      *
      * @param path the {@link Path} to the serialized version of a {@link gov.loc.repository.bagit.domain.Bag}

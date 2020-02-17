@@ -55,8 +55,8 @@ public class GZipBagDeserializer implements BagDeserializer {
         logger.info("Extracting serialized bag {}", trimmedName);
 
         try (InputStream is = Files.newInputStream(root)) {
-            final InputStream buffedIs = new BufferedInputStream(is);
-            final GZIPInputStream gzipIs = new GZIPInputStream(buffedIs);
+            final InputStream bufferedIs = new BufferedInputStream(is);
+            final GZIPInputStream gzipIs = new GZIPInputStream(bufferedIs);
             final ArchiveInputStream tarStream = new TarArchiveInputStream(gzipIs);
             ArchiveEntry entry;
             while ((entry = tarStream.getNextEntry()) != null) {
