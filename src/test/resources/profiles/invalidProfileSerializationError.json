@@ -1,0 +1,16 @@
+{
+  "BagIt-Profile-Info": {
+    "Source-Organization": "Fcrepo",
+    "External-Description": "Invalid Profile",
+    "Version": "0.1",
+    "BagIt-Profile-Version": "1.3.0",
+    "BagIt-Profile-Identifier": "file://src/test/resources/profiles/invalidProfileSerializationError.json"
+  },
+  "Bag-Info": {
+    "Source-Organization": {"required": false},
+    "Bagging-Date": {"required": false},
+    "Payload-Oxum": {"required": false}
+  },
+  "Serialization": "typo",
+  "Accept-BagIt-Version": ["1.0"]
+}

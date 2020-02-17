@@ -54,10 +54,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class BagProfile {
 
+    public enum Serialization {
+        FORBIDDEN, REQUIRED, OPTIONAL, UNKNOWN;
+
+        /**
+         * Retrieve the {@link Serialization} from a string representation
+         *
+         * @param value the String value to use
+         * @return the {@link Serialization} the {@code value} is equal to
+         */
+        public static Serialization of(final String value) {
+            switch (value.toLowerCase()) {
+                case "forbidden": return FORBIDDEN;
+                case "required": return REQUIRED;
+                case "optional": return OPTIONAL;
+                default: return UNKNOWN;
+            }
+        }
+    }
+
     private static final Logger logger = getLogger(BagProfile.class);
 
     private boolean allowFetch;
-    private String serialization;
+    private Serialization serialization;
 
     private Set<String> acceptedBagItVersions;
     private Set<String> acceptedSerializations;
@@ -77,6 +96,7 @@ public class BagProfile {
 
     /**
      * Default constructor.
+     *
      * @param in InputStream containing the Bag profile JSON document
      * @throws IOException when there is an I/O error reading JSON
      */
@@ -87,7 +107,8 @@ public class BagProfile {
         loadProfileInfo(json);
 
         allowFetch = json.has(ALLOW_FETCH_TXT) ? json.get(ALLOW_FETCH_TXT).asBoolean() : true;
-        serialization = json.has(SERIALIZATION) ? json.get(SERIALIZATION).asText() : "optional";
+        serialization = json.has(SERIALIZATION) ? Serialization.of(json.get(SERIALIZATION).asText())
+                                                : Serialization.OPTIONAL;
 
         acceptedBagItVersions = arrayValues(json, ACCEPT_BAGIT_VERSION);
         acceptedSerializations = arrayValues(json, ACCEPT_SERIALIZATION);
@@ -100,9 +121,6 @@ public class BagProfile {
 
         payloadDigestAlgorithms = arrayValues(json, MANIFESTS_REQUIRED);
         tagDigestAlgorithms = arrayValues(json, TAG_MANIFESTS_REQUIRED);
-        if (tagDigestAlgorithms == null) {
-            tagDigestAlgorithms = payloadDigestAlgorithms;
-        }
 
         metadataFields.put(BAG_INFO_FIELDNAME, metadataFields(json, BAG_INFO_FIELDNAME));
         sections.add(BAG_INFO_FIELDNAME);
@@ -172,7 +190,6 @@ public class BagProfile {
             boolean repeatable = true;
             boolean recommended = false;
             String description = "No description";
-            Set<String> values = Collections.emptySet();
 
             final String name = it.next();
             final JsonNode field = fields.get(name);
@@ -196,11 +213,10 @@ public class BagProfile {
 
             final JsonNode descriptionNode = field.get("description");
             if (descriptionNode != null && descriptionNode.asText().isEmpty()) {
-               description = descriptionNode.asText();
+                description = descriptionNode.asText();
             }
 
-            final Set<String> readValues = arrayValues(field, "values");
-            values = readValues == null ? values : readValues;
+            final Set<String> values = arrayValues(field, "values");
 
             results.put(name, new ProfileFieldRule(required, repeatable, recommended, description, values));
         }
@@ -224,7 +240,7 @@ public class BagProfile {
      *
      * @return String value of "forbidden", "required", or "optional"
      */
-    public String getSerialization() {
+    public Serialization getSerialization() {
         return serialization;
     }
 
@@ -293,8 +309,9 @@ public class BagProfile {
         return allowedTagAlgorithms;
     }
 
-   /**
+    /**
      * Get the required digest algorithms for payload manifests.
+     *
      * @return Set of digest algorithm names
      */
     public Set<String> getPayloadDigestAlgorithms() {
@@ -303,6 +320,7 @@ public class BagProfile {
 
     /**
      * Get the required digest algorithms for tag manifests.
+     *
      * @return Set of digest algorithm names
      */
     public Set<String> getTagDigestAlgorithms() {
@@ -311,6 +329,7 @@ public class BagProfile {
 
     /**
      * Get the required Bag-Info metadata fields.
+     *
      * @return A map of field names to a ProfileFieldRule containing acceptance criteria
      */
     public Map<String, ProfileFieldRule> getMetadataFields() {
@@ -367,4 +386,5 @@ public class BagProfile {
             }
         }
     }
+
 }
