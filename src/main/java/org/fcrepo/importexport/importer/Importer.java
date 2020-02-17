@@ -23,6 +23,9 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_MD5;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA1;
+import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA_256;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
@@ -65,8 +68,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -77,9 +78,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.verify.BagVerifier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Property;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoLink;
@@ -106,7 +111,6 @@ import org.slf4j.Logger;
 
 import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.reader.BagReader;
-import gov.loc.repository.bagit.verify.BagVerifier;
 
 /**
  * Fedora Import Utility
@@ -118,18 +122,18 @@ import gov.loc.repository.bagit.verify.BagVerifier;
  */
 public class Importer implements TransferProcess {
     private static final Logger logger = getLogger(Importer.class);
-    private Config config;
+    private final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final List<URI> membershipResources = new ArrayList<>();
     private final List<URI> relatedResources = new ArrayList<>();
     private final List<URI> importedResources = new ArrayList<>();
     private URI repositoryRoot = null;
 
-    private Bag bag;
-
-    private MessageDigest sha1;
-
-    private Map<String, String> sha1FileMap;
+    /**
+     * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's payload manifest
+      */
+    private Map<String, String> bagItFileMap;
+    private String digestAlgorithm;
 
     private Logger importLogger;
     private AtomicLong successCount = new AtomicLong(); // set to zero at start
@@ -155,23 +159,13 @@ public class Importer implements TransferProcess {
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.importLogger = config.getAuditLog();
-        if (config.getBagProfile() == null) {
-            this.bag = null;
-            this.sha1 = null;
-            this.sha1FileMap = null;
+        final String bagProfile = config.getBagProfile();
+        if (bagProfile == null) {
+            this.bagItFileMap = null;
         } else {
-
-            try {
-                final File bagdir = config.getBaseDirectory().getParentFile();
-                // TODO: Maybe use this once we get an updated release of bagit-java library
-                //if (verifyBag(bagdir)) {
-                final Path manifestPath = Paths.get(bagdir.getAbsolutePath()).resolve("manifest-sha1.txt");
-                this.sha1FileMap = TransferProcess.getSha1FileMap(bagdir, manifestPath);
-                this.sha1 = MessageDigest.getInstance("SHA-1");
-                // }
-            } catch (NoSuchAlgorithmException e) {
-                // never happens with known algorithm names
-            }
+            final File bagDir = config.getBaseDirectory().getParentFile();
+            final Bag bag = verifyBag(bagDir.toPath());
+            configureBagItFileMap(bag);
         }
     }
 
@@ -610,11 +604,11 @@ public class Importer implements TransferProcess {
         } else {
             builder.body(new FileInputStream(binaryFile), contentType).ifUnmodifiedSince(currentTimestamp());
 
-            if (sha1FileMap != null) {
+            if (bagItFileMap != null) {
                 // Use the bagIt checksum
-                final String checksum = sha1FileMap.get(binaryFile.getAbsolutePath());
+                final String checksum = bagItFileMap.get(binaryFile.getAbsolutePath());
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
-                builder = builder.digest(checksum);
+                builder = builder.digest(checksum, digestAlgorithm);
             } else {
                 builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
                                           .getObject().toString().replaceAll(".*:",""));
@@ -635,17 +629,16 @@ public class Importer implements TransferProcess {
         }
     }
 
-    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers)
-        throws FcrepoOperationFailedException {
+    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers) {
         PutBuilder builder = client().put(uri)
                                      .body(modelToStream(model), config.getRdfLanguage())
                                      .ifUnmodifiedSince(currentTimestamp());
-        if (sha1FileMap != null && config.getBagProfile() != null) {
+        if (bagItFileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
             final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
-            final String checksum = sha1FileMap.get(containerFile.getAbsolutePath());
+            final String checksum = bagItFileMap.get(containerFile.getAbsolutePath());
             logger.debug("Using Bagit checksum ({}) for file ({})", checksum, containerFile.getPath());
-            builder = builder.digest(checksum);
+            builder = builder.digest(checksum, digestAlgorithm);
         }
 
         addInteractionModels(builder, headers);
@@ -844,15 +837,73 @@ public class Importer implements TransferProcess {
      * Verify the bag we are going to import
      *
      * @param bagDir root directory of the bag
-     * @return true if valid
+     * @return the {@link Bag} if valid
      */
-    public static boolean verifyBag(final File bagDir) {
+    private Bag verifyBag(final Path bagDir) {
         try {
-            final Bag bag = BagReader.read(bagDir);
-            BagVerifier.isValid(bag, true);
-            return true;
+            final BagReader bagReader = new BagReader();
+            final Bag bag = bagReader.read(bagDir);
+
+            final BagVerifier bagVerifier = new BagVerifier();
+            bagVerifier.isValid(bag, false);
+
+            return bag;
         } catch (Exception e) {
-            throw new RuntimeException(String.format("Error verifying bag: %s", e.getMessage()), e);
+            logger.error("Unable to read bag ", e);
+            throw new RuntimeException(String.format("Error reading bag: %s", e.getMessage()), e);
+        }
+    }
+
+    /**
+     * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to populate the
+     * {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files
+     *
+     * @param bag The {@link Bag} to read from
+     */
+    private void configureBagItFileMap(final Bag bag) {
+        // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
+        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
+        final Manifest manifest = bag.getPayLoadManifests().stream()
+               .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
+               .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
+               .orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
+                                                       "utility can use! Available algorithms are: " +
+                                                       StringUtils.join(fcrepoSupported, ",")));
+
+        this.bagItFileMap = manifest.getFileToChecksumMap().entrySet().stream()
+                                    .collect(Collectors.toMap(
+                                        entry -> entry.getKey().toAbsolutePath().toString(),
+                                        Map.Entry::getValue));
+        logger.debug("loaded checksum map: {}", bagItFileMap);
+
+        switch(manifest.getAlgorithm().getBagitName()) {
+            case BAGIT_MD5:
+                this.digestAlgorithm = BAGIT_MD5;
+                break;
+            case BAGIT_SHA1:
+                // fcrepo-client expects only "sha" for sha1 headers
+                this.digestAlgorithm = "sha";
+                break;
+            case BAGIT_SHA_256:
+                this.digestAlgorithm = BAGIT_SHA_256;
+                break;
+            default: throw new RuntimeException("Unsupported bagit algorithm!");
+        }
+    }
+
+    /**
+     * Receive the priority for a given {@link Manifest} based on its digest algorithm
+     *
+     * @param manifest the manifest to prioritize
+     * @return the priority of the digest algorithm
+     */
+    private int manifestPriority(final Manifest manifest) {
+        final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
+        switch (bagItAlgorithm) {
+            case BAGIT_MD5: return 0;
+            case BAGIT_SHA1: return 1;
+            case BAGIT_SHA_256: return 2;
+            default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }
 

@@ -26,14 +26,14 @@
         rdf:type                 fedora:Resource ;
         fedora:lastModifiedBy    "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
         premis:hasSize           "0"^^<http://www.w3.org/2001/XMLSchema#long> ;
-        ebucore:hasMimeType      "application/octet-stream"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        ebucore:hasMimeType      "image/png"^^<http://www.w3.org/2001/XMLSchema#string> ;
         fedora:createdBy         "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
         fedora:created           "2017-05-19T18:45:16.003Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         fedora:lastModified      "2017-05-19T18:45:16.003Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         premis:hasMessageDigest  <urn:sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709> ;
-        ebucore:filename         ""^^<http://www.w3.org/2001/XMLSchema#string> ;
+        ebucore:filename         "image0.png"^^<http://www.w3.org/2001/XMLSchema#string> ;
         rdf:type                 ldp:NonRDFSource ;
         fedora:writable          "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
         iana:describedby         <http://localhost:8080/fcrepo/rest/image0/fcr:metadata> ;
-        fedora:hasParent         <http://localhost:8080/fcrepo/rest/> ;
+        fedora:hasParent         <http://localhost:8080/fcrepo/rest/testBagImport> ;
         fedora:hasFixityService  <http://localhost:8080/fcrepo/rest/image0/fcr:fixity> .

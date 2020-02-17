@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,7 +37,9 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jena.graph.Graph;
@@ -296,30 +299,46 @@ public class ImporterTest {
         verify(client, never()).put(pairtreeURI);
     }
 
-    @Test
-    public void testImportBagVerifyBinaryDigest() throws Exception {
-        final URI badBinURI = new URI("http://example.org:9999/rest/bad_bin1");
-
-        // mock bad binary interactions
-        final PutBuilder badBinBuilder = mock(PutBuilder.class);
-        final FcrepoResponse badBinResponse = mock(FcrepoResponse.class);
-        when(client.put(isA(URI.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.digest(isA(String.class))).thenReturn(badBinBuilder);
-        when(badBinBuilder.filename(any())).thenReturn(badBinBuilder);
-        when(badBinBuilder.ifUnmodifiedSince(any())).thenReturn(badBinBuilder);
-        when(badBinBuilder.preferLenient()).thenReturn(badBinBuilder);
-        when(badBinBuilder.perform()).thenReturn(badBinResponse);
-        when(badBinResponse.getStatusCode()).thenReturn(409);
-        when(badBinResponse.getBody()).thenReturn(new ByteArrayInputStream("Checksum Mismatch".getBytes()));
-
+    @Test(expected = RuntimeException.class)
+    public void testImportBagVerifyBinaryDigest() {
+        // this fails Bag validation
         final Importer importer = new Importer(bagItArgs, clientBuilder);
         importer.run();
+    }
 
-        verify(client).put(badBinURI);
+    @Test
+    public void testImportBagMultipleDigests() throws URISyntaxException, FcrepoOperationFailedException {
+        final URI imageBinaryURI  = new URI("http://example.org:9999/rest/image0");
+        final URI imageBinaryDescriptionURI = new URI("http://example.org:9999/rest/image0/fcr:metadata");
 
-        // verify that the checksum from the manifest-sha1 file is used
-        verify(badBinBuilder).digest(eq("c537ab534deef7493140106c2151eccf2a219b8e"));
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory("src/test/resources/sample/bag-sha256");
+        config.setIncludeBinaries(true);
+        config.setRdfLanguage("application/ld+json");
+        config.setResource(new URI("http://example.org:9999/rest/"));
+        config.setMap(new String[] { "http://localhost:8080/rest/", "http://example.org:9999/rest/" });
+        config.setBagProfile("default");
+        config.setUsername("tester");
+
+        final PutBuilder imageBuilder = mock(PutBuilder.class);
+        final FcrepoResponse imageResponse = mock(FcrepoResponse.class);
+        when(client.put(isA(URI.class))).thenReturn(imageBuilder);
+        when(imageBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(imageBuilder);
+        when(imageBuilder.digest(isA(String.class), isA(String.class))).thenReturn(imageBuilder);
+        when(imageBuilder.filename(any())).thenReturn(imageBuilder);
+        when(imageBuilder.ifUnmodifiedSince(any())).thenReturn(imageBuilder);
+        when(imageBuilder.preferLenient()).thenReturn(imageBuilder);
+        when(imageBuilder.perform()).thenReturn(imageResponse);
+        when(imageResponse.getStatusCode()).thenReturn(201);
+        when(imageResponse.getLinkHeaders(eq("describedby"))).thenReturn(
+            Collections.singletonList(imageBinaryDescriptionURI));
+
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+
+        verify(client).put(imageBinaryURI);
+        verify(imageBuilder, atLeastOnce()).digest(any(), eq("sha256"));
     }
 
     @Test
