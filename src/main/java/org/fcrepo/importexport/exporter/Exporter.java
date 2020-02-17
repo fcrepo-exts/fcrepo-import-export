@@ -438,11 +438,6 @@ public class Exporter implements TransferProcess {
                 }
             }
         }
-        /*
-        try (final FileWriter writer = new FileWriter(file)) {
-            writer.write(json);
-        }
-         */
     }
 
     private Set<URI> filterInboundReferences(final URI uri, final Model model) {
