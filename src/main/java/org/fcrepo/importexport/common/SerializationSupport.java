@@ -65,6 +65,10 @@ public class SerializationSupport {
                                                                              APPLICATION_X_COMPRESSED_TAR));
     // public static final Set<String> SEVEN_ZIP_TYPES = Collections.singleton("application/x-7zip-compressed");
 
+    /**
+     * The commonTypeMap acts as a way to coerce various types onto a single format. E.g. handing application/gtar and
+     * application/tar will go through the same class, so we map application/gtar to application/tar.
+     */
     private static Map<String, String> commonTypeMap = initCommonTypeMapping();
 
     private SerializationSupport() {
@@ -107,6 +111,7 @@ public class SerializationSupport {
         final String contentType;
 
         try {
+            // use a less strict approach to handling content types through the commonTypeMap
             final String detectedType = tika.detect(serializedBag);
             contentType = commonTypeMap.getOrDefault(detectedType, detectedType);
             logger.debug("{}: {}", serializedBag, contentType);
