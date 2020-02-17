@@ -236,6 +236,27 @@ public class BagItIT extends AbstractResourceIT {
         importer.run();
     }
 
+    @Test(expected = RuntimeException.class)
+    public void testImportBagFailsProfileValidation() {
+        final URI resourceURI = URI.create(serverAddress);
+        final String bagPath = TARGET_DIR + "/test-classes/sample/baginvalid";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setIncludeBinaries(true);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setMap(new String[] { "http://localhost:8080/fcrepo/rest/", serverAddress });
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(DEFAULT_BAG_PROFILE);
+
+        // run import, expected to fail on bag validation
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+    }
+
     @Override
     protected Logger logger() {
         return getLogger(BagItIT.class);
