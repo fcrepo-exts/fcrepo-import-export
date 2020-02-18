@@ -40,7 +40,7 @@ public class GZipBagDeserializer implements BagDeserializer {
 
     private final BagProfile profile;
 
-    protected GZipBagDeserializer(BagProfile profile) {
+    protected GZipBagDeserializer(final BagProfile profile) {
         this.profile = profile;
     }
 
@@ -64,7 +64,7 @@ public class GZipBagDeserializer implements BagDeserializer {
         }
 
         // Get a deserializer for the deflated content
-        BagDeserializer deserializer = SerializationSupport.deserializerFor(serializedBag, profile);
+        final BagDeserializer deserializer = SerializationSupport.deserializerFor(serializedBag, profile);
         return deserializer.deserialize(serializedBag);
     }
 }
