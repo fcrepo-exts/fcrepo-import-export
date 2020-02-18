@@ -222,7 +222,7 @@ public class BagItIT extends AbstractResourceIT {
     public void testImportSerializedBag() throws FcrepoOperationFailedException {
         final URI rootURI = URI.create(serverAddress);
         final URI resourceURI = URI.create(serverAddress + "testBagImport");
-        final String bagPath = TARGET_DIR + "/test-classes/sample/compress/bag.tar";
+        final String bagPath = TARGET_DIR + "/test-classes/sample/compress/bag-tar.tar";
 
         final Config config = new Config();
         config.setMode("import");

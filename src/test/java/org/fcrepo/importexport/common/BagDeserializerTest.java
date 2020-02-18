@@ -71,7 +71,7 @@ public class BagDeserializerTest {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
         }
 
-        final Path bag = target.resolve(group).resolve(expectedDir);
+        final Path bag = target.resolve(group).resolve(expectedDir + "-zip");
         Assert.assertTrue(Files.exists(bag));
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
@@ -90,7 +90,7 @@ public class BagDeserializerTest {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
         }
 
-        final Path bag = target.resolve(group).resolve(expectedDir);
+        final Path bag = target.resolve(group).resolve(expectedDir + "-tar");
         Assert.assertTrue(Files.exists(bag));
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
@@ -109,7 +109,7 @@ public class BagDeserializerTest {
             Assert.fail("Unexpected exception:\n" + e.getMessage());
         }
 
-        final Path bag = target.resolve(group).resolve(expectedDir);
+        final Path bag = target.resolve(group).resolve(expectedDir + "-gzip");
         Assert.assertTrue(Files.exists(bag));
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
