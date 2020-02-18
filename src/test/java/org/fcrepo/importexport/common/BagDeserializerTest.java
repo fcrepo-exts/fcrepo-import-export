@@ -61,7 +61,7 @@ public class BagDeserializerTest {
 
     @Test
     public void testExtractZip() {
-        final String serializedBag = expectedDir + ".zip";
+        final String serializedBag = expectedDir + "-zip.zip";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
             final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
@@ -80,7 +80,7 @@ public class BagDeserializerTest {
 
     @Test
     public void testExtractTar() {
-        final String serializedBag = expectedDir + ".tar";
+        final String serializedBag = expectedDir + "-tar.tar";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
             final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
@@ -99,7 +99,7 @@ public class BagDeserializerTest {
 
     @Test
     public void testExtractGZip() {
-        final String serializedBag = expectedDir + ".tar.gz";
+        final String serializedBag = expectedDir + "-gzip.tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
             final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
