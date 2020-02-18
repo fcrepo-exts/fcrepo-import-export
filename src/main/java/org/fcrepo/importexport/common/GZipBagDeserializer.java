@@ -17,22 +17,19 @@
  */
 package org.fcrepo.importexport.common;
 
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Deserializer for bags which are serialized using tar+gzip
+ * Deflate a gzipped bag so that the underlying bag can continue to be deserialized.
  *
  * @author mikejritter
  * @since 2020-02-11
@@ -41,42 +38,33 @@ public class GZipBagDeserializer implements BagDeserializer {
 
     private final Logger logger = LoggerFactory.getLogger(GZipBagDeserializer.class);
 
-    protected GZipBagDeserializer() {
+    private final BagProfile profile;
+
+    protected GZipBagDeserializer(BagProfile profile) {
+        this.profile = profile;
     }
 
     @Override
     public Path deserialize(final Path root) throws IOException {
-        final String regex = "\\.tar.gz";
-        final Pattern pattern = Pattern.compile(regex);
         final Path parent = root.getParent();
-        final Path fileName = root.getFileName();
+        final String nameWithExtension = root.getFileName().toString();
+        final int dotIdx = nameWithExtension.lastIndexOf(".");
+        final String filename = (dotIdx == -1) ? nameWithExtension : nameWithExtension.substring(0, dotIdx);
+        final Path serializedBag = parent.resolve(filename);
 
-        final String trimmedName = pattern.matcher(fileName.toString()).replaceFirst("");
-        logger.info("Extracting serialized bag {}", trimmedName);
+        // Deflate the gzip to get the base file
+        logger.info("Deflating gzipped bag: {}", filename);
+        try (InputStream is = Files.newInputStream(root);
+            final InputStream bis = new BufferedInputStream(is);
+            final GZIPInputStream gzipIS = new GZIPInputStream(bis)) {
 
-        try (InputStream is = Files.newInputStream(root)) {
-            final InputStream bufferedIs = new BufferedInputStream(is);
-            final GZIPInputStream gzipIs = new GZIPInputStream(bufferedIs);
-            final ArchiveInputStream tarStream = new TarArchiveInputStream(gzipIs);
-            ArchiveEntry entry;
-            while ((entry = tarStream.getNextEntry()) != null) {
-                final String name = entry.getName();
-
-                logger.debug("Handling entry {}", entry.getName());
-                final Path archiveFile = parent.resolve(name);
-
-                if (entry.isDirectory()) {
-                    Files.createDirectories(archiveFile);
-                } else {
-                    if (Files.exists(parent.resolve(name))) {
-                        logger.warn("File {} already exists!", name);
-                    } else{
-                        Files.copy(is, archiveFile);
-                    }
-                }
-            }
+            Files.copy(gzipIS, serializedBag);
+        } catch (FileAlreadyExistsException ex) {
+            logger.warn("{} already decompressed! Continuing with deserialization.", root);
         }
 
-        return parent.resolve(trimmedName);
+        // Get a deserializer for the deflated content
+        BagDeserializer deserializer = SerializationSupport.deserializerFor(serializedBag, profile);
+        return deserializer.deserialize(serializedBag);
     }
 }
