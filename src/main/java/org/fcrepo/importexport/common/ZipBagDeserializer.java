@@ -42,13 +42,12 @@ public class ZipBagDeserializer implements BagDeserializer {
 
     @Override
     public Path deserialize(final Path root) throws IOException {
-        final String regex = "\\.zip";
-        final Pattern pattern = Pattern.compile(regex);
         final Path parent = root.getParent();
-        final Path fileName = root.getFileName();
+        final String nameWithExtension = root.getFileName().toString();
+        final int dotIdx = nameWithExtension.lastIndexOf(".");
+        final String filename = (dotIdx == -1) ? nameWithExtension : nameWithExtension.substring(0, dotIdx);
 
-        final String trimmedName = pattern.matcher(fileName.toString()).replaceFirst("");
-        logger.info("Extracting serialized bag {}", trimmedName);
+        logger.info("Extracting serialized bag: {}", filename);
 
         try (ZipArchiveInputStream inputStream = new ZipArchiveInputStream(Files.newInputStream(root))) {
             ArchiveEntry entry;
@@ -70,6 +69,6 @@ public class ZipBagDeserializer implements BagDeserializer {
             }
         }
 
-        return parent.resolve(trimmedName);
+        return parent.resolve(filename);
     }
 }
