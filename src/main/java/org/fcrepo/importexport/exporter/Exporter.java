@@ -77,17 +77,14 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 
+import org.duraspace.bagit.BagConfig;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagWriter;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
-import org.fcrepo.importexport.common.BagConfig;
-import org.fcrepo.importexport.common.BagProfile;
-import org.fcrepo.importexport.common.ProfileFieldRule;
-import org.fcrepo.importexport.common.BagWriter;
 import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.ProfileValidationException;
-import org.fcrepo.importexport.common.ProfileValidationUtil;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.slf4j.Logger;
@@ -104,7 +101,6 @@ import org.slf4j.Logger;
 public class Exporter implements TransferProcess {
 
     private static final Logger logger = getLogger(Exporter.class);
-    private static final String APTRUST_INFO_TXT = "aptrust-info.txt";
 
     private Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
@@ -208,11 +204,6 @@ public class Exporter implements TransferProcess {
         }
         final File bagConfigFile = new File(bagConfigPath);
         return new BagConfig(bagConfigFile);
-    }
-
-    protected void validateProfile(final String profileSection, final Map<String, ProfileFieldRule> requiredFields,
-            final Map<String, String> fields) throws ProfileValidationException {
-        ProfileValidationUtil.validate(profileSection, requiredFields, fields);
     }
 
     private FcrepoClient client() {
