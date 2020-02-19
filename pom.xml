@@ -23,7 +23,6 @@
     <fcrepo-java-client.version>0.4.0</fcrepo-java-client.version>
     <bagit.version>5.1.1</bagit.version>
     <commons-cli.version>1.3.1</commons-cli.version>
-    <commons-compress.version>1.19</commons-compress.version>
     <httpclient.version>4.3.6</httpclient.version>
     <jackson.version>2.9.10.1</jackson.version>
     <jena.version>3.1.1</jena.version>
@@ -36,14 +35,15 @@
     <cargo.version>1.4.12</cargo.version>
     <jersey.version>2.29</jersey.version>
     <download-maven-plugin.version>1.3.0</download-maven-plugin.version>
-    <tika.version>1.23</tika.version>
+    <bagit-support.version>0.0.1-SNAPSHOT</bagit-support.version>
   </properties>
 
   <dependencies>
+
     <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-core</artifactId>
-      <version>${tika.version}</version>
+      <groupId>org.duraspace</groupId>
+      <artifactId>bagit-support</artifactId>
+      <version>${bagit-support.version}</version>
     </dependency>
     <dependency>
       <groupId>org.fcrepo.client</groupId>
@@ -61,11 +61,6 @@
       <version>${commons-cli.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>${commons-compress.version}</version>
-    </dependency>
-    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>${logback.version}</version>
@@ -80,6 +75,7 @@
       <artifactId>jena-arq</artifactId>
       <version>${jena.version}</version>
     </dependency>
+    <!--
     <dependency>
       <groupId>com.esotericsoftware.yamlbeans</groupId>
       <artifactId>yamlbeans</artifactId>
@@ -90,6 +86,7 @@
       <artifactId>bagit</artifactId>
       <version>${bagit.version}</version>
     </dependency>
+    -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
