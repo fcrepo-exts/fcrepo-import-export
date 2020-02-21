@@ -54,13 +54,12 @@ public class BagDeserializerTest {
         Assert.assertNotNull(target);
     }
 
-    @After
-    public void cleanup() throws IOException {
-        FileUtils.deleteDirectory(target.resolve(group).resolve(expectedDir).toFile());
+    private void cleanup(final String test) throws IOException {
+        FileUtils.deleteDirectory(target.resolve(group).resolve(expectedDir + "-" + test).toFile());
     }
 
     @Test
-    public void testExtractZip() {
+    public void testExtractZip() throws IOException {
         final String serializedBag = expectedDir + "-zip.zip";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
@@ -76,10 +75,11 @@ public class BagDeserializerTest {
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
         Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        cleanup("zip");
     }
 
     @Test
-    public void testExtractTar() {
+    public void testExtractTar() throws IOException {
         final String serializedBag = expectedDir + "-tar.tar";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
@@ -95,10 +95,11 @@ public class BagDeserializerTest {
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
         Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        cleanup("tar");
     }
 
     @Test
-    public void testExtractGZip() {
+    public void testExtractGZip() throws IOException {
         final String serializedBag = expectedDir + "-gzip.tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);
         try {
@@ -114,5 +115,6 @@ public class BagDeserializerTest {
         Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
         Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
         Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        cleanup("gzip");
     }
 }
