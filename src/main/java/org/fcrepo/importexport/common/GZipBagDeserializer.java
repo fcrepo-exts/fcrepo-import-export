@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,6 @@ import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Deflate a gzipped bag so that the underlying bag can continue to be deserialized.
@@ -56,7 +56,7 @@ public class GZipBagDeserializer implements BagDeserializer {
         logger.info("Deflating gzipped bag: {}", filename);
         try (InputStream is = Files.newInputStream(root);
             final InputStream bis = new BufferedInputStream(is);
-            final GZIPInputStream gzipIS = new GZIPInputStream(bis)) {
+            final GzipCompressorInputStream gzipIS = new GzipCompressorInputStream(bis)) {
 
             Files.copy(gzipIS, serializedBag);
         } catch (FileAlreadyExistsException ex) {
