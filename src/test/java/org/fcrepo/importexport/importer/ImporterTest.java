@@ -306,6 +306,24 @@ public class ImporterTest {
         importer.run();
     }
 
+    @Test(expected = RuntimeException.class)
+    public void testImportBagFailsProfileValidation() throws URISyntaxException {
+        bagItArgs = new Config();
+        bagItArgs.setMode("import");
+        bagItArgs.setBaseDirectory("src/test/resources/sample/baginvalid");
+        bagItArgs.setIncludeBinaries(true);
+        bagItArgs.setRdfLanguage("application/turtle");
+        bagItArgs.setResource(new URI("http://example.org:9999/rest"));
+        bagItArgs.setMap(new String[] { "http://localhost:8080/rest", "http://example.org:9999/rest" });
+        bagItArgs.setBagProfile("default");
+        bagItArgs.setUsername("tester");
+
+
+        // this fails Bag Profile validation
+        final Importer importer = new Importer(bagItArgs, clientBuilder);
+        importer.run();
+    }
+
     @Test
     public void testImportBagMultipleDigests() throws URISyntaxException, FcrepoOperationFailedException {
         final URI imageBinaryURI  = new URI("http://example.org:9999/rest/image0");

@@ -135,7 +135,7 @@ public class Importer implements TransferProcess {
 
     /**
      * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's payload manifest
-      */
+     */
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
 
@@ -168,6 +168,8 @@ public class Importer implements TransferProcess {
             this.bagItFileMap = null;
         } else {
             try {
+                final File bagDir = config.getBaseDirectory().getParentFile();
+
                 // load the bag profile
                 final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
                 final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
@@ -175,17 +177,19 @@ public class Importer implements TransferProcess {
 
                 final Path root;
                 final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
-                // if the given file is serialized (a single file), try to extract first
+              
+                // if the bag is serialized (a single file), try to extract first
                 if (bagDir.isFile() && (profile.getSerialization() == BagProfile.Serialization.OPTIONAL ||
                                         profile.getSerialization() == BagProfile.Serialization.REQUIRED)) {
                     final BagDeserializer deserializer = SerializationSupport.deserializerFor(bagDir.toPath(), profile);
                     root = deserializer.deserialize(bagDir.toPath());
                     // update the base directory so we don't attempt to work on the serialized bag later
-                    config.setBaseDirectory(root.toString());
+                    config.setBaseDirectory(root.toString(), profile);
                 } else {
                     root = bagDir.toPath();
                 }
-                final Bag bag = verifyBag(root);
+              
+                final Bag bag = verifyBag(root, profile);
                 configureBagItFileMap(bag);
             } catch (IOException e) {
                 logger.error("Unable to open BagProfile for {}!", bagProfile);
@@ -862,19 +866,21 @@ public class Importer implements TransferProcess {
      * Verify the bag we are going to import
      *
      * @param bagDir root directory of the bag
+     * @param profile the {@link BagProfile} to validate against
      * @return the {@link Bag} if valid
      */
-    private Bag verifyBag(final Path bagDir) {
+    private Bag verifyBag(final Path bagDir, final BagProfile profile) {
         try {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
+            profile.validateBag(bag);
 
             final BagVerifier bagVerifier = new BagVerifier();
             bagVerifier.isValid(bag, false);
 
             return bag;
         } catch (Exception e) {
-            logger.error("Unable to read bag ", e);
+            logger.error("Unable to verify bag ", e);
             throw new RuntimeException(String.format("Error reading bag: %s", e.getMessage()), e);
         }
     }

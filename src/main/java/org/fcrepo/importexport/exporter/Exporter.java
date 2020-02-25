@@ -47,12 +47,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -419,9 +419,24 @@ public class Exporter implements TransferProcess {
     void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
 
         final Map<String, List<String>> headers = response.getHeaders();
-        final String json = new ObjectMapper().writeValueAsString(headers);
-        try (final FileWriter writer = new FileWriter(file)) {
-            writer.write(json);
+        if (!headers.isEmpty()) {
+            final String json = new ObjectMapper().writeValueAsString(headers);
+            final InputStream byteInputStream = new ByteArrayInputStream(json.getBytes());
+            try (OutputStream headerOut = Files.newOutputStream(file.toPath())) {
+                copy(byteInputStream, headerOut);
+                if (md5FileMap != null) {
+                    md5FileMap.put(file, new String(encodeHex(md5.digest())));
+                }
+                if (sha1FileMap != null) {
+                    sha1FileMap.put(file, new String(encodeHex(sha1.digest())));
+                }
+                if (sha256FileMap != null) {
+                    sha256FileMap.put(file, new String(encodeHex(sha256.digest())));
+                }
+                if (sha512FileMap != null) {
+                    sha512FileMap.put(file, new String(encodeHex(sha512.digest())));
+                }
+            }
         }
     }
 
