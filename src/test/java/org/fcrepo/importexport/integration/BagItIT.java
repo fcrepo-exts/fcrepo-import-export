@@ -28,16 +28,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -105,12 +106,14 @@ public class BagItIT extends AbstractResourceIT {
         while ((read = response1.getBody().read(buf)) != -1) {
             sha1.update(buf, 0, read);
         }
-
         final String checksum = new String(encodeHex(sha1.digest()));
-        final BufferedReader reader = new BufferedReader(new FileReader(target.resolve("manifest-sha1.txt").toFile()));
-        final String checksumLine = reader.readLine();
-        reader.close();
-        assertEquals(checksum, checksumLine.split(" ")[0]);
+
+        try (Stream<String> manifest = Files.lines(target.resolve("manifest-sha1.txt"))) {
+            final Set<String> checksums = manifest.map(line -> line.split(" ")[0].trim()).collect(Collectors.toSet());
+
+            assertEquals(2, checksums.size());
+            assertTrue(checksums.contains(checksum));
+        }
     }
 
     @Test
@@ -219,6 +222,27 @@ public class BagItIT extends AbstractResourceIT {
     public void testImportBagVerifyBinaryDigest() {
         final URI resourceURI = URI.create(serverAddress);
         final String bagPath = TARGET_DIR + "/test-classes/sample/bagcorrupted";
+
+        final Config config = new Config();
+        config.setMode("import");
+        config.setBaseDirectory(bagPath);
+        config.setIncludeBinaries(true);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setResource(resourceURI);
+        config.setMap(new String[] { "http://localhost:8080/fcrepo/rest/", serverAddress });
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(DEFAULT_BAG_PROFILE);
+
+        // run import, expected to fail on bag validation
+        final Importer importer = new Importer(config, clientBuilder);
+        importer.run();
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testImportBagFailsProfileValidation() {
+        final URI resourceURI = URI.create(serverAddress);
+        final String bagPath = TARGET_DIR + "/test-classes/sample/baginvalid";
 
         final Config config = new Config();
         config.setMode("import");
