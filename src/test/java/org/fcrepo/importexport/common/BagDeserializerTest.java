@@ -27,7 +27,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
