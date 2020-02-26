@@ -55,13 +55,12 @@ public class ZipBagDeserializer implements BagDeserializer {
                 logger.debug("Handling entry {}", entry.getName());
                 final Path archiveFile = parent.resolve(name);
 
-                if (archiveFile.getNameCount() == rootNameCount) {
-                    logger.debug("Archive name is {}", archiveFile.getFileName());
-                    filename = Optional.of(archiveFile.getFileName().toString());
-                }
-
                 if (entry.isDirectory()) {
                     Files.createDirectories(archiveFile);
+                    if (archiveFile.getNameCount() == rootNameCount) {
+                        logger.debug("Archive name is {}", archiveFile.getFileName());
+                        filename = Optional.of(archiveFile.getFileName().toString());
+                    }
                 } else {
                     if (Files.exists(parent.resolve(name))) {
                         logger.warn("File {} already exists!", name);
