@@ -18,6 +18,10 @@
 package org.fcrepo.importexport.common;
 
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -27,7 +31,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +53,7 @@ public class BagDeserializerTest {
     public void setup() throws URISyntaxException {
         final URL sample = this.getClass().getClassLoader().getResource("sample");
         target = Paths.get(Objects.requireNonNull(sample).toURI());
-        Assert.assertNotNull(target);
+        assertNotNull(target);
     }
 
     private void cleanup(final String test) throws IOException {
@@ -66,14 +69,14 @@ public class BagDeserializerTest {
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
-            Assert.fail("Unexpected exception:\n" + e.getMessage());
+            fail("Unexpected exception:\n" + e.getMessage());
         }
 
         final Path bag = target.resolve(group).resolve(expectedDir + "-zip");
-        Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
-        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
-        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        assertTrue(Files.exists(bag));
+        assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
         cleanup("zip");
     }
 
@@ -86,14 +89,14 @@ public class BagDeserializerTest {
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
-            Assert.fail("Unexpected exception:\n" + e.getMessage());
+            fail("Unexpected exception:\n" + e.getMessage());
         }
 
         final Path bag = target.resolve(group).resolve(expectedDir + "-tar");
-        Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
-        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
-        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        assertTrue(Files.exists(bag));
+        assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
         cleanup("tar");
     }
 
@@ -106,14 +109,14 @@ public class BagDeserializerTest {
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
             deserializer.deserialize(path);
         } catch (IOException e) {
-            Assert.fail("Unexpected exception:\n" + e.getMessage());
+            fail("Unexpected exception:\n" + e.getMessage());
         }
 
         final Path bag = target.resolve(group).resolve(expectedDir + "-gzip");
-        Assert.assertTrue(Files.exists(bag));
-        Assert.assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
-        Assert.assertTrue(Files.exists(bag.resolve(DATA_DIR)));
-        Assert.assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
+        assertTrue(Files.exists(bag));
+        assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        assertTrue(Files.exists(bag.resolve(DATA_DIR)));
+        assertTrue(Files.isDirectory(bag.resolve(DATA_DIR)));
         cleanup("gzip");
     }
 }
