@@ -167,34 +167,42 @@ public class Importer implements TransferProcess {
         if (bagProfile == null) {
             this.bagItFileMap = null;
         } else {
-            try {
-                final File bagDir = config.getBaseDirectory().getParentFile();
+            loadBagProfile(bagProfile);
+        }
+    }
 
-                // load the bag profile
-                final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
-                final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
-                final BagProfile profile = new BagProfile(in);
+    /**
+     * Load a {@link BagProfile} for a given directory and initialize the Importer iff the bag passes validation on the
+     * profile and the BagIt spec (handled by {@link #verifyBag}.
+     *
+     * @param bagProfile the name of the {@link BagProfile} to use
+     */
+    private void loadBagProfile(final String bagProfile) {
+        try {
+            // load the bag profile
+            final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
+            final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
+            final BagProfile profile = new BagProfile(in);
 
-                final Path root;
-                final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
-              
-                // if the bag is serialized (a single file), try to extract first
-                if (bagDir.isFile() && (profile.getSerialization() == BagProfile.Serialization.OPTIONAL ||
-                                        profile.getSerialization() == BagProfile.Serialization.REQUIRED)) {
-                    final BagDeserializer deserializer = SerializationSupport.deserializerFor(bagDir.toPath(), profile);
-                    root = deserializer.deserialize(bagDir.toPath());
-                    // update the base directory so we don't attempt to work on the serialized bag later
-                    config.setBaseDirectory(root.toString(), profile);
-                } else {
-                    root = bagDir.toPath();
-                }
-              
-                final Bag bag = verifyBag(root, profile);
-                configureBagItFileMap(bag);
-            } catch (IOException e) {
-                logger.error("Unable to open BagProfile for {}!", bagProfile);
-                throw new RuntimeException(e);
+            final Path root;
+            final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
+
+            // if the bag is serialized (a single file), try to extract first
+            if (bagDir.isFile() && (profile.getSerialization() == BagProfile.Serialization.OPTIONAL ||
+                                    profile.getSerialization() == BagProfile.Serialization.REQUIRED)) {
+                final BagDeserializer deserializer = SerializationSupport.deserializerFor(bagDir.toPath(), profile);
+                root = deserializer.deserialize(bagDir.toPath());
+                // update the base directory so we don't attempt to work on the serialized bag later
+                config.setBaseDirectory(root.toString());
+            } else {
+                root = bagDir.toPath();
             }
+
+            final Bag bag = verifyBag(root, profile);
+            configureBagItFileMap(bag);
+        } catch (IOException e) {
+            logger.error("Unable to open BagProfile for {}!", bagProfile);
+            throw new RuntimeException(e);
         }
     }
 
