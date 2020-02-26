@@ -101,6 +101,24 @@ public class BagDeserializerTest {
     }
 
     @Test
+    public void testExtractTarMismatchName() throws IOException {
+        final String serializedBag = expectedDir + "-tar-mismatch.tar";
+        final Path path = target.resolve(group).resolve(serializedBag);
+        try {
+            final BagProfile profile = new BagProfile(Files.newInputStream(Paths.get(BEYONDTHEREPOSITORY_JSON)));
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(path, profile);
+            deserializer.deserialize(path);
+        } catch (IOException e) {
+            fail("Unexpected exception:\n" + e.getMessage());
+        }
+
+        final Path bag = target.resolve(group).resolve(expectedDir + "-tar");
+        assertTrue(Files.exists(bag));
+        assertTrue(Files.exists(bag.resolve(BAG_INFO_TXT)));
+        cleanup("tar");
+    }
+
+    @Test
     public void testExtractGZip() throws IOException {
         final String serializedBag = expectedDir + "-gzip.tar.gz";
         final Path path = target.resolve(group).resolve(serializedBag);

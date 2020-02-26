@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * Deserializer for {@link gov.loc.repository.bagit.domain.Bag}s serialized using zip
@@ -41,13 +42,11 @@ public class ZipBagDeserializer implements BagDeserializer {
 
     @Override
     public Path deserialize(final Path root) throws IOException {
+        logger.info("Extracting serialized bag: {}", root.getFileName());
+
         final Path parent = root.getParent();
-        final String nameWithExtension = root.getFileName().toString();
-        final int dotIdx = nameWithExtension.lastIndexOf(".");
-        final String filename = (dotIdx == -1) ? nameWithExtension : nameWithExtension.substring(0, dotIdx);
-
-        logger.info("Extracting serialized bag: {}", filename);
-
+        final int rootNameCount = root.getNameCount();
+        Optional<String> filename = Optional.empty();
         try (ZipArchiveInputStream inputStream = new ZipArchiveInputStream(Files.newInputStream(root))) {
             ArchiveEntry entry;
             while ((entry = inputStream.getNextEntry()) != null) {
@@ -56,18 +55,29 @@ public class ZipBagDeserializer implements BagDeserializer {
                 logger.debug("Handling entry {}", entry.getName());
                 final Path archiveFile = parent.resolve(name);
 
+                if (archiveFile.getNameCount() == rootNameCount) {
+                    logger.debug("Archive name is {}", archiveFile.getFileName());
+                    filename = Optional.of(archiveFile.getFileName().toString());
+                }
+
                 if (entry.isDirectory()) {
                     Files.createDirectories(archiveFile);
                 } else {
                     if (Files.exists(parent.resolve(name))) {
                         logger.warn("File {} already exists!", name);
-                    } else{
+                    } else {
                         Files.copy(inputStream, archiveFile);
                     }
                 }
             }
         }
 
-        return parent.resolve(filename);
+        final String extracted = filename.orElseGet(() -> {
+            // get the name from the tarball minus the extension
+            final String rootName = root.getFileName().toString();
+            final int dotIdx = rootName.lastIndexOf(".");
+            return rootName.substring(0, dotIdx);
+        });
+        return parent.resolve(extracted);
     }
 }
