@@ -58,7 +58,11 @@
    "Manifests-Allowed": [],
    "Allow-Fetch.txt":false,
    "Serialization":"optional",
-   "Accept-Serialization": ["application/tar"],
+   "Accept-Serialization": [
+      "application/tar",
+      "application/zip",
+      "application/gzip"
+   ],
    "Tag-Manifests-Required":[
      "sha1"
    ],
