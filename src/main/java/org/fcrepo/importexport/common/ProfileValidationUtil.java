@@ -187,6 +187,7 @@ public class ProfileValidationUtil {
      *
      * @param tag the tag file to check
      * @param allowedTags the list of allowed tag files, with unix style globbing allowed
+     * @throws ProfileValidationException when a tag file is not in the set of allowed tag filenames
      */
     public static void validateTagIsAllowed(final Path tag, final Set<String> allowedTags)
         throws ProfileValidationException {
