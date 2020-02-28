@@ -61,7 +61,10 @@
    "Accept-Serialization": [
       "application/tar",
       "application/zip",
-      "application/gzip"
+      "application/gzip",
+      "application/x-tar",
+      "application/x-gzip",
+      "application/x-7z-compressed"
    ],
    "Tag-Manifests-Required":[
      "sha1"
