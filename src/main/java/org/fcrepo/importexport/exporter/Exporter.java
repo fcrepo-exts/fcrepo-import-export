@@ -78,12 +78,14 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 
 import org.duraspace.bagit.BagConfig;
+import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.BagWriter;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
+import org.fcrepo.importexport.common.BagProfileConstants;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
 
@@ -141,55 +143,61 @@ public class Exporter implements TransferProcess {
         this.repositoryRoot = config.getRepositoryRoot();
 
         if (config.getBagProfile() != null) {
-            try {
-                // parse profile
-                final URL url = this.getClass().getResource("/profiles/" + config.getBagProfile() + ".json");
-                final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
-                final InputStream in = (url == null) ? new FileInputStream(config.getBagProfile()) : url.openStream();
-                final BagProfile bagProfile = new BagProfile(in);
+            configureBagItParameters();
+        }
+    }
 
-                // always do sha1, do md5/sha256 if the profile asks for it
-                final HashSet<String> algorithms = new HashSet<>();
-                this.sha1FileMap = new HashMap<>();
-                this.sha1 = MessageDigest.getInstance("SHA-1");
-                algorithms.add("sha1");
-                if (bagProfile.getPayloadDigestAlgorithms().contains("md5")) {
-                    this.md5FileMap = new HashMap<>();
-                    this.md5 = MessageDigest.getInstance("MD5");
-                    algorithms.add("md5");
-                }
-                if (bagProfile.getPayloadDigestAlgorithms().contains("sha256")) {
-                    this.sha256FileMap = new HashMap<>();
-                    this.sha256 = MessageDigest.getInstance("SHA-256");
-                    algorithms.add("sha256");
-                }
-                if (bagProfile.getPayloadDigestAlgorithms().contains("sha512")) {
-                    this.sha512FileMap = new HashMap<>();
-                    this.sha512 = MessageDigest.getInstance("SHA-512");
-                    algorithms.add("sha512");
-                }
+    private void configureBagItParameters() {
+        final BagItDigest md5 = BagItDigest.MD5;
+        final BagItDigest sha1 = BagItDigest.SHA1;
+        final BagItDigest sha256 = BagItDigest.SHA256;
+        final BagItDigest sha512 = BagItDigest.SHA512;
+        try {
+            // parse profile
+            final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
+            // todo: this could work similar to before where if the BuiltIn profile is not found it attempts
+            //       to create a FileInputStream using config.getBagProfile
+            final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
 
-                //enforce default metadata
-                bagProfile.validateConfig(bagConfig);
-                final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
-
-                // the profile identifier must exist per the bagit-profiles spec
-                bagProfileId = profileMetadata.get("BagIt-Profile-Identifier");
-
-                // setup bag
-                final File bagdir = config.getBaseDirectory().getParentFile();
-                this.bag = new BagWriter(bagdir, algorithms);
-                for (final String tagFile : bagConfig.getTagFiles()) {
-                    this.bag.addTags(tagFile, bagConfig.getFieldsForTagFile(tagFile));
-                }
-
-            } catch (NoSuchAlgorithmException e) {
-                // never happens with known algorithm names
-            } catch (FileNotFoundException e) {
-                throw new RuntimeException(String.format("Error loading bag config file: %1$s", e.getMessage()), e);
-            } catch (IOException e) {
-                throw new RuntimeException(String.format("Error reading bag profile: %1$s", e.getMessage()), e);
+            // always do sha1, do md5/sha256 if the profile asks for it
+            final HashSet<String> algorithms = new HashSet<>();
+            this.sha1FileMap = new HashMap<>();
+            this.sha1 = sha1.messageDigest();
+            algorithms.add(sha1.bagitName());
+            if (bagProfile.getPayloadDigestAlgorithms().contains(md5.bagitName())) {
+                this.md5FileMap = new HashMap<>();
+                this.md5 = BagItDigest.MD5.messageDigest();
+                algorithms.add(md5.bagitName());
             }
+            if (bagProfile.getPayloadDigestAlgorithms().contains(sha256.bagitName())) {
+                this.sha256FileMap = new HashMap<>();
+                this.sha256 = BagItDigest.SHA256.messageDigest();
+                algorithms.add(sha256.bagitName());
+            }
+            if (bagProfile.getPayloadDigestAlgorithms().contains(sha512.bagitName())) {
+                this.sha512FileMap = new HashMap<>();
+                this.sha512 = BagItDigest.SHA512.messageDigest();
+                algorithms.add(sha512.bagitName());
+            }
+
+            //enforce default metadata
+            bagProfile.validateConfig(bagConfig);
+            final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
+
+            // the profile identifier must exist per the bagit-profiles spec
+            bagProfileId = profileMetadata.get(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER);
+
+            // setup bag
+            final File bagdir = config.getBaseDirectory().getParentFile();
+            this.bag = new BagWriter(bagdir, algorithms);
+            for (final String tagFile : bagConfig.getTagFiles()) {
+                this.bag.addTags(tagFile, bagConfig.getFieldsForTagFile(tagFile));
+            }
+
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(String.format("Error loading bag config file: %1$s", e.getMessage()), e);
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Error reading bag profile: %1$s", e.getMessage()), e);
         }
     }
 
