@@ -271,19 +271,18 @@ public class Exporter implements TransferProcess {
         if (bag != null) {
             try {
                 logger.info("Finishing bag manifests...");
-                final Map<String, String> bagMetadata = new HashMap<>();
-                bagMetadata.putAll(bag.getTags("bag-info.txt"));
-                bagMetadata.putAll(bagTechMetadata());
-                bag.addTags("bag-info.txt", bagMetadata);
-                bag.registerChecksums("sha1", sha1FileMap);
+                bag.addTags(BagConfig.BAG_INFO_KEY, bagTechMetadata());
+                if (sha1 != null) {
+                    bag.registerChecksums(BagItDigest.SHA1, sha1FileMap);
+                }
                 if (sha256 != null) {
-                    bag.registerChecksums("sha256", sha256FileMap);
+                    bag.registerChecksums(BagItDigest.SHA256, sha256FileMap);
                 }
                 if (sha512 != null) {
-                    bag.registerChecksums("sha512", sha512FileMap);
+                    bag.registerChecksums(BagItDigest.SHA512, sha512FileMap);
                 }
                 if (md5 != null) {
-                    bag.registerChecksums("md5", md5FileMap);
+                    bag.registerChecksums(BagItDigest.MD5, md5FileMap);
                 }
                 bag.write();
             } catch (IOException e) {
@@ -298,10 +297,10 @@ public class Exporter implements TransferProcess {
 
     private Map<String, String> bagTechMetadata() {
         final Map<String, String> metadata = new HashMap<>();
-        metadata.put("BagIt-Profile-Identifier", bagProfileId);
-        metadata.put("Bag-Size", byteCountToDisplaySize(successBytes.longValue()));
-        metadata.put("Payload-Oxum", successBytes.toString() + "." + successCount.toString());
-        metadata.put("Bagging-Date", dateFormat.format(new Date()));
+        metadata.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, bagProfileId);
+        metadata.put(BagConfig.BAG_SIZE_KEY, byteCountToDisplaySize(successBytes.longValue()));
+        metadata.put(BagConfig.PAYLOAD_OXUM_KEY, successBytes.toString() + "." + successCount.toString());
+        metadata.put(BagConfig.BAGGING_DATE_KEY, dateFormat.format(new Date()));
         return metadata;
     }
 
