@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.duraspace.bagit.BagItDigest;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -65,10 +66,13 @@ public class BagItIT extends AbstractResourceIT {
      * @param id the id to assign to the bag
      * @param bagProfile the bag profile to use
      * @param bagConfig the path to the bag config for bag-info data
+     * @param bagItDigest a BagItDigest which is expected to be found when the export is complete
      * @throws Exception
      */
-    public void runExportBag(final String id, final String bagProfile, final String bagConfig) throws Exception {
+    public void runExportBag(final String id, final String bagProfile, final String bagConfig,
+                             final BagItDigest bagItDigest) throws Exception {
         final URI uri = URI.create(serverAddress + id);
+        final String manifestName = "manifest-" + bagItDigest.bagitName() + ".txt";
 
         final FcrepoResponse response = create(uri);
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -90,7 +94,7 @@ public class BagItIT extends AbstractResourceIT {
 
         final Path target = Paths.get(TARGET_DIR, id);
         assertTrue(target.resolve("bagit.txt").toFile().exists());
-        assertTrue(target.resolve("manifest-sha1.txt").toFile().exists());
+        assertTrue(target.resolve(manifestName).toFile().exists());
 
         final Path dataDir = target.resolve("data");
         assertTrue(dataDir.toFile().exists());
@@ -100,15 +104,15 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(resourceFile.toFile().exists());
 
         final FcrepoResponse response1 = clientBuilder.build().get(uri).perform();
-        final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+        final MessageDigest messageDigest = bagItDigest.messageDigest();
         final byte[] buf = new byte[8192];
         int read = 0;
         while ((read = response1.getBody().read(buf)) != -1) {
-            sha1.update(buf, 0, read);
+            messageDigest.update(buf, 0, read);
         }
-        final String checksum = new String(encodeHex(sha1.digest()));
+        final String checksum = new String(encodeHex(messageDigest.digest()));
 
-        try (Stream<String> manifest = Files.lines(target.resolve("manifest-sha1.txt"))) {
+        try (Stream<String> manifest = Files.lines(target.resolve(manifestName))) {
             final Set<String> checksums = manifest.map(line -> line.split(" ")[0].trim()).collect(Collectors.toSet());
 
             assertEquals(2, checksums.size());
@@ -119,7 +123,7 @@ public class BagItIT extends AbstractResourceIT {
     @Test
     public void testExportDefault() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
+        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve("bag-info.txt");
@@ -131,7 +135,7 @@ public class BagItIT extends AbstractResourceIT {
     @Test
     public void testExportApTrust() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, apTrustProfile, defaultConfig);
+        runExportBag(exampleID, apTrustProfile, defaultConfig, BagItDigest.MD5);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve("bag-info.txt");
@@ -145,7 +149,7 @@ public class BagItIT extends AbstractResourceIT {
     public void testExportBeyondTheRepository() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
         final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
-        runExportBag(exampleID, btrProfile, btrConfig);
+        runExportBag(exampleID, btrProfile, btrConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve("bag-info.txt");
