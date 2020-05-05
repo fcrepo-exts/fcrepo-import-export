@@ -27,11 +27,10 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
 import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
-import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
-
+import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
 import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
@@ -44,20 +43,19 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,19 +74,17 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
-
 import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagProfileConstants;
 import org.duraspace.bagit.BagWriter;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
-import org.fcrepo.importexport.common.BagProfileConstants;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
-
 import org.slf4j.Logger;
 
 /**
@@ -148,36 +144,33 @@ public class Exporter implements TransferProcess {
     }
 
     private void configureBagItParameters() {
-        final BagItDigest md5 = BagItDigest.MD5;
-        final BagItDigest sha1 = BagItDigest.SHA1;
-        final BagItDigest sha256 = BagItDigest.SHA256;
-        final BagItDigest sha512 = BagItDigest.SHA512;
         try {
             // parse profile
             final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
-            // todo: this could work similar to before where if the BuiltIn profile is not found it attempts
-            //       to create a FileInputStream using config.getBagProfile
-            final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
 
-            // always do sha1, do md5/sha256 if the profile asks for it
-            final HashSet<String> algorithms = new HashSet<>();
-            this.sha1FileMap = new HashMap<>();
-            this.sha1 = sha1.messageDigest();
-            algorithms.add(sha1.bagitName());
-            if (bagProfile.getPayloadDigestAlgorithms().contains(md5.bagitName())) {
-                this.md5FileMap = new HashMap<>();
-                this.md5 = BagItDigest.MD5.messageDigest();
-                algorithms.add(md5.bagitName());
+            // try to initialize the BagProfile
+            BagProfile bagProfile;
+            try {
+                // first assuming we're given a profile identifier in the BagConfig
+                bagProfile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
+            } catch (IllegalArgumentException ignored) {
+                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
+                bagProfile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
             }
-            if (bagProfile.getPayloadDigestAlgorithms().contains(sha256.bagitName())) {
-                this.sha256FileMap = new HashMap<>();
-                this.sha256 = BagItDigest.SHA256.messageDigest();
-                algorithms.add(sha256.bagitName());
-            }
-            if (bagProfile.getPayloadDigestAlgorithms().contains(sha512.bagitName())) {
-                this.sha512FileMap = new HashMap<>();
-                this.sha512 = BagItDigest.SHA512.messageDigest();
-                algorithms.add(sha512.bagitName());
+
+            final Set<BagItDigest> algorithms;
+            // set up algorithms to use based on the required algorithms
+            // if none are found, use the allowed algorithms
+            // if the algorithms are still empty, use sha1
+            if (!bagProfile.getPayloadDigestAlgorithms().isEmpty()) {
+                algorithms = setupFileMap(bagProfile.getPayloadDigestAlgorithms());
+            } else if (!bagProfile.getAllowedPayloadAlgorithms().isEmpty()) {
+                algorithms = setupFileMap(bagProfile.getAllowedPayloadAlgorithms());
+            } else {
+                final BagItDigest sha1 = BagItDigest.SHA1;
+                this.sha1FileMap = new HashMap<>();
+                this.sha1 = sha1.messageDigest();
+                algorithms = Collections.singleton(sha1);
             }
 
             //enforce default metadata
@@ -193,12 +186,49 @@ public class Exporter implements TransferProcess {
             for (final String tagFile : bagConfig.getTagFiles()) {
                 this.bag.addTags(tagFile, bagConfig.getFieldsForTagFile(tagFile));
             }
-
         } catch (FileNotFoundException e) {
             throw new RuntimeException(String.format("Error loading bag config file: %1$s", e.getMessage()), e);
         } catch (IOException e) {
             throw new RuntimeException(String.format("Error reading bag profile: %1$s", e.getMessage()), e);
         }
+    }
+
+    /**
+     * Configure the digest algorithms and fileMaps given a Set of algorithm names
+     *
+     * @param algorithms the algorithms to initialize fields for
+     * @return the algorithms which were initialized, as {@link BagItDigest}s
+     */
+    private Set<BagItDigest> setupFileMap(final Set<String> algorithms) {
+        final BagItDigest md5 = BagItDigest.MD5;
+        final BagItDigest sha1 = BagItDigest.SHA1;
+        final BagItDigest sha256 = BagItDigest.SHA256;
+        final BagItDigest sha512 = BagItDigest.SHA512;
+        final HashSet<BagItDigest> bagItDigests = new HashSet<>();
+
+        for (String algorithm : algorithms) {
+            if (algorithm.equalsIgnoreCase(md5.bagitName())) {
+                this.md5 = BagItDigest.MD5.messageDigest();
+                this.md5FileMap = new HashMap<>();
+                bagItDigests.add(md5);
+            } else if (algorithm.equalsIgnoreCase(sha1.bagitName())) {
+                this.sha1 = BagItDigest.SHA1.messageDigest();
+                this.sha1FileMap = new HashMap<>();
+                bagItDigests.add(sha1);
+            } else if (algorithm.equalsIgnoreCase(sha256.bagitName())) {
+                this.sha256 = BagItDigest.SHA256.messageDigest();
+                this.sha256FileMap = new HashMap<>();
+                bagItDigests.add(sha256);
+            } else if (algorithm.equalsIgnoreCase(sha512.bagitName())) {
+                this.sha512 = BagItDigest.SHA512.messageDigest();
+                this.sha512FileMap = new HashMap<>();
+                bagItDigests.add(sha512);
+            } else {
+                logger.warn("Unsupported BagIt digest algorithm! {}", algorithm);
+            }
+        }
+
+        return bagItDigests;
     }
 
     /**
