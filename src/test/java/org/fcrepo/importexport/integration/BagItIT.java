@@ -19,6 +19,7 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.duraspace.bagit.BagConfig.BAG_INFO_KEY;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
@@ -43,7 +44,6 @@ import java.util.stream.Stream;
 
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagProfileConstants;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -58,8 +58,6 @@ import org.slf4j.Logger;
  */
 public class BagItIT extends AbstractResourceIT {
 
-    private final String apTrustProfile = "aptrust";
-    private final String btrProfile = "beyondtherepository";
     private final String defaultConfig = "src/test/resources/configs/bagit-config.yml";
     private final String btrConfig = "src/test/resources/configs/bagit-config-no-aptrust.yml";
 
@@ -72,7 +70,7 @@ public class BagItIT extends AbstractResourceIT {
      * @param bagItDigest a BagItDigest which is expected to be found when the export is complete
      * @throws Exception
      */
-    public void runExportBag(final String id, final String bagProfile, final String bagConfig,
+    public void runExportBag(final String id, final BagProfile.BuiltIn bagProfile, final String bagConfig,
                              final BagItDigest bagItDigest) throws Exception {
         final URI uri = URI.create(serverAddress + id);
         final String manifestName = "manifest-" + bagItDigest.bagitName() + ".txt";
@@ -91,7 +89,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(bagProfile);
+        config.setBagProfile(bagProfile.getIdentifier());
         config.setBagConfigPath(bagConfig);
         new Exporter(config, clientBuilder).run();
 
@@ -125,27 +123,33 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testExportDefault() throws Exception {
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.DEFAULT);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig, BagItDigest.SHA1);
+        runExportBag(exampleID, BagProfile.BuiltIn.DEFAULT, defaultConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
-        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/default.json"));
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test
     public void testExportApTrust() throws Exception {
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.APTRUST);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, apTrustProfile, defaultConfig, BagItDigest.MD5);
+        runExportBag(exampleID, BagProfile.BuiltIn.APTRUST, defaultConfig, BagItDigest.MD5);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
-        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/aptrust.json"));
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test
@@ -153,10 +157,10 @@ public class BagItIT extends AbstractResourceIT {
         final String exampleID = UUID.randomUUID().toString();
         final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
         final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
-        runExportBag(exampleID, btrProfile, btrConfig, BagItDigest.SHA1);
+        runExportBag(exampleID, BagProfile.BuiltIn.BEYOND_THE_REPOSITORY, btrConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
         assertTrue(bagInfoLines.contains(bagProfileId));
@@ -213,7 +217,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(btrProfile);
+        config.setBagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier());
         config.setLegacy(true);
 
         // Remove resource from any previously run ITs and verify it does not exist
@@ -243,7 +247,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(btrProfile);
+        config.setBagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier());
         config.setIncludeBinaries(true);
         config.setLegacy(true);
 
