@@ -208,7 +208,7 @@ public class ExporterTest {
         Assert.assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
         Assert.assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
 
-        // verify all tag manifests are written (any checksum + expected name)
+        // verify all tag files are written to the tag manifest (checksum + expected name)
         final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt|.*manifest.*";
         final File sha1TagManifest = new File(basedir + "/tagmanifest-sha1.txt");
         final File sha256TagManifest = new File(basedir + "/tagmanifest-sha256.txt");
