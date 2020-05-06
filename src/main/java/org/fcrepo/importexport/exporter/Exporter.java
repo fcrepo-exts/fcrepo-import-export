@@ -208,19 +208,19 @@ public class Exporter implements TransferProcess {
 
         for (String algorithm : algorithms) {
             if (algorithm.equalsIgnoreCase(md5.bagitName())) {
-                this.md5 = BagItDigest.MD5.messageDigest();
+                this.md5 = md5.messageDigest();
                 this.md5FileMap = new HashMap<>();
                 bagItDigests.add(md5);
             } else if (algorithm.equalsIgnoreCase(sha1.bagitName())) {
-                this.sha1 = BagItDigest.SHA1.messageDigest();
+                this.sha1 = sha1.messageDigest();
                 this.sha1FileMap = new HashMap<>();
                 bagItDigests.add(sha1);
             } else if (algorithm.equalsIgnoreCase(sha256.bagitName())) {
-                this.sha256 = BagItDigest.SHA256.messageDigest();
+                this.sha256 = sha256.messageDigest();
                 this.sha256FileMap = new HashMap<>();
                 bagItDigests.add(sha256);
             } else if (algorithm.equalsIgnoreCase(sha512.bagitName())) {
-                this.sha512 = BagItDigest.SHA512.messageDigest();
+                this.sha512 = sha512.messageDigest();
                 this.sha512FileMap = new HashMap<>();
                 bagItDigests.add(sha512);
             } else {
