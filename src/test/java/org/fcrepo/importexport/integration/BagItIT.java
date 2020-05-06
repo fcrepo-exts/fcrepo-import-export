@@ -19,6 +19,7 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -41,6 +42,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.duraspace.bagit.BagItDigest;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagProfileConstants;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -148,7 +151,8 @@ public class BagItIT extends AbstractResourceIT {
     @Test
     public void testExportBeyondTheRepository() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
-        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
         runExportBag(exampleID, btrProfile, btrConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
