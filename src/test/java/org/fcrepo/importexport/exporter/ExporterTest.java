@@ -38,12 +38,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -224,6 +229,7 @@ public class ExporterTest {
     @Test
     public void testExportApTrustBag() throws Exception {
         final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagSerialization("tar");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
@@ -235,11 +241,25 @@ public class ExporterTest {
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
         Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
 
-        final File baginfo = new File(exportDirectory + "/aptrust-info.txt");
-        Assert.assertTrue(baginfo.exists());
-        final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Access: Restricted"));
-        Assert.assertTrue(baginfoLines.contains("Title: My Title"));
+        Assert.assertTrue(Files.exists(Paths.get(exportDirectory + ".tar")));
+
+        // instead of extracting the tarball, search the stream for the aptrust-info.txt and read it if found
+        boolean found = false;
+        try (InputStream is = Files.newInputStream(Paths.get(exportDirectory + ".tar"));
+            TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
+            TarArchiveEntry entry = null;
+            while ((entry = tais.getNextTarEntry()) != null) {
+                if (entry.getName().equalsIgnoreCase("export/aptrust-info.txt")) {
+                    found = true;
+                    final List<String> lines = IOUtils.readLines(tais, Charset.defaultCharset());
+                    Assert.assertTrue(lines.contains("Access: Restricted"));
+                    Assert.assertTrue(lines.contains("Title: My Title"));
+                    Assert.assertTrue(lines.contains("Storage-Option: Standard"));
+                    break;
+                }
+            }
+        }
+        Assert.assertTrue(found);
     }
 
     @Test(expected = Exception.class)
