@@ -65,6 +65,7 @@ public class Config {
     private boolean includeVersions = false;
     private String bagProfile = null;
     private String bagConfigPath = null;
+    private String bagSerialization = null;
 
     private String[] predicates = DEFAULT_PREDICATES;
     private String rdfExtension = DEFAULT_RDF_EXT;
@@ -348,6 +349,22 @@ public class Config {
      */
     public String getBagProfile() {
         return bagProfile;
+    }
+
+    /**
+     * Set the BagIt serialization format
+     * @param bagSerialization the BagIt serialization format, or null if not using serialization
+     */
+    public void setBagSerialization(final String bagSerialization) {
+        this.bagSerialization = bagSerialization;
+    }
+
+    /**
+     * Get the BagIt serialization format
+     * @return the BagIt serialization format, or null if not serializing
+     */
+    public String getBagSerialization() {
+        return bagSerialization;
     }
 
     /**

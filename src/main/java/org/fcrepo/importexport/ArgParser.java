@@ -110,7 +110,6 @@ public class ArgParser {
                 .desc("The directory to export repo to or import the repo from.")
                 .required(true).build());
 
-
         // Import/export binaries option
         configOptions.addOption(Option.builder("b")
                 .longOpt("binaries")
@@ -193,6 +192,13 @@ public class ArgParser {
                 .required(false)
                 .desc("Path to the bag config file")
                 .build());
+
+        configOptions.addOption(Option.builder("s")
+                               .longOpt("bag-serialization").argName("format")
+                               .hasArg(true).numberOfArgs(1).argName("format")
+                               .required(false)
+                               .desc("Export BagIt bags into a serialized format [zip|tar|tgz]")
+                               .build());
 
         configOptions.addOption(Option.builder("R")
                 .longOpt("repositoryRoot").argName("uri")
@@ -387,6 +393,7 @@ public class ArgParser {
 
         config.setBagProfile(cmd.getOptionValue('g'));
         config.setBagConfigPath(cmd.getOptionValue('G'));
+        config.setBagSerialization(cmd.getOptionValue('s'));
 
         config.setAuditLog(cmd.hasOption('a'));
 
