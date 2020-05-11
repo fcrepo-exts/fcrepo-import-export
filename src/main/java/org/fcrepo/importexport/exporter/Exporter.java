@@ -295,6 +295,12 @@ public class Exporter implements TransferProcess {
                     bag.registerChecksums(BagItDigest.MD5, md5FileMap);
                 }
                 bag.write();
+
+                if (bagSerializer != null) {
+                    // Make sure the path is an absolute path because the BagSerializer uses relativize which requires
+                    // both Paths to be of the same type
+                    bagSerializer.serialize(bag.getRootDir().getAbsoluteFile().toPath());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
             } catch (Exception e) {
