@@ -20,7 +20,10 @@ package org.fcrepo.importexport.integration;
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.duraspace.bagit.BagConfig.BAG_INFO_KEY;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -31,19 +34,28 @@ import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.io.IOUtils;
+import org.apache.jena.ext.com.google.common.collect.ImmutableMap;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagProfileConstants;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -164,6 +176,96 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(bagInfo.toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
         assertTrue(bagInfoLines.contains(bagProfileId));
+    }
+
+    @Test
+    public void testExportBtRSerialized() throws Exception {
+        final String id = UUID.randomUUID().toString();
+        final String serializationType = "tar";
+
+        final URI uri = URI.create(serverAddress + id);
+
+        final FcrepoResponse response = create(uri);
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(uri, response.getLocation());
+
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + File.separator + id);
+        config.setIncludeBinaries(true);
+        config.setResource(uri);
+        config.setPredicates(new String[]{CONTAINS.toString()});
+        config.setRdfExtension(DEFAULT_RDF_EXT);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setBagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier());
+        config.setBagConfigPath(btrConfig);
+        config.setBagSerialization(serializationType);
+        new Exporter(config, clientBuilder).run();
+
+        final Path target = Paths.get(TARGET_DIR, id + "." + serializationType);
+        assertTrue(Files.exists(target));
+        assertTrue(Files.isRegularFile(target));
+
+        // Create a map of the bag files and their content instead of extracting
+        final Map<String, List<String>> filesFromArchive = new HashMap<>();
+        try (final InputStream is = Files.newInputStream(target);
+             final TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
+            TarArchiveEntry entry;
+
+            while ((entry = tais.getNextTarEntry()) != null) {
+                final List<String> lines = IOUtils.readLines(tais, Charset.defaultCharset());
+                filesFromArchive.put(entry.getName(), lines);
+            }
+        }
+
+        // check bagit.txt, bag-info.txt, and data files
+        final String bagItPath = id + "/bagit.txt";
+        final String bagInfoPath = id + "/" + BAG_INFO_KEY;
+        final String dataFilePath = id + "/data" + uri.getPath() + DEFAULT_RDF_EXT;
+        final String headersFilePath = dataFilePath + ".headers";
+        assertTrue("Could not find: " + bagItPath, filesFromArchive.containsKey(bagItPath));
+        assertTrue("Could not find: " + bagInfoPath, filesFromArchive.containsKey(bagInfoPath));
+        assertTrue("Could not find: " + dataFilePath, filesFromArchive.containsKey(dataFilePath));
+        assertTrue("Could not find: " + headersFilePath, filesFromArchive.containsKey(headersFilePath));
+
+        // check the BagIt-Profile-Identifier value exists in the bag-info
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+        final List<String> packagedBagInfo = filesFromArchive.get(bagInfoPath);
+        assertTrue("Could not find bag-info entry for: " + bagProfileId, packagedBagInfo.contains(bagProfileId));
+
+        // use the allowed manifests to find each tag + payload manifest and check accuracy
+        // there isn't a helper in BagItDigest yet to create from the algorithm name, so create a mapping
+        final Map<String, BagItDigest> digestMap = ImmutableMap.of(BAGIT_MD5, BagItDigest.MD5,
+                                                                   BAGIT_SHA1, BagItDigest.SHA1,
+                                                                   BAGIT_SHA_256, BagItDigest.SHA256,
+                                                                   "sha512", BagItDigest.SHA512);
+        for (String algorithm : bagProfile.getAllowedPayloadAlgorithms()) {
+            // check both entries exist
+            final String manifestPath = id + "/manifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
+            final String tagManifestPath = id + "/tagmanifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
+            assertTrue("Could not find: " + manifestPath, filesFromArchive.containsKey(manifestPath));
+            assertTrue("Could not find: " + tagManifestPath, filesFromArchive.containsKey(tagManifestPath));
+
+            // Calculate the checksum for the data file
+            final BagItDigest bagItDigest = digestMap.get(algorithm);
+            final FcrepoResponse fcrepoResponse = clientBuilder.build().get(uri).perform();
+            final MessageDigest messageDigest = bagItDigest.messageDigest();
+            final byte[] buf = new byte[8192];
+            int read = 0;
+            while ((read = fcrepoResponse.getBody().read(buf)) != -1) {
+                messageDigest.update(buf, 0, read);
+            }
+
+            // and check that the entry exists for the data file
+            final String dataFileEntry = "data" + uri.getPath() + DEFAULT_RDF_EXT;
+            final String expectedChecksum = new String(encodeHex(messageDigest.digest())) + "  " + dataFileEntry;
+            final List<String> foundChecksums = filesFromArchive.get(manifestPath);
+            assertTrue("Could not find manifest entry for: " + expectedChecksum + "; existing are\n" + foundChecksums,
+                       foundChecksums.contains(expectedChecksum));
+        }
     }
 
     @Test
