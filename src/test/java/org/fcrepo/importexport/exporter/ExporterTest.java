@@ -43,6 +43,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -243,23 +244,24 @@ public class ExporterTest {
 
         Assert.assertTrue(Files.exists(Paths.get(exportDirectory + ".tar")));
 
-        // instead of extracting the tarball, search the stream for the aptrust-info.txt and read it if found
-        boolean found = false;
+        // instead of extracting the tarball, search for the aptrust-info.txt and load it if found
+        List<String> aptrustInfoLines = Collections.emptyList();
         try (InputStream is = Files.newInputStream(Paths.get(exportDirectory + ".tar"));
             TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
-            TarArchiveEntry entry = null;
+            TarArchiveEntry entry;
             while ((entry = tais.getNextTarEntry()) != null) {
                 if (entry.getName().equalsIgnoreCase("export/aptrust-info.txt")) {
-                    found = true;
-                    final List<String> lines = IOUtils.readLines(tais, Charset.defaultCharset());
-                    Assert.assertTrue(lines.contains("Access: Restricted"));
-                    Assert.assertTrue(lines.contains("Title: My Title"));
-                    Assert.assertTrue(lines.contains("Storage-Option: Standard"));
+                    aptrustInfoLines = IOUtils.readLines(tais, Charset.defaultCharset());
                     break;
                 }
             }
         }
-        Assert.assertTrue(found);
+
+        // And check the aptrust-info.txt was found (isNotEmpty) and expected entries exist
+        Assert.assertFalse(aptrustInfoLines.isEmpty());
+        Assert.assertTrue(aptrustInfoLines.contains("Access: Restricted"));
+        Assert.assertTrue(aptrustInfoLines.contains("Title: My Title"));
+        Assert.assertTrue(aptrustInfoLines.contains("Storage-Option: Standard"));
     }
 
     @Test(expected = Exception.class)
