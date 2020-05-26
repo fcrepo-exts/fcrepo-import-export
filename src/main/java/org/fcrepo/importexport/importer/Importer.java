@@ -23,9 +23,9 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_MD5;
-import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA1;
-import static org.fcrepo.importexport.common.BagProfileConstants.BAGIT_SHA_256;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
@@ -65,7 +65,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -87,6 +86,9 @@ import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Property;
+import org.duraspace.bagit.BagDeserializer;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.SerializationSupport;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoLink;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -94,11 +96,8 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.BagDeserializer;
-import org.fcrepo.importexport.common.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
-import org.fcrepo.importexport.common.SerializationSupport;
 import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.IOUtils;
@@ -179,10 +178,15 @@ public class Importer implements TransferProcess {
      */
     private void loadBagProfile(final String bagProfile) {
         try {
-            // load the bag profile
-            final URL url = this.getClass().getResource("/profiles/" + bagProfile + ".json");
-            final InputStream in = url == null ? new FileInputStream(bagProfile) : url.openStream();
-            final BagProfile profile = new BagProfile(in);
+            // try to initialize the BagProfile
+            BagProfile profile;
+            try {
+                // first assuming we're given a profile identifier in the BagConfig
+                profile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
+            } catch (IllegalArgumentException ignored) {
+                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
+                profile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
+            }
 
             final Path root;
             final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();

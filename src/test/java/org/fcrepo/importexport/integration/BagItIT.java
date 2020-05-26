@@ -19,6 +19,8 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.duraspace.bagit.BagConfig.BAG_INFO_KEY;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -40,6 +42,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.duraspace.bagit.BagItDigest;
+import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -54,8 +58,6 @@ import org.slf4j.Logger;
  */
 public class BagItIT extends AbstractResourceIT {
 
-    private final String apTrustProfile = "aptrust";
-    private final String btrProfile = "beyondtherepository";
     private final String defaultConfig = "src/test/resources/configs/bagit-config.yml";
     private final String btrConfig = "src/test/resources/configs/bagit-config-no-aptrust.yml";
 
@@ -65,10 +67,13 @@ public class BagItIT extends AbstractResourceIT {
      * @param id the id to assign to the bag
      * @param bagProfile the bag profile to use
      * @param bagConfig the path to the bag config for bag-info data
+     * @param bagItDigest a BagItDigest which is expected to be found when the export is complete
      * @throws Exception
      */
-    public void runExportBag(final String id, final String bagProfile, final String bagConfig) throws Exception {
+    public void runExportBag(final String id, final BagProfile.BuiltIn bagProfile, final String bagConfig,
+                             final BagItDigest bagItDigest) throws Exception {
         final URI uri = URI.create(serverAddress + id);
+        final String manifestName = "manifest-" + bagItDigest.bagitName() + ".txt";
 
         final FcrepoResponse response = create(uri);
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -84,13 +89,13 @@ public class BagItIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(bagProfile);
+        config.setBagProfile(bagProfile.getIdentifier());
         config.setBagConfigPath(bagConfig);
         new Exporter(config, clientBuilder).run();
 
         final Path target = Paths.get(TARGET_DIR, id);
         assertTrue(target.resolve("bagit.txt").toFile().exists());
-        assertTrue(target.resolve("manifest-sha1.txt").toFile().exists());
+        assertTrue(target.resolve(manifestName).toFile().exists());
 
         final Path dataDir = target.resolve("data");
         assertTrue(dataDir.toFile().exists());
@@ -100,15 +105,15 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(resourceFile.toFile().exists());
 
         final FcrepoResponse response1 = clientBuilder.build().get(uri).perform();
-        final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+        final MessageDigest messageDigest = bagItDigest.messageDigest();
         final byte[] buf = new byte[8192];
         int read = 0;
         while ((read = response1.getBody().read(buf)) != -1) {
-            sha1.update(buf, 0, read);
+            messageDigest.update(buf, 0, read);
         }
-        final String checksum = new String(encodeHex(sha1.digest()));
+        final String checksum = new String(encodeHex(messageDigest.digest()));
 
-        try (Stream<String> manifest = Files.lines(target.resolve("manifest-sha1.txt"))) {
+        try (Stream<String> manifest = Files.lines(target.resolve(manifestName))) {
             final Set<String> checksums = manifest.map(line -> line.split(" ")[0].trim()).collect(Collectors.toSet());
 
             assertEquals(2, checksums.size());
@@ -118,37 +123,44 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testExportDefault() throws Exception {
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.DEFAULT);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, DEFAULT_BAG_PROFILE, defaultConfig);
+        runExportBag(exampleID, BagProfile.BuiltIn.DEFAULT, defaultConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
-        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/default.json"));
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test
     public void testExportApTrust() throws Exception {
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.APTRUST);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, apTrustProfile, defaultConfig);
+        runExportBag(exampleID, BagProfile.BuiltIn.APTRUST, defaultConfig, BagItDigest.MD5);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         assertTrue(target.resolve("aptrust-info.txt").toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
-        assertTrue(bagInfoLines.contains("BagIt-Profile-Identifier: http://fedora.info/bagprofile/aptrust.json"));
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test
     public void testExportBeyondTheRepository() throws Exception {
         final String exampleID = UUID.randomUUID().toString();
-        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
-        runExportBag(exampleID, btrProfile, btrConfig);
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
+        runExportBag(exampleID, BagProfile.BuiltIn.BEYOND_THE_REPOSITORY, btrConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
-        final Path bagInfo = target.resolve("bag-info.txt");
+        final Path bagInfo = target.resolve(BAG_INFO_KEY);
         assertTrue(bagInfo.toFile().exists());
         final List<String> bagInfoLines = Files.readAllLines(bagInfo);
         assertTrue(bagInfoLines.contains(bagProfileId));
@@ -205,7 +217,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(btrProfile);
+        config.setBagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier());
         config.setLegacy(true);
 
         // Remove resource from any previously run ITs and verify it does not exist
@@ -235,7 +247,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-        config.setBagProfile(btrProfile);
+        config.setBagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier());
         config.setIncludeBinaries(true);
         config.setLegacy(true);
 

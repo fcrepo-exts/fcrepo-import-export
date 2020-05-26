@@ -19,6 +19,7 @@ package org.fcrepo.importexport.exporter;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.readLines;
+import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -43,6 +44,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -206,8 +208,8 @@ public class ExporterTest {
         Assert.assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
         Assert.assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
 
-        // verify all tag manifests are written
-        final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt";
+        // verify all tag files are written to the tag manifest (checksum + expected name)
+        final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt|.*manifest.*";
         final File sha1TagManifest = new File(basedir + "/tagmanifest-sha1.txt");
         final File sha256TagManifest = new File(basedir + "/tagmanifest-sha256.txt");
         final File sha512TagManifest = new File(basedir + "/tagmanifest-sha512.txt");
@@ -265,8 +267,9 @@ public class ExporterTest {
 
     @Test
     public void testExportBeyondTheRepositoryBag() throws IOException {
+        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
         final String bagConfigPath = "src/test/resources/configs/bagit-config-no-aptrust.yml";
-        final String bagProfileId = "BagIt-Profile-Identifier: http://fedora.info/bagprofile/beyondtherepository.json";
+        final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + profile.getIdentifier();
 
         final Config config = new Config();
         config.setMode("export");
