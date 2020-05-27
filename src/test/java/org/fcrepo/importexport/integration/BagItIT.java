@@ -41,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -243,7 +244,7 @@ public class BagItIT extends AbstractResourceIT {
                                                                    BAGIT_SHA_256, BagItDigest.SHA256,
                                                                    "sha512", BagItDigest.SHA512);
         for (String algorithm : bagProfile.getAllowedPayloadAlgorithms()) {
-            // check both entries exist
+            // check both tag and payload manifests were found in the tarball
             final String manifestPath = id + "/manifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
             final String tagManifestPath = id + "/tagmanifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
             assertTrue("Could not find: " + manifestPath, filesFromArchive.containsKey(manifestPath));
@@ -258,13 +259,15 @@ public class BagItIT extends AbstractResourceIT {
             while ((read = fcrepoResponse.getBody().read(buf)) != -1) {
                 messageDigest.update(buf, 0, read);
             }
+            final String checksum = new String(encodeHex(messageDigest.digest()));
 
             // and check that the entry exists for the data file
-            final String dataFileEntry = "data" + uri.getPath() + DEFAULT_RDF_EXT;
-            final String expectedChecksum = new String(encodeHex(messageDigest.digest())) + "  " + dataFileEntry;
-            final List<String> foundChecksums = filesFromArchive.get(manifestPath);
-            assertTrue("Could not find manifest entry for: " + expectedChecksum + "; existing are\n" + foundChecksums,
-                       foundChecksums.contains(expectedChecksum));
+            // note that the entryPath is in the manifest so it is relative to the bag root
+            final String entryPath = "data" + uri.getPath() + DEFAULT_RDF_EXT;
+            final String expectedEntry = checksum + "  " + entryPath;
+            final List<String> foundEntry = filesFromArchive.get(manifestPath);
+            assertTrue("Could not find matching manifest entry for: " + expectedEntry + "; existing are\n" + foundEntry,
+                       foundEntry.contains(expectedEntry));
         }
     }
 
