@@ -109,21 +109,25 @@ You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag f
 
 To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the following bag profiles:
 
-* [default](src/main/resources/profiles/default.json)
-* [aptrust](src/main/resources/profiles/aptrust.json)
-* [metaarchive](src/main/resources/profiles/metaarchive.json)
-* [perseids](src/main/resources/profiles/perseids.json)
-* [beyondtherepository](src/main/resources/profiles/beyondtherepository.json)
+* [default](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/default.json)
+* [aptrust](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/aptrust.json)
+* [metaarchive](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/metaarchive.json)
+* [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
+* [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
+If a bag profile specifies that serialization can be used, the serialization format can be specified with `-s` or 
+`--bag-serialization` along with the desired format. Currently, the following formats are supported:
+* `tar`
+* `gzip` (will be a tarball compressed with gzip)
+* `zip`
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
+#### BagIt Examples
 
-```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
-```
+Note: All examples use a Fedora repository at `http://localhost:8080/rest/`
 
-Where `bagit-config.yml` looks like:
+##### Export using the default bag profile as a tarball with user supplied metadata
 
+Create `bagit-config.yml` with a `bag-info.txt` section for metadata:
 ```yaml
 bag-info.txt:
   Source-Organization: York University Libraries
@@ -138,14 +142,15 @@ bag-info.txt:
   Internal-Sender-Description: Sample bag exported from fcrepo
 ```
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the APTrust profile and user supplied metadata for tag files:
-
+Execute the import-export-utility:
 ```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-serialization tar --bag-config /tmp/bagit-config.yml
 ```
 
-Where `bagit-config-aptrust.yml` looks like:
-```yaml             
+##### Export using the APTrust profile with user supplied metadata
+
+Create `bagit-config-aptrust.yml` with `bag-info.txt` and `aptrust-info.txt` sections:
+```yaml
 bag-info.txt:
   Source-Organization: York University Libraries
   Organization-Address: 4700 Keele Street Toronto, Ontario M3J 1P3 Canada
@@ -160,9 +165,15 @@ bag-info.txt:
 aptrust-info.txt:
   Access: Restricted
   Title: Sample fcrepo bag
+  Storage-Region: Standard
 ```
 
-Additional tag files can be created by the utility by adding top-level classes in user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
+Execute the import-export-utility:
+```sh
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+```
+
+Additional tag files can be created by adding top-level keys in the user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
 
 Running the import/export utility with a configuration file
 -----------------------------------------------------------
