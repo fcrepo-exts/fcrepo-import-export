@@ -105,7 +105,10 @@ java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8
 Running the import/export utility with BagIt support
 ------------------------------------------------------
 
-You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag from a Fedora repository based on a [BagIt Profile](https://github.com/ruebot/bagit-profiles/). User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
+The import-export-utility supports import and export of [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bags 
+and has BagIt specific command line arguments in order to support a number of use cases.
+
+##### Bag Profile
 
 To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the following bag profiles:
 
@@ -115,8 +118,29 @@ To enable a bag profile, use the `-g` or `--bag-profile` option. The import/expo
 * [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
 * [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
-If a bag profile specifies that serialization can be used, the serialization format can be specified with `-s` or 
-`--bag-serialization` along with the desired format. Currently, the following formats are supported:
+##### Bag Metadata
+
+You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag from a Fedora repository based on a 
+[BagIt Profile](https://github.com/ruebot/bagit-profiles/). User supplied metadata for tag files can be provided with a 
+Yaml file specified by the `-G` or `--bag-config` option.
+
+The configuration file specified must have a top-level key matching the name of the metadata file with sub keys for
+each field you wish to manually supply. For example, setting metadata elements in the `bag-info.txt`:
+
+```yaml
+bag-info.txt:
+  Source-Organization: org.fcrepo
+  Organization-Address: https://github.com/fcrepo4-labs/fcrepo-import-export
+```
+
+##### Bag Serialization
+
+The import-export-utility supports serialization as part of import and export. 
+
+During import the utility will attempt to extract the serialized bag based on the content type of the path specified.
+
+For export, if a bag profile allows serialization the format can be specified with `-s` or `--bag-serialization` along 
+with the desired format. Currently, the following formats are supported:
 * `tar`
 * `gzip` (will be a tarball compressed with gzip)
 * `zip`
