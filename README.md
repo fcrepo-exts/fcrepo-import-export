@@ -105,7 +105,7 @@ java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8
 Running the import/export utility with BagIt support
 ------------------------------------------------------
 
-The import-export-utility supports import and export of [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bags 
+The import-export-utility supports import and export of [BagIt](https://tools.ietf.org/html/rfc8493) bags 
 and has BagIt specific command line arguments in order to support a number of use cases.
 
 ##### Bag Profile
@@ -120,7 +120,7 @@ To enable a bag profile, use the `-g` or `--bag-profile` option. The import/expo
 
 ##### Bag Metadata
 
-You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag from a Fedora repository based on a 
+You can export a BagIt bag from a Fedora repository based on a 
 [BagIt Profile](https://github.com/ruebot/bagit-profiles/). User supplied metadata for tag files can be provided with a 
 Yaml file specified by the `-G` or `--bag-config` option.
 
