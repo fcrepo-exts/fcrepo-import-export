@@ -112,7 +112,12 @@ library is used for bagging operations.
 
 ##### Bag Profile
 
-To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the following bag profiles:
+[BagIt Profiles](https://bagit-profiles.github.io/bagit-profiles-specification/) allow creators and consumers of Bags to
+agree on optional components of the Bags they are exchanging. Each profile is defined using a json file which outlines 
+the constraints according to the BagIt Profiles specification.
+
+To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the 
+following bag profiles:
 
 * [default](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/default.json)
 * [aptrust](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/aptrust.json)
@@ -122,9 +127,7 @@ To enable a bag profile, use the `-g` or `--bag-profile` option. The import/expo
 
 ##### Bag Metadata
 
-You can export a BagIt bag from a Fedora repository based on a 
-[BagIt Profile](https://github.com/ruebot/bagit-profiles/). User supplied metadata for tag files can be provided with a 
-Yaml file specified by the `-G` or `--bag-config` option.
+User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
 
 The configuration file specified must have a top-level key matching the name of the metadata file with sub keys for
 each field you wish to manually supply. For example, setting metadata elements in the `bag-info.txt`:
