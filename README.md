@@ -106,7 +106,9 @@ Running the import/export utility with BagIt support
 ------------------------------------------------------
 
 The import-export-utility supports import and export of [BagIt](https://tools.ietf.org/html/rfc8493) bags 
-and has BagIt specific command line arguments in order to support a number of use cases.
+and has BagIt specific command line arguments in order to support a number of use cases. In order to provide additional
+support for custom metadata, bag profiles, and serialization, the [bagit-support](https://github.com/duraspace/bagit-support/) 
+library is used for bagging operations.
 
 ##### Bag Profile
 
