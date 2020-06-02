@@ -141,8 +141,12 @@ The import-export-utility supports serialization as part of import and export. F
 used for serialization MUST be in a bag profile's `Accepted-Serialization`. If not, the process will fail with a list of
 accepted formats.
 
+###### Import
+
 During import if the import-export-utility detects that a bag is a regular file it will attempt to deserialize the bag
 based on the content type of the file.
+
+###### Export
 
 For export, if a bag profile allows serialization the format can be specified with `-s` or `--bag-serialization` along 
 with the desired format. Currently, the following formats are supported:
