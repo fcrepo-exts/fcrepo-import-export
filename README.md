@@ -177,13 +177,12 @@ Similar to the Bag Metadata, each BagIt Profile specifies if it allows serializa
 accepted:
 
 | Bag Profile | Serialization | Supported Formats |
-| ----------- | ------------- | ---------------- |
-| default     | Optional      | tar              |
-| aptrust     | Optional      | tar              |
-| beyondtherepository     | Optional      | tar, zip, gzip              |
-| metaarchive     | Optional      | tar              |
-| perseids     | Required      | tar, zip, gzip              |
-
+| ----------- | ------------- | ----------------  |
+| default     | Optional      | tar               |
+| aptrust     | Optional      | tar               |
+| beyondtherepository     | Optional      | tar, zip, gzip  |
+| metaarchive     | Optional      | tar           |
+| perseids     | Required      | tar, zip, gzip   |
 
 ### BagIt Examples
 
