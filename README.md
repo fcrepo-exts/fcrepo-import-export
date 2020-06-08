@@ -110,7 +110,7 @@ and has BagIt specific command line arguments in order to support a number of us
 support for custom metadata, bag profiles, and serialization, the [bagit-support](https://github.com/duraspace/bagit-support/) 
 library is used for bagging operations.
 
-##### Bag Profile
+### Bag Profile
 
 [BagIt Profiles](https://bagit-profiles.github.io/bagit-profiles-specification/) allow creators and consumers of Bags to
 agree on optional components of the Bags they are exchanging. Each profile is defined using a json file which outlines 
@@ -125,7 +125,7 @@ following bag profiles:
 * [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
 * [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
-##### Bag Metadata
+### Bag Metadata
 
 User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
 
@@ -138,18 +138,18 @@ bag-info.txt:
   Organization-Address: https://github.com/fcrepo4-labs/fcrepo-import-export
 ```
 
-##### Bag Serialization
+### Bag Serialization
 
 The import-export-utility supports serialization as part of import and export. For both import and export the format 
 used for serialization MUST be in a bag profile's `Accepted-Serialization`. If not, the process will fail with a list of
 accepted formats.
 
-###### Import
+#### Import
 
 During import if the import-export-utility detects that a bag is a regular file it will attempt to deserialize the bag
 based on the content type of the file.
 
-###### Export
+#### Export
 
 For export, if a bag profile allows serialization the format can be specified with `-s` or `--bag-serialization` along 
 with the desired format. Currently, the following formats are supported:
@@ -157,11 +157,11 @@ with the desired format. Currently, the following formats are supported:
 * `gzip` (will be a tarball compressed with gzip)
 * `zip`
 
-#### BagIt Examples
+### BagIt Examples
 
 Note: All examples use a Fedora repository at `http://localhost:8080/rest/`
 
-##### Export using the default bag profile as a tarball with user supplied metadata
+#### Export using the default bag profile as a tarball with user supplied metadata
 
 Create `bagit-config.yml` with a `bag-info.txt` section for metadata:
 ```yaml
@@ -183,7 +183,7 @@ Execute the import-export-utility:
 java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-serialization tar --bag-config /tmp/bagit-config.yml
 ```
 
-##### Export using the APTrust profile with user supplied metadata
+#### Export using the APTrust profile with user supplied metadata
 
 Create `bagit-config-aptrust.yml` with `bag-info.txt` and `aptrust-info.txt` sections:
 ```yaml
