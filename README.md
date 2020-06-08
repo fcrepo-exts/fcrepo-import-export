@@ -110,7 +110,7 @@ and has BagIt specific command line arguments in order to support a number of us
 support for custom metadata, bag profiles, and serialization, the [bagit-support](https://github.com/duraspace/bagit-support/) 
 library is used for bagging operations.
 
-### Bag Profile
+### BagIt Profile
 
 [BagIt Profiles](https://bagit-profiles.github.io/bagit-profiles-specification/) allow creators and consumers of Bags to
 agree on optional components of the Bags they are exchanging. Each profile is defined using a json file which outlines 
@@ -125,7 +125,7 @@ following bag profiles:
 * [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
 * [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
-### Bag Metadata
+### BagIt Metadata
 
 User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
 
@@ -138,7 +138,24 @@ bag-info.txt:
   Organization-Address: https://github.com/fcrepo4-labs/fcrepo-import-export
 ```
 
-### Bag Serialization
+**Note:** The import-export-utility will generate values for the `Bagging-Date`, `Payload-Oxum`, `Bag-Size`, and
+`BagIt-Profile-Identifier` fields as part of the export process.
+
+#### Profile Requirements
+
+Depending on the BagIt Profile used, certain fields are required:
+
+* default
+   * bag-info.txt: `Source-Organization`
+* aptrust
+   * bag-info.txt: `Source-Organization`
+   * aptrust-info.txt: `Title`, `Access`, `Storage-Option`
+* metaarchive
+   * bag-info.txt: `Source-Organization`, `Contact-Name`, `Contact-Phone`, `Contact-Email`, `External-Description`
+* beyondtherepository
+   * bag-info.txt: `Source-Organization`
+
+### Serialization
 
 The import-export-utility supports serialization as part of import and export. For both import and export the format 
 used for serialization MUST be in a bag profile's `Accepted-Serialization`. If not, the process will fail with a list of
@@ -153,9 +170,20 @@ based on the content type of the file.
 
 For export, if a bag profile allows serialization the format can be specified with `-s` or `--bag-serialization` along 
 with the desired format. Currently, the following formats are supported:
-* `tar`
-* `gzip` (will be a tarball compressed with gzip)
-* `zip`
+
+#### Profile Requirements
+
+Similar to the Bag Metadata, each BagIt Profile specifies if it allows serialization and what type of formats are 
+accepted:
+
+| Bag Profile | Serialization | Supported Formats |
+| ----------- | ------------- | ---------------- |
+| default     | Optional      | tar              |
+| aptrust     | Optional      | tar              |
+| beyondtherepository     | Optional      | tar, zip, gzip              |
+| metaarchive     | Optional      | tar              |
+| perseids     | Required      | tar, zip, gzip              |
+
 
 ### BagIt Examples
 
