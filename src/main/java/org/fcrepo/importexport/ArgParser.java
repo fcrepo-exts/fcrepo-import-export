@@ -17,6 +17,9 @@
  */
 package org.fcrepo.importexport;
 
+import static org.duraspace.bagit.SerializationSupport.GZIP_TYPES;
+import static org.duraspace.bagit.SerializationSupport.TAR_TYPES;
+import static org.duraspace.bagit.SerializationSupport.ZIP_TYPES;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -25,7 +28,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -34,6 +39,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
@@ -182,7 +188,7 @@ public class ArgParser {
                 .longOpt(BAG_PROFILE_OPTION_KEY).argName("profile")
                 .hasArg(true).numberOfArgs(1).argName("profile")
                 .required(false)
-                .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|" +
+                .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|\n" +
                       "beyondtherepository]")
                 .build());
 
@@ -193,11 +199,40 @@ public class ArgParser {
                 .desc("Path to the bag config file")
                 .build());
 
+
+        // create the description for the serialization option
+        // this shows which options are available for each of the built in BagProfiles
+        final String zip = "zip";
+        final String tar = "tar";
+        final String gzip = "gzip";
+        final StringBuilder serializationDesc = new StringBuilder("Export BagIt bags into a serialized format. " +
+                                                                  "Available formats depend on the bag profile " +
+                                                                  "specified.");
+        for (BagProfile.BuiltIn builtIn : BagProfile.BuiltIn.values()) {
+            try {
+                final BagProfile profile = new BagProfile(builtIn);
+                // map from the long form types to a short form
+                // e.g. application/zip -> zip
+                final Set<String> normalizedFormats = new HashSet<>();
+                for (String acceptedSerialization : profile.getAcceptedSerializations()) {
+                    if (TAR_TYPES.contains(acceptedSerialization)) {
+                        normalizedFormats.add(tar);
+                    } else if (ZIP_TYPES.contains(acceptedSerialization)) {
+                        normalizedFormats.add(zip);
+                    } else if (GZIP_TYPES.contains(acceptedSerialization)) {
+                        normalizedFormats.add(gzip);
+                    }
+                }
+                serializationDesc.append("\n\t").append(builtIn.getIdentifier()).append(": ").append(normalizedFormats);
+            } catch (IOException e) {
+                logger.warn("Unable to get BagProfile for built in profile {}", builtIn);
+            }
+        }
         configOptions.addOption(Option.builder("s")
                                .longOpt("bag-serialization").argName("format")
                                .hasArg(true).numberOfArgs(1).argName("format")
                                .required(false)
-                               .desc("Export BagIt bags into a serialized format [zip|tar|tgz]")
+                               .desc(serializationDesc.toString())
                                .build());
 
         configOptions.addOption(Option.builder("R")
