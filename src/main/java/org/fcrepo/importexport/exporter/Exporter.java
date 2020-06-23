@@ -78,7 +78,9 @@ import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.BagProfileConstants;
+import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
+import org.duraspace.bagit.SerializationSupport;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -106,6 +108,7 @@ public class Exporter implements TransferProcess {
     private URI containerURI;
     private URI rdfSourceURI;
     private BagWriter bag;
+    private BagSerializer bagSerializer;
     private String bagProfileId;
     private MessageDigest sha1 = null;
     private MessageDigest sha256 = null;
@@ -179,6 +182,13 @@ public class Exporter implements TransferProcess {
 
             // the profile identifier must exist per the bagit-profiles spec
             bagProfileId = profileMetadata.get(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER);
+
+            // check if serialization is required
+            final String serializationFormat = config.getBagSerialization();
+            if (serializationFormat != null) {
+                // this throws an UnsupportedOperationException if the serialization format is not supported
+                bagSerializer = SerializationSupport.serializerFor(serializationFormat, bagProfile);
+            }
 
             // setup bag
             final File bagdir = config.getBaseDirectory().getParentFile();
@@ -285,6 +295,12 @@ public class Exporter implements TransferProcess {
                     bag.registerChecksums(BagItDigest.MD5, md5FileMap);
                 }
                 bag.write();
+
+                if (bagSerializer != null) {
+                    // Make sure the path is an absolute path because the BagSerializer uses relativize which requires
+                    // both Paths to be of the same type
+                    bagSerializer.serialize(bag.getRootDir().getAbsoluteFile().toPath());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Error finishing Bag: " + e.toString());
             } catch (Exception e) {

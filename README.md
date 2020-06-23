@@ -1,6 +1,6 @@
 Fedora 4 Import/Export Utility
 ==============================
-[![Build Status](https://travis-ci.org/fcrepo4-labs/fcrepo-import-export.svg?branch=master)](https://travis-ci.org/fcrepo4-labs/fcrepo-import-export)
+[![Build Status](https://travis-ci.com/fcrepo4-labs/fcrepo-import-export.svg?branch=master)](https://travis-ci.com/fcrepo4-labs/fcrepo-import-export)
 [![LICENSE](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](./LICENSE)
 
 Work in progress
@@ -105,25 +105,92 @@ java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8
 Running the import/export utility with BagIt support
 ------------------------------------------------------
 
-You can export a [BagIt](https://tools.ietf.org/html/draft-kunze-bagit-14) bag from a Fedora repository based on a [BagIt Profile](https://github.com/ruebot/bagit-profiles/). User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
+The import-export-utility supports import and export of [BagIt](https://tools.ietf.org/html/rfc8493) bags 
+and has BagIt specific command line arguments in order to support a number of use cases. In order to provide additional
+support for custom metadata, bag profiles, and serialization, the [bagit-support](https://github.com/duraspace/bagit-support/) 
+library is used for bagging operations.
 
-To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the following bag profiles:
+### BagIt Profile
 
-* [default](src/main/resources/profiles/default.json)
-* [aptrust](src/main/resources/profiles/aptrust.json)
-* [metaarchive](src/main/resources/profiles/metaarchive.json)
-* [perseids](src/main/resources/profiles/perseids.json)
-* [beyondtherepository](src/main/resources/profiles/beyondtherepository.json)
+[BagIt Profiles](https://bagit-profiles.github.io/bagit-profiles-specification/) allow creators and consumers of Bags to
+agree on optional components of the Bags they are exchanging. Each profile is defined using a json file which outlines 
+the constraints according to the BagIt Profiles specification.
 
+To enable a bag profile, use the `-g` or `--bag-profile` option. The import/export utility currently supports the 
+following bag profiles:
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the default profile and user supplied metadata for tag files:
+* [default](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/default.json)
+* [aptrust](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/aptrust.json)
+* [metaarchive](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/metaarchive.json)
+* [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
+* [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
-```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-config /tmp/bagit-config.yml
+### BagIt Metadata
+
+User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
+
+The configuration file specified must have a top-level key matching the name of the metadata file with sub keys for
+each field you wish to manually supply. For example, setting metadata elements in the `bag-info.txt`:
+
+```yaml
+bag-info.txt:
+  Source-Organization: org.fcrepo
+  Organization-Address: https://github.com/fcrepo4-labs/fcrepo-import-export
 ```
 
-Where `bagit-config.yml` looks like:
+**Note:** The import-export-utility will generate values for the `Bagging-Date`, `Payload-Oxum`, `Bag-Size`, and
+`BagIt-Profile-Identifier` fields as part of the export process.
 
+#### Profile Requirements
+
+Depending on the BagIt Profile used, certain fields are required:
+
+* default
+   * bag-info.txt: `Source-Organization`
+* aptrust
+   * bag-info.txt: `Source-Organization`
+   * aptrust-info.txt: `Title`, `Access`, `Storage-Option`
+* metaarchive
+   * bag-info.txt: `Source-Organization`, `Contact-Name`, `Contact-Phone`, `Contact-Email`, `External-Description`
+* beyondtherepository
+   * bag-info.txt: `Source-Organization`
+
+### Serialization
+
+The import-export-utility supports serialization as part of import and export. For both import and export the format 
+used for serialization MUST be in a bag profile's `Accepted-Serialization`. If not, the process will fail with a list of
+accepted formats.
+
+#### Import
+
+During import if the import-export-utility detects that a bag is a regular file it will attempt to deserialize the bag
+based on the content type of the file.
+
+#### Export
+
+For export, if a bag profile allows serialization the format can be specified with `-s` or `--bag-serialization` along 
+with the desired format. Currently, the following formats are supported:
+
+#### Profile Requirements
+
+Similar to the Bag Metadata, each BagIt Profile specifies if it allows serialization and what type of formats are 
+accepted:
+
+| Bag Profile | Serialization | Supported Formats |
+| ----------- | ------------- | ----------------  |
+| default     | Optional      | tar               |
+| aptrust     | Optional      | tar               |
+| beyondtherepository     | Optional      | tar, zip, gzip  |
+| metaarchive     | Optional      | tar           |
+| perseids     | Required      | tar, zip, gzip   |
+
+### BagIt Examples
+
+Note: All examples use a Fedora repository at `http://localhost:8080/rest/`
+
+#### Export using the default bag profile as a tarball with user supplied metadata
+
+Create `bagit-config.yml` with a `bag-info.txt` section for metadata:
 ```yaml
 bag-info.txt:
   Source-Organization: York University Libraries
@@ -138,14 +205,15 @@ bag-info.txt:
   Internal-Sender-Description: Sample bag exported from fcrepo
 ```
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/` in a BagIt bag using the APTrust profile and user supplied metadata for tag files:
-
+Execute the import-export-utility:
 ```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-serialization tar --bag-config /tmp/bagit-config.yml
 ```
 
-Where `bagit-config-aptrust.yml` looks like:
-```yaml             
+#### Export using the APTrust profile with user supplied metadata
+
+Create `bagit-config-aptrust.yml` with `bag-info.txt` and `aptrust-info.txt` sections:
+```yaml
 bag-info.txt:
   Source-Organization: York University Libraries
   Organization-Address: 4700 Keele Street Toronto, Ontario M3J 1P3 Canada
@@ -160,9 +228,15 @@ bag-info.txt:
 aptrust-info.txt:
   Access: Restricted
   Title: Sample fcrepo bag
+  Storage-Region: Standard
 ```
 
-Additional tag files can be created by the utility by adding top-level classes in user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
+Execute the import-export-utility:
+```sh
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+```
+
+Additional tag files can be created by adding top-level keys in the user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
 
 Running the import/export utility with a configuration file
 -----------------------------------------------------------

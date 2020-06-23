@@ -63,8 +63,8 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
-        Assert.assertEquals(false, config.isIncludeBinaries());
-        Assert.assertEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
+        Assert.assertFalse(config.isIncludeBinaries());
+        Assert.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
         Assert.assertEquals(".jsonld", config.getRdfExtension());
         Assert.assertEquals("application/ld+json", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
@@ -148,8 +148,8 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
-        Assert.assertEquals(false, config.isIncludeBinaries());
-        Assert.assertEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
+        Assert.assertFalse(config.isIncludeBinaries());
+        Assert.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
         Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
@@ -164,7 +164,8 @@ public class ArgParserTest {
     @Test
     public void parseBagProfile() throws Exception {
         final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-                "-g", "default", "-G", "path/config.yaml" ));
+                "-g", "default", "-G", "path/config.yaml", "-s", "zip" ));
+        Assert.assertEquals("zip", config.getBagSerialization());
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
@@ -196,8 +197,8 @@ public class ArgParserTest {
         final Config config = parser.parseConfiguration(args);
         Assert.assertTrue(config.isExport());
         Assert.assertEquals(new File("/tmp/import-export-dir"), config.getBaseDirectory());
-        Assert.assertEquals(true, config.isIncludeBinaries());
-        Assert.assertEquals(new String[]{"http://www.w3.org/ns/ldp#contains", "http://example.org/custom"},
+        Assert.assertTrue(config.isIncludeBinaries());
+        Assert.assertArrayEquals(new String[]{"http://www.w3.org/ns/ldp#contains", "http://example.org/custom"},
                 config.getPredicates());
         Assert.assertEquals(".ttl", config.getRdfExtension());
         Assert.assertEquals("text/turtle", config.getRdfLanguage());
@@ -307,8 +308,8 @@ public class ArgParserTest {
                                            "-d", "/tmp/rdf",
                                            "-r", resource};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals(null, config.getSource());
-        Assert.assertEquals(null, config.getDestination());
+        Assert.assertNull(config.getSource());
+        Assert.assertNull(config.getDestination());
     }
 
     @Test
@@ -361,7 +362,7 @@ public class ArgParserTest {
         Assert.assertEquals("true", config.get("overwriteTombstones"));
         Assert.assertEquals("true", config.get("auditLog"));
         Assert.assertEquals("true", config.get("versions"));
-        Assert.assertEquals(null, config.get("writeConfig"));
+        Assert.assertNull(config.get("writeConfig"));
         Assert.assertTrue(new File("target/serialized-custom.yml").exists());
     }
 
@@ -374,11 +375,11 @@ public class ArgParserTest {
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
         Assert.assertEquals("import", config.get("mode"));
         Assert.assertEquals("http://localhost:8080/rest", config.get("resource"));
-        Assert.assertEquals(null, config.get("map"));
+        Assert.assertNull(config.get("map"));
         Assert.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
         Assert.assertEquals("text/turtle", config.get("rdfLang"));
-        Assert.assertEquals(null, config.get("bag-profile"));
-        Assert.assertEquals(null, config.get("bag-config"));
+        Assert.assertNull(config.get("bag-profile"));
+        Assert.assertNull(config.get("bag-config"));
         Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.get("predicates"));
         Assert.assertEquals("false", config.get("binaries"));
         Assert.assertEquals("false", config.get("external"));
@@ -386,6 +387,6 @@ public class ArgParserTest {
         Assert.assertEquals("false", config.get("overwriteTombstones"));
         Assert.assertEquals("false", config.get("auditLog"));
         Assert.assertEquals("false", config.get("versions"));
-        Assert.assertEquals(null, config.get("writeConfig"));
+        Assert.assertNull(config.get("writeConfig"));
     }
 }

@@ -29,6 +29,8 @@ import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -38,12 +40,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -53,7 +61,6 @@ import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.test.util.ResponseMocker;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -152,14 +159,14 @@ public class ExporterTest {
 
         final ExporterWrapper exporter = new ExporterWrapper(binaryArgs, clientBuilder);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION +
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION +
             HEADERS_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld" +
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld" +
             HEADERS_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld" +
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld" +
             HEADERS_EXTENSION)));
     }
 
@@ -182,16 +189,16 @@ public class ExporterTest {
 
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/alt_description.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1" + BINARY_EXTENSION)));
+        assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/data/rest/alt_description.jsonld")));
 
         final File baginfo = new File(basedir + "/bag-info.txt");
-        Assert.assertTrue(baginfo.exists());
+        assertTrue(baginfo.exists());
         final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Bag-Size: 113 bytes"));
-        Assert.assertTrue(baginfoLines.contains("Payload-Oxum: 113.3"));
-        Assert.assertTrue(baginfoLines.contains("Source-Organization: My University"));
+        assertTrue(baginfoLines.contains("Bag-Size: 113 bytes"));
+        assertTrue(baginfoLines.contains("Payload-Oxum: 113.3"));
+        assertTrue(baginfoLines.contains("Source-Organization: My University"));
 
         // verify all manifests are written and contain entries for the exported files
         final String manifestFiles = ".*alt_description\\.jsonld|.*file1\\.binary|.*fcr%3Ametadata\\.jsonld";
@@ -199,31 +206,32 @@ public class ExporterTest {
         final File sha1Manifest = new File(basedir + "/manifest-sha1.txt");
         final File sha256Manifest = new File(basedir + "/manifest-sha256.txt");
         final File sha512Manifest = new File(basedir + "/manifest-sha512.txt");
-        Assert.assertTrue(md5Manifest.exists());
-        Assert.assertTrue(sha1Manifest.exists());
-        Assert.assertTrue(sha256Manifest.exists());
-        Assert.assertTrue(sha512Manifest.exists());
-        Assert.assertTrue(Files.lines(md5Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
-        Assert.assertTrue(Files.lines(sha1Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
-        Assert.assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
-        Assert.assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        assertTrue(md5Manifest.exists());
+        assertTrue(sha1Manifest.exists());
+        assertTrue(sha256Manifest.exists());
+        assertTrue(sha512Manifest.exists());
+        assertTrue(Files.lines(md5Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        assertTrue(Files.lines(sha1Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
+        assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
 
         // verify all tag files are written to the tag manifest (checksum + expected name)
         final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt|.*manifest.*";
         final File sha1TagManifest = new File(basedir + "/tagmanifest-sha1.txt");
         final File sha256TagManifest = new File(basedir + "/tagmanifest-sha256.txt");
         final File sha512TagManifest = new File(basedir + "/tagmanifest-sha512.txt");
-        Assert.assertTrue(sha1TagManifest.exists());
-        Assert.assertTrue(sha256TagManifest.exists());
-        Assert.assertTrue(sha512TagManifest.exists());
-        Assert.assertTrue(Files.lines(sha1TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
-        Assert.assertTrue(Files.lines(sha256TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
-        Assert.assertTrue(Files.lines(sha512TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
+        assertTrue(sha1TagManifest.exists());
+        assertTrue(sha256TagManifest.exists());
+        assertTrue(sha512TagManifest.exists());
+        assertTrue(Files.lines(sha1TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
+        assertTrue(Files.lines(sha256TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
+        assertTrue(Files.lines(sha512TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
     }
 
     @Test
     public void testExportApTrustBag() throws Exception {
         final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagSerialization("tar");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
@@ -231,15 +239,30 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
 
-        final File baginfo = new File(exportDirectory + "/aptrust-info.txt");
-        Assert.assertTrue(baginfo.exists());
-        final List<String> baginfoLines = readLines(baginfo, UTF_8);
-        Assert.assertTrue(baginfoLines.contains("Access: Restricted"));
-        Assert.assertTrue(baginfoLines.contains("Title: My Title"));
+        assertTrue(Files.exists(Paths.get(exportDirectory + ".tar")));
+
+        // instead of extracting the tarball, search for the aptrust-info.txt and load it if found
+        List<String> aptrustInfoLines = Collections.emptyList();
+        try (InputStream is = Files.newInputStream(Paths.get(exportDirectory + ".tar"));
+            TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
+            TarArchiveEntry entry;
+            while ((entry = tais.getNextTarEntry()) != null) {
+                if (entry.getName().equalsIgnoreCase("export/aptrust-info.txt")) {
+                    aptrustInfoLines = IOUtils.readLines(tais, Charset.defaultCharset());
+                    break;
+                }
+            }
+        }
+
+        // And check the aptrust-info.txt was found (isNotEmpty) and expected entries exist
+        assertFalse(aptrustInfoLines.isEmpty());
+        assertTrue(aptrustInfoLines.contains("Access: Restricted"));
+        assertTrue(aptrustInfoLines.contains("Title: My Title"));
+        assertTrue(aptrustInfoLines.contains("Storage-Option: Standard"));
     }
 
     @Test(expected = Exception.class)
@@ -286,17 +309,17 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
 
         final File bagInfo = new File(exportDirectory + "/bag-info.txt");
-        Assert.assertTrue(bagInfo.exists());
+        assertTrue(bagInfo.exists());
         final List<String> bagInfoLines = readLines(bagInfo, UTF_8);
-        Assert.assertTrue(bagInfoLines.contains("Bag-Size: 113 bytes"));
-        Assert.assertTrue(bagInfoLines.contains("Payload-Oxum: 113.3"));
-        Assert.assertTrue(bagInfoLines.contains("Source-Organization: My University"));
-        Assert.assertTrue(bagInfoLines.contains(bagProfileId));
+        assertTrue(bagInfoLines.contains("Bag-Size: 113 bytes"));
+        assertTrue(bagInfoLines.contains("Payload-Oxum: 113.3"));
+        assertTrue(bagInfoLines.contains("Source-Organization: My University"));
+        assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
     @Test(expected = Exception.class)
@@ -332,9 +355,9 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(noBinaryArgs, clientBuilder);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
-        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
-        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
-        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1" + BINARY_EXTENSION)));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/alt_description.jsonld")));
     }
 
     @Test
@@ -362,9 +385,9 @@ public class ExporterTest {
         when(headResponse.getHeaderValue("Content-Location")).thenReturn("http://www.example.com/file");
         exporter.run();
         final File externalResourceFile = new File(basedir + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION);
-        Assert.assertTrue(exporter.wroteFile(externalResourceFile));
-        Assert.assertTrue(externalResourceFile.exists());
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
+        assertTrue(exporter.wroteFile(externalResourceFile));
+        assertTrue(externalResourceFile.exists());
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/file1/fcr%3Ametadata.jsonld")));
     }
 
     @Test
@@ -381,7 +404,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
     }
 
     @Test
@@ -398,8 +421,8 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
 
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aacl.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aacl.jsonld")));
     }
 
     @Test (expected = AuthenticationRequiredRuntimeException.class)
@@ -429,7 +452,7 @@ public class ExporterTest {
 
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         exporter.run();
-        Assert.assertFalse(exporter.wroteFile(new File(basedir + "/rest/1")));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/1")));
     }
 
     @Test
@@ -445,7 +468,7 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(metadataArgs, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
     }
 
     @Test
@@ -462,8 +485,8 @@ public class ExporterTest {
         final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
         when(headResponse.getLinkHeaders(isA(String.class))).thenReturn(containerLinks);
         exporter.run();
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        Assert.assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
     }
 
     @Test
@@ -484,10 +507,10 @@ public class ExporterTest {
         exporter.run();
 
         final File customTags = new File(basedir + "/foo-info.txt");
-        Assert.assertTrue(customTags.exists());
+        assertTrue(customTags.exists());
         final List<String> customLines = readLines(customTags, UTF_8);
-        Assert.assertTrue(customLines.contains("Foo: Bar"));
-        Assert.assertTrue(customLines.contains("Baz: Quux"));
+        assertTrue(customLines.contains("Foo: Bar"));
+        assertTrue(customLines.contains("Baz: Quux"));
     }
 }
 
