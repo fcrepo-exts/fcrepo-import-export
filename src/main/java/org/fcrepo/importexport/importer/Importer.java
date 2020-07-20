@@ -185,7 +185,9 @@ public class Importer implements TransferProcess {
                 profile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
             } catch (IllegalArgumentException ignored) {
                 // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
-                profile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
+                try (InputStream profileIn = Files.newInputStream(Paths.get(config.getBagProfile()))) {
+                    profile = new BagProfile(profileIn);
+                }
             }
 
             final Path root;
