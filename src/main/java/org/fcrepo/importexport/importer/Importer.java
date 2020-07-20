@@ -882,12 +882,11 @@ public class Importer implements TransferProcess {
      * @return the {@link Bag} if valid
      */
     private Bag verifyBag(final Path bagDir, final BagProfile profile) {
-        try {
+        try (BagVerifier bagVerifier = new BagVerifier()) {
             final BagReader bagReader = new BagReader();
             final Bag bag = bagReader.read(bagDir);
             profile.validateBag(bag);
 
-            final BagVerifier bagVerifier = new BagVerifier();
             bagVerifier.isValid(bag, false);
 
             return bag;
