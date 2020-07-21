@@ -25,6 +25,7 @@ import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -108,7 +109,7 @@ public class Config {
      * @param directory to export to or import from
      */
     public void setBaseDirectory(final String directory) {
-        this.baseDirectory = directory == null ? null : new File(directory);
+        this.baseDirectory = directory == null ? null : Paths.get(directory).normalize().toFile();
     }
 
     /**
