@@ -186,7 +186,7 @@ public class ArgParser {
         // bagit creation
         configOptions.addOption(Option.builder("g")
                 .longOpt(BAG_PROFILE_OPTION_KEY).argName("profile")
-                .hasArg(true).numberOfArgs(1).argName("profile")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|\n" +
                       "beyondtherepository]")
@@ -194,7 +194,7 @@ public class ArgParser {
 
         configOptions.addOption(Option.builder("G")
                 .longOpt(BAG_CONFIG_OPTION_KEY).argName("path")
-                .hasArg(true).numberOfArgs(1).argName("path")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("Path to the bag config file")
                 .build());
@@ -235,15 +235,15 @@ public class ArgParser {
             }
         }
         configOptions.addOption(Option.builder("s")
-                               .longOpt("bag-serialization").argName("format")
-                               .hasArg(true).numberOfArgs(1).argName("format")
-                               .required(false)
-                               .desc(serializationDesc.toString())
-                               .build());
+                .longOpt("bag-serialization").argName("format")
+                .hasArg(true).numberOfArgs(1)
+                .required(false)
+                .desc(serializationDesc.toString())
+                .build());
 
         configOptions.addOption(Option.builder("R")
                 .longOpt("repositoryRoot").argName("uri")
-                .hasArg(true).numberOfArgs(1).argName("uri")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("When exporting, use this URI as the repository root; " +
                         "if not given, export will attempt to automatically determine the repository root")
