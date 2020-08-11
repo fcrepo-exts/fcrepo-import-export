@@ -199,6 +199,12 @@ public class ArgParser {
                 .desc("Path to the bag config file")
                 .build());
 
+        configOptions.addOption(Option.builder()
+                .longOpt("bag-algorithms").argName("algorithms")
+                .hasArgs().valueSeparator(',')
+                .required(false)
+                .desc("Comma separated list of algorithms to use when creating a BagIt export")
+                .build());
 
         // create the description for the serialization option
         // this shows which options are available for each of the built in BagProfiles
@@ -429,6 +435,7 @@ public class ArgParser {
         config.setBagProfile(cmd.getOptionValue('g'));
         config.setBagConfigPath(cmd.getOptionValue('G'));
         config.setBagSerialization(cmd.getOptionValue('s'));
+        config.setBagAlgorithms(cmd.getOptionValues("bag-algorithms"));
 
         config.setAuditLog(cmd.hasOption('a'));
 
@@ -583,6 +590,10 @@ public class ArgParser {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
                 c.setBagConfigPath(entry.getValue().toLowerCase());
+            } else if (entry.getKey().trim().equalsIgnoreCase("algorithm")) {
+                c.setBagAlgorithms(entry.getValue().split(","));
+            } else if (entry.getKey().trim().equalsIgnoreCase("serialization")) {
+                c.setBagSerialization(entry.getValue());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
             } else if (entry.getKey().equalsIgnoreCase("auditLog")) {
