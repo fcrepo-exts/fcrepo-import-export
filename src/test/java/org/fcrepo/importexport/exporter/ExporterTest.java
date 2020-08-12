@@ -270,9 +270,19 @@ public class ExporterTest {
     }
 
     @Test(expected = Exception.class)
-    public void testExportApTrustBagValidationError() throws Exception, FcrepoOperationFailedException {
+    public void testExportApTrustBagValidationError() {
         final Config bagArgs = createAptrustBagConfig();
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-missing-access.yml");
+        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+        exporter.run();
+    }
+
+    @Test(expected = Exception.class)
+    public void testExportApTrustBagInvalidUserAlgorithm() {
+        final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagAlgorithms(new String[]{BagItDigest.SHA1.bagitName()});
+        bagArgs.setBagSerialization("tar");
+        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
         final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
         exporter.run();
     }
