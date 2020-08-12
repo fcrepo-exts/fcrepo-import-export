@@ -52,6 +52,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -231,6 +232,7 @@ public class ExporterTest {
     @Test
     public void testExportApTrustBag() throws Exception {
         final Config bagArgs = createAptrustBagConfig();
+        bagArgs.setBagAlgorithms(new String[]{BagItDigest.SHA256.bagitName()});
         bagArgs.setBagSerialization("tar");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
@@ -239,6 +241,8 @@ public class ExporterTest {
         when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
         when(headResponse.getContentType()).thenReturn("image/tiff");
         exporter.run();
+        assertTrue(Files.exists(Paths.get(exportDirectory, "manifest-md5.txt")));
+        assertTrue(Files.exists(Paths.get(exportDirectory, "manifest-sha256.txt")));
         assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION)));
         assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/file1/fcr%3Ametadata.jsonld")));
         assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
