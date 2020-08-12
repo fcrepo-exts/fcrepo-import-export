@@ -225,7 +225,7 @@ public class Exporter implements TransferProcess {
         if (algorithms.isEmpty() && !allowedAlgorithms.isEmpty()) {
             algorithms.addAll(allowedAlgorithms);
         } else if (algorithms.isEmpty()) {
-            algorithms.add("SHA1");
+            algorithms.add(BagItDigest.SHA1.bagitName());
         }
 
         return algorithms.stream()
