@@ -200,7 +200,7 @@ public class Exporter implements TransferProcess {
      * @param profile the profile to get BagItDigests for
      * @return the algorithms which were initialized, as {@link BagItDigest}s
      */
-    public Set<BagItDigest> setupBagItDigests(final BagProfile profile) {
+    private Set<BagItDigest> setupBagItDigests(final BagProfile profile) {
         final Set<String> algorithms = new HashSet<>();
         final Set<String> allowedAlgorithms = profile.getAllowedPayloadAlgorithms();
         final Set<String> requiredAlgorithms = profile.getPayloadDigestAlgorithms();
@@ -224,7 +224,7 @@ public class Exporter implements TransferProcess {
         // check if we should fallback to the allowed algorithms or sha1
         if (algorithms.isEmpty() && !allowedAlgorithms.isEmpty()) {
             algorithms.addAll(allowedAlgorithms);
-        } else {
+        } else if (algorithms.isEmpty()) {
             algorithms.add("SHA1");
         }
 
