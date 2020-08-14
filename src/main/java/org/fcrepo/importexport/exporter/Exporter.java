@@ -259,7 +259,7 @@ public class Exporter implements TransferProcess {
                 this.sha512FileMap = new HashMap<>();
                 break;
             default:
-                throw new IllegalStateException("Unexpected value: " + digest);
+                throw new IllegalStateException("Unexpected BagIt algorithm: " + digest);
         }
     }
 
