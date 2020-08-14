@@ -125,6 +125,12 @@ following bag profiles:
 * [perseids](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/perseids.json)
 * [beyondtherepository](https://raw.githubusercontent.com/duraspace/bagit-support/master/src/main/resources/profiles/beyondtherepository.json)
 
+### BagIt Hash Algorithms
+
+Hash algorithms can be specified using the `--bag-algorithms` option. The algorithms specified must be separated by a 
+`,` and must be supported by the bag profile. If an algorithm is specified as required by the bag profile, it will 
+automatically be included when exporting a bag.
+
 ### BagIt Metadata
 
 User supplied metadata for tag files can be provided with a Yaml file specified by the `-G` or `--bag-config` option.
@@ -207,7 +213,7 @@ bag-info.txt:
 
 Execute the import-export-utility:
 ```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-serialization tar --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile default --bag-serialization tar --bag-config /tmp/bagit-config.yml --bag-algorithms sha1 -u fedoraAdmin:secret3
 ```
 
 #### Export using the APTrust profile with user supplied metadata
@@ -233,7 +239,7 @@ aptrust-info.txt:
 
 Execute the import-export-utility:
 ```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/example_bag --binaries --bag-profile aptrust --bag-config /tmp/bagit-config.yml --bag-algorithms md5,sha256 -u fedoraAdmin:secret3
 ```
 
 Additional tag files can be created by adding top-level keys in the user supplied Yaml file like the `aptrust-info.txt` added in the `bagit-config-aptrust.yml` example.
