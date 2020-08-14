@@ -47,6 +47,11 @@ To change the import-export logging level (default is INFO), set the `fcrepo.log
 $ java -Dfcrepo.log.importexport=WARN -jar target/fcrepo-import-export-<version>.jar --mode [import|export] [options]
 ```
 
+To provide a user and password for Fedora basic authentication, use the `-u` or `--user` argument, e.g.:
+```sh
+-u fedoraAdmin:secret3
+```
+
 To control the format of the exported RDF, the RDF language/serialization format can also be specified by adding, e.g.:
 
 ```sh
