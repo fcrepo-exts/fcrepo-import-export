@@ -26,10 +26,8 @@ import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.jena.riot.Lang;
 import org.slf4j.Logger;
