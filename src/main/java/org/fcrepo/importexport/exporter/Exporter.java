@@ -55,7 +55,6 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
@@ -161,20 +161,8 @@ public class Exporter implements TransferProcess {
                 bagProfile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
             }
 
-            final Set<BagItDigest> algorithms;
-            // set up algorithms to use based on the required algorithms
-            // if none are found, use the allowed algorithms
-            // if the algorithms are still empty, use sha1
-            if (!bagProfile.getPayloadDigestAlgorithms().isEmpty()) {
-                algorithms = setupFileMap(bagProfile.getPayloadDigestAlgorithms());
-            } else if (!bagProfile.getAllowedPayloadAlgorithms().isEmpty()) {
-                algorithms = setupFileMap(bagProfile.getAllowedPayloadAlgorithms());
-            } else {
-                final BagItDigest sha1 = BagItDigest.SHA1;
-                this.sha1FileMap = new HashMap<>();
-                this.sha1 = sha1.messageDigest();
-                algorithms = Collections.singleton(sha1);
-            }
+            // configure the BagIt algorithms to use + setup the fields for the Exporter
+            final Set<BagItDigest> algorithms = setupBagItDigests(bagProfile);
 
             //enforce default metadata
             bagProfile.validateConfig(bagConfig);
@@ -204,41 +192,75 @@ public class Exporter implements TransferProcess {
     }
 
     /**
-     * Configure the digest algorithms and fileMaps given a Set of algorithm names
+     * Set up the hash algorithms (as {@link BagItDigest}) to use based on the {@link Config} and {@link BagProfile}
+     * Always use the user specified + profile required algorithms
+     * If neither is specified, use the profile "manifest-allowed" and "tag-manifest-allowed"
+     * If the algorithms are still empty, use sha1
      *
-     * @param algorithms the algorithms to initialize fields for
+     * @param profile the profile to get BagItDigests for
      * @return the algorithms which were initialized, as {@link BagItDigest}s
      */
-    private Set<BagItDigest> setupFileMap(final Set<String> algorithms) {
-        final BagItDigest md5 = BagItDigest.MD5;
-        final BagItDigest sha1 = BagItDigest.SHA1;
-        final BagItDigest sha256 = BagItDigest.SHA256;
-        final BagItDigest sha512 = BagItDigest.SHA512;
-        final HashSet<BagItDigest> bagItDigests = new HashSet<>();
+    private Set<BagItDigest> setupBagItDigests(final BagProfile profile) {
+        final Set<String> algorithms = new HashSet<>();
+        final Set<String> allowedAlgorithms = profile.getAllowedPayloadAlgorithms();
+        final Set<String> requiredAlgorithms = profile.getPayloadDigestAlgorithms();
 
-        for (String algorithm : algorithms) {
-            if (algorithm.equalsIgnoreCase(md5.bagitName())) {
-                this.md5 = md5.messageDigest();
-                this.md5FileMap = new HashMap<>();
-                bagItDigests.add(md5);
-            } else if (algorithm.equalsIgnoreCase(sha1.bagitName())) {
-                this.sha1 = sha1.messageDigest();
-                this.sha1FileMap = new HashMap<>();
-                bagItDigests.add(sha1);
-            } else if (algorithm.equalsIgnoreCase(sha256.bagitName())) {
-                this.sha256 = sha256.messageDigest();
-                this.sha256FileMap = new HashMap<>();
-                bagItDigests.add(sha256);
-            } else if (algorithm.equalsIgnoreCase(sha512.bagitName())) {
-                this.sha512 = sha512.messageDigest();
-                this.sha512FileMap = new HashMap<>();
-                bagItDigests.add(sha512);
-            } else {
-                logger.warn("Unsupported BagIt digest algorithm! {}", algorithm);
+        // first validate that the profile supports user specified algorithms
+        final String[] userAlgorithms = config.getBagAlgorithms();
+        if (userAlgorithms != null) {
+            for (String algorithm : userAlgorithms) {
+                if (!allowedAlgorithms.isEmpty() && !allowedAlgorithms.contains(algorithm)) {
+                    throw new RuntimeException("Bag Profile does not allow specified algorithm: " + algorithm +
+                                               ". Allowed algorithms are: " + allowedAlgorithms);
+                }
+
+                algorithms.add(algorithm);
             }
         }
 
-        return bagItDigests;
+        // always add required algorithms
+        algorithms.addAll(requiredAlgorithms);
+
+        // check if we should fallback to the allowed algorithms or sha1
+        if (algorithms.isEmpty() && !allowedAlgorithms.isEmpty()) {
+            algorithms.addAll(allowedAlgorithms);
+        } else if (algorithms.isEmpty()) {
+            algorithms.add(BagItDigest.SHA1.bagitName());
+        }
+
+        return algorithms.stream()
+                             .map(String::toUpperCase)
+                             .map(BagItDigest::valueOf)
+                             .peek(this::setupFileMap)
+                             .collect(Collectors.toSet());
+    }
+
+    /**
+     * Configure the digest algorithm and fileMap for a given BagItDigest
+     *
+     * @param digest the BagItDigest to initialize fields for
+     */
+    private void setupFileMap(final BagItDigest digest) {
+        switch (digest) {
+            case MD5:
+                this.md5 = digest.messageDigest();
+                this.md5FileMap = new HashMap<>();
+                break;
+            case SHA1:
+                this.sha1 = digest.messageDigest();
+                this.sha1FileMap = new HashMap<>();
+                break;
+            case SHA256:
+                this.sha256 = digest.messageDigest();
+                this.sha256FileMap = new HashMap<>();
+                break;
+            case SHA512:
+                this.sha512 = digest.messageDigest();
+                this.sha512FileMap = new HashMap<>();
+                break;
+            default:
+                throw new IllegalStateException("Unexpected BagIt algorithm: " + digest);
+        }
     }
 
     /**
@@ -297,8 +319,8 @@ public class Exporter implements TransferProcess {
                 bag.write();
 
                 if (bagSerializer != null) {
-                    // Make sure the path is an absolute path because the BagSerializer uses relativize which requires
-                    // both Paths to be of the same type
+                    // Make sure the path is an absolute path because the BagSerializer uses Path#relativize which
+                    // requires both Paths to be of the same type
                     bagSerializer.serialize(bag.getRootDir().getAbsoluteFile().toPath());
                 }
             } catch (IOException e) {
@@ -307,8 +329,7 @@ public class Exporter implements TransferProcess {
                 e.printStackTrace();
             }
         }
-        exportLogger.info("Finished export... {} bytes/{} resources exported", successBytes.get(),
-                successCount.get());
+        exportLogger.info("Finished export... {} bytes/{} resources exported", successBytes.get(), successCount.get());
     }
 
     private Map<String, String> bagTechMetadata() {

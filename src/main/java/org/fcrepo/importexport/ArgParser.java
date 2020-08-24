@@ -186,7 +186,7 @@ public class ArgParser {
         // bagit creation
         configOptions.addOption(Option.builder("g")
                 .longOpt(BAG_PROFILE_OPTION_KEY).argName("profile")
-                .hasArg(true).numberOfArgs(1).argName("profile")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|\n" +
                       "beyondtherepository]")
@@ -194,11 +194,17 @@ public class ArgParser {
 
         configOptions.addOption(Option.builder("G")
                 .longOpt(BAG_CONFIG_OPTION_KEY).argName("path")
-                .hasArg(true).numberOfArgs(1).argName("path")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("Path to the bag config file")
                 .build());
 
+        configOptions.addOption(Option.builder()
+                .longOpt("bag-algorithms").argName("algorithms")
+                .hasArgs().valueSeparator(',')
+                .required(false)
+                .desc("Comma separated list of algorithms to use when creating a BagIt export")
+                .build());
 
         // create the description for the serialization option
         // this shows which options are available for each of the built in BagProfiles
@@ -229,15 +235,15 @@ public class ArgParser {
             }
         }
         configOptions.addOption(Option.builder("s")
-                               .longOpt("bag-serialization").argName("format")
-                               .hasArg(true).numberOfArgs(1).argName("format")
-                               .required(false)
-                               .desc(serializationDesc.toString())
-                               .build());
+                .longOpt("bag-serialization").argName("format")
+                .hasArg(true).numberOfArgs(1)
+                .required(false)
+                .desc(serializationDesc.toString())
+                .build());
 
         configOptions.addOption(Option.builder("R")
                 .longOpt("repositoryRoot").argName("uri")
-                .hasArg(true).numberOfArgs(1).argName("uri")
+                .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("When exporting, use this URI as the repository root; " +
                         "if not given, export will attempt to automatically determine the repository root")
@@ -429,6 +435,7 @@ public class ArgParser {
         config.setBagProfile(cmd.getOptionValue('g'));
         config.setBagConfigPath(cmd.getOptionValue('G'));
         config.setBagSerialization(cmd.getOptionValue('s'));
+        config.setBagAlgorithms(cmd.getOptionValues("bag-algorithms"));
 
         config.setAuditLog(cmd.hasOption('a'));
 
@@ -583,6 +590,10 @@ public class ArgParser {
                 c.setBagProfile(entry.getValue().toLowerCase());
             } else if (entry.getKey().equalsIgnoreCase(BAG_CONFIG_OPTION_KEY)) {
                 c.setBagConfigPath(entry.getValue().toLowerCase());
+            } else if (entry.getKey().trim().equalsIgnoreCase("algorithm")) {
+                c.setBagAlgorithms(entry.getValue().split(","));
+            } else if (entry.getKey().trim().equalsIgnoreCase("serialization")) {
+                c.setBagSerialization(entry.getValue());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
             } else if (entry.getKey().equalsIgnoreCase("auditLog")) {

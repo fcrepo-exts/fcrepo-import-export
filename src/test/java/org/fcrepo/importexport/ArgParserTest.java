@@ -164,11 +164,12 @@ public class ArgParserTest {
     @Test
     public void parseBagProfile() throws Exception {
         final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
-                "-g", "default", "-G", "path/config.yaml", "-s", "zip" ));
+                "-g", "default", "-G", "path/config.yaml", "-s", "zip", "--bag-algorithms", "md5,sha1" ));
         Assert.assertEquals("zip", config.getBagSerialization());
         Assert.assertEquals("default", config.getBagProfile());
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
+        Assert.assertArrayEquals(new String[]{"md5", "sha1"}, config.getBagAlgorithms());
     }
 
     @Test(expected = RuntimeException.class)

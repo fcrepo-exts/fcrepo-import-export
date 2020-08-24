@@ -26,10 +26,8 @@ import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.jena.riot.Lang;
 import org.slf4j.Logger;
@@ -67,6 +65,7 @@ public class Config {
     private String bagProfile = null;
     private String bagConfigPath = null;
     private String bagSerialization = null;
+    private String[] bagAlgorithms = null;
 
     private String[] predicates = DEFAULT_PREDICATES;
     private String rdfExtension = DEFAULT_RDF_EXT;
@@ -393,6 +392,23 @@ public class Config {
     }
 
     /**
+     * Set the BagIt algorithms to use during export
+     * @param bagAlgorithms An array of algorithms
+     */
+    public void setBagAlgorithms(final String[] bagAlgorithms) {
+        this.bagAlgorithms = bagAlgorithms;
+    }
+
+    /**
+     * Gets the user specified algorithms to use when bagging
+     *
+     * @return the algorithms, or null if not specified
+     */
+    public String[] getBagAlgorithms() {
+        return bagAlgorithms;
+    }
+
+    /**
      * Sets the RDF filename extension
      *
      * @param extension of the RDF filename
@@ -533,7 +549,13 @@ public class Config {
         if (this.getBagConfigPath() != null) {
             map.put("bag-config", this.getBagConfigPath());
         }
-        final String predicates = Arrays.stream(this.getPredicates()).collect(Collectors.joining(","));
+        if (this.getBagSerialization() != null) {
+            map.put("bag-serialization", this.getBagSerialization());
+        }
+        if (this.getBagAlgorithms() != null) {
+            map.put("bag-algorithms", String.join(",", this.getBagAlgorithms()));
+        }
+        final String predicates = String.join(",", this.getPredicates());
         map.put("predicates", predicates);
         map.put("auditLog", Boolean.toString(this.auditLog));
         return map;
