@@ -119,6 +119,8 @@
           <portNames>
             <portName>fcrepo.dynamic.test.port</portName>
             <portName>fcrepo.dynamic.tomcat.ajp.port</portName>
+            <portName>fcrepo.dynamic.jms.port</portName>
+            <portName>fcrepo.dynamic.stomp.port</portName>
           </portNames>
         </configuration>
         <executions>
@@ -268,6 +270,8 @@
               <fcrepo.log.http.api>TRACE</fcrepo.log.http.api>
               <fcrepo.log.auth>TRACE</fcrepo.log.auth>
               <fcrepo.properties.management>relaxed</fcrepo.properties.management>
+              <fcrepo.dynamic.jms.port>${fcrepo.dynamic.jms.port}</fcrepo.dynamic.jms.port>
+              <fcrepo.dynamic.stomp.port>${fcrepo.dynamic.stomp.port}</fcrepo.dynamic.stomp.port>
               <fcrepo.external.content.allowed>${project.basedir}/src/test/resources/allowed-paths.txt</fcrepo.external.content.allowed>
               <fcrepo.modeshape.configuration>file:${project.basedir}/src/test/resources/repository-test.json</fcrepo.modeshape.configuration>
               <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
