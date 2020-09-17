@@ -81,4 +81,7 @@ public abstract class FcrepoConstants {
     public static final Property MEMENTO = createProperty(MEMENTO_NAMESPACE + "Memento");
     public static final Property TIMEMAP = createProperty(MEMENTO_NAMESPACE + "TimeMap");
     public static final Property HAS_VERSION_LABEL = createProperty(REPOSITORY_NAMESPACE + "hasVersionLabel");
+
+    private static final String WEBAC_NAMESPACE = "http://fedora.info/definitions/v4/webac#";
+    public static final Property ACL_SOURCE = createProperty(WEBAC_NAMESPACE + "Acl");
 }
