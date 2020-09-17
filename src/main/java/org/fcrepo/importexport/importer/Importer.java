@@ -26,6 +26,7 @@ import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
+import static org.fcrepo.importexport.common.FcrepoConstants.ACL_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
@@ -458,6 +459,7 @@ public class Importer implements TransferProcess {
                 }
 
                 final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
+                final ResIterator aclResource = model.listResourcesWithProperty(RDF_TYPE, ACL_SOURCE);
                 if (binaryResources.hasNext()) {
                     if (!config.isIncludeBinaries()) {
                         return;
@@ -465,6 +467,15 @@ public class Importer implements TransferProcess {
                     destinationUri = new URI(binaryResources.nextResource().getURI());
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, model);
+                } else if (aclResource.hasNext()) {
+                    destinationUri = new URI(aclResource.nextResource().getURI());
+                    logger.info("Importing acl {}", destinationUri);
+
+                    final PutBuilder builder = client().put(destinationUri)
+                                                    .body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                                                    .preferLenient();
+                    addInteractionModels(builder, headers);
+                    response = builder.perform();
                 } else {
                     destinationUri = uriForFile(f);
                     if (membershipResources.contains(destinationUri)) {
