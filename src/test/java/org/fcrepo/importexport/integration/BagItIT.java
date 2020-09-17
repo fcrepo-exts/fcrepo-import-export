@@ -275,6 +275,7 @@ public class BagItIT extends AbstractResourceIT {
         final URI rootURI = URI.create(serverAddress);
         final URI resourceURI = URI.create(serverAddress + "testBagImport");
         final URI metadataURI = URI.create(serverAddress + "image0/fcr:metadata");
+        final URI aclURI = URI.create(serverAddress + "image0/fcr:acl");
         final String bagPath = TARGET_DIR + "/test-classes/sample/bag";
 
         final Config config = new Config();
@@ -302,6 +303,7 @@ public class BagItIT extends AbstractResourceIT {
         // Resource does exist.
         assertTrue(exists(resourceURI));
         assertTrue(exists(metadataURI));
+        assertTrue(exists(aclURI));
 
         final String metadata = getAsString(metadataURI);
         assertNotNull(metadata);

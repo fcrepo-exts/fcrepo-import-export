@@ -1,5 +1,5 @@
-Bag-Size : 22 KB
-Payload-Oxum : 22178.4
+Bag-Size : 6KB
+Payload-Oxum : 6919.5
 Bagging-Date : 2016-12-13
 Source-Organization: fcrepo-import-export
 Organization-Address: localhost
