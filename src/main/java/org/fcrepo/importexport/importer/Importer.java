@@ -86,6 +86,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.ext.com.google.common.base.Charsets;
 import org.apache.jena.rdf.model.Property;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
@@ -359,7 +360,8 @@ public class Importer implements TransferProcess {
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), uri,
                     response.getStatusCode());
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
-                        + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+                        + " (" + response.getStatusCode() + "): "
+                        + IOUtils.toString(response.getBody(), Charsets.UTF_8));
             } else {
                 logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
                 importLogger.info("import {} to {}", f.getAbsolutePath(), uri);
@@ -499,7 +501,7 @@ public class Importer implements TransferProcess {
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 final String message = "Error while importing " + f.getAbsolutePath() + " ("
-                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
+                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody(), Charsets.UTF_8);
                 logger.error(message);
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                     response.getStatusCode());
@@ -615,7 +617,7 @@ public class Importer implements TransferProcess {
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        final File binaryFile =  fileForBinaryURI(binaryURI);
+        final File binaryFile = fileForBinaryURI(binaryURI);
 
         final FcrepoResponse binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
@@ -631,7 +633,7 @@ public class Importer implements TransferProcess {
             return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
-                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody(), Charsets.UTF_8));
             return binaryResponse;
         }
     }
@@ -664,8 +666,8 @@ public class Importer implements TransferProcess {
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
                 builder = builder.digest(checksum, digestAlgorithm);
             } else {
-                builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
-                                          .getObject().toString().replaceAll(".*:",""));
+                builder = builder.digestSha1(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
+                                                  .getObject().toString().replaceAll(".*:",""));
             }
         }
         return builder;
