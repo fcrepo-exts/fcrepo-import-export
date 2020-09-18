@@ -56,6 +56,7 @@ public class Config {
 
     private URI repositoryRoot;
 
+    private boolean includeAcls = false;
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
@@ -537,6 +538,7 @@ public class Config {
         if (!this.getRdfLanguage().isEmpty()) {
             map.put("rdfLang", this.getRdfLanguage());
         }
+        map.put("acls", Boolean.toString(this.includeAcls));
         map.put("binaries", Boolean.toString(this.includeBinaries));
         map.put("external", Boolean.toString(this.retrieveExternal));
         map.put("inbound", Boolean.toString(this.retrieveInbound));
@@ -602,5 +604,21 @@ public class Config {
      */
     public void setRepositoryRoot(final String repositoryRoot) {
         this.repositoryRoot = URI.create(repositoryRoot);
+    }
+
+    /**
+     * Returns true if acls should be exported/imported
+     * @return include acls flag
+     */
+    public boolean isIncludeAcls() {
+        return includeAcls;
+    }
+
+    /**
+     * Set the flag to include acls
+     * @param includeAcls in export/import
+     */
+    public void setIncludeAcls(final boolean includeAcls) {
+        this.includeAcls = includeAcls;
     }
 }

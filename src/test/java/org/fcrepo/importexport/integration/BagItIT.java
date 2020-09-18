@@ -287,6 +287,7 @@ public class BagItIT extends AbstractResourceIT {
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
         config.setBagProfile(DEFAULT_BAG_PROFILE);
+        config.setIncludeAcls(true);
         config.setIncludeBinaries(true);
         config.setLegacy(true);
 

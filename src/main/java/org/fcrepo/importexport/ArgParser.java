@@ -60,14 +60,8 @@ import com.esotericsoftware.yamlbeans.YamlWriter;
  */
 public class ArgParser {
 
-    /**
-     *
-     */
     private static final String BAG_CONFIG_OPTION_KEY = "bag-config";
 
-    /**
-     *
-     */
     private static final String BAG_PROFILE_OPTION_KEY = "bag-profile";
 
     private static final Logger logger = getLogger(ArgParser.class);
@@ -121,6 +115,13 @@ public class ArgParser {
                 .longOpt("binaries")
                 .hasArg(false)
                 .desc("When present this flag indicates that binaries should be imported/exported.")
+                .required(false).build());
+
+        // Import/export acl option
+        configOptions.addOption(Option.builder()
+                .longOpt("acls")
+                .hasArg(false)
+                .desc("When present this flag indicates that acls should be imported/exported.")
                 .required(false).build());
 
         // Retrieve external content
@@ -403,6 +404,7 @@ public class ArgParser {
         config.setMode(mode);
         config.setResource(cmd.getOptionValue('r'));
         config.setBaseDirectory(cmd.getOptionValue('d'));
+        config.setIncludeAcls(cmd.hasOption("acls"));
         config.setIncludeBinaries(cmd.hasOption('b'));
         config.setRetrieveExternal(cmd.hasOption('x'));
         config.setRetrieveInbound(cmd.hasOption('i'));
@@ -574,6 +576,8 @@ public class ArgParser {
                 c.setRdfLanguage(entry.getValue());
             } else if (entry.getKey().trim().equalsIgnoreCase("binaries")) {
                 c.setIncludeBinaries(parseBoolean("binaries", entry.getValue(), lineNumber));
+            } else if (entry.getKey().trim().equalsIgnoreCase("acls")) {
+                c.setIncludeAcls(parseBoolean("acls", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("external")) {
                 c.setRetrieveExternal(parseBoolean("external", entry.getValue(), lineNumber));
             } else if (entry.getKey().trim().equalsIgnoreCase("inbound")) {
