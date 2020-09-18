@@ -140,8 +140,8 @@ public class Importer implements TransferProcess {
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
 
-    private Logger importLogger;
-    private AtomicLong successCount = new AtomicLong(); // set to zero at start
+    private final Logger importLogger;
+    private final AtomicLong successCount = new AtomicLong(); // set to zero at start
 
     final static Set<String> INTERACTION_MODELS = new HashSet<>(Arrays.asList(DIRECT_CONTAINER.getURI(),
                                                                               INDIRECT_CONTAINER.getURI()));
