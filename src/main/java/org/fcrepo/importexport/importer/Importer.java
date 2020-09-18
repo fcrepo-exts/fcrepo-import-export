@@ -19,7 +19,6 @@ package org.fcrepo.importexport.importer;
 
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
@@ -275,8 +274,8 @@ public class Importer implements TransferProcess {
 
     private void discoverMembershipResources(final File dir) {
         if (dir.listFiles() != null) {
-            stream(dir.listFiles()).filter(File::isFile).forEach(f -> parseMembershipResources(f));
-            stream(dir.listFiles()).filter(File::isDirectory).forEach(d -> discoverMembershipResources(d));
+            stream(dir.listFiles()).filter(File::isFile).forEach(this::parseMembershipResources);
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(this::discoverMembershipResources);
         }
     }
 
@@ -331,10 +330,10 @@ public class Importer implements TransferProcess {
 
     private void importRelatedResources() {
         if (relatedResources.size() > 0) {
-            final List<URI> referenceResources = relatedResources.stream().collect(toList());
+            final List<URI> referenceResources = new ArrayList<>(relatedResources);
             relatedResources.clear();
             // loop through for nested related resources
-            referenceResources.stream().forEach(uri -> {
+            referenceResources.forEach(uri -> {
                 logger.info("Importing related resources {} ...", uri);
                 processImport(uri);
             });
@@ -342,7 +341,7 @@ public class Importer implements TransferProcess {
     }
 
     private void importMembershipResources() {
-        membershipResources.stream().forEach(uri -> importMembershipResource(uri));
+        membershipResources.forEach(this::importMembershipResource);
     }
 
     private void importMembershipResource(final URI uri) {
@@ -386,8 +385,8 @@ public class Importer implements TransferProcess {
         // created as peartree nodes which can't be updated with properties
         // later.
         if (dir.listFiles() != null) {
-            stream(dir.listFiles()).filter(File::isFile).forEach(file -> importFile(file));
-            stream(dir.listFiles()).filter(File::isDirectory).forEach(directory -> importDirectory(directory));
+            stream(dir.listFiles()).filter(File::isFile).forEach(this::importFile);
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(this::importDirectory);
         }
     }
 
