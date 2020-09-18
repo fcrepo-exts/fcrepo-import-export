@@ -368,7 +368,7 @@ public class Exporter implements TransferProcess {
                 exportLogger.error("Resource is not an LDP Container, LDP RDFSource, or an LDP NonRDFSource: {}", uri);
             }
 
-            if (acl != null) {
+            if (acl != null && config.isIncludeAcls()) {
                 export(acl);
             }
 

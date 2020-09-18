@@ -469,6 +469,9 @@ public class Importer implements TransferProcess {
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, model);
                 } else if (aclResource.hasNext()) {
+                    if (!config.isIncludeAcls()) {
+                        return;
+                    }
                     destinationUri = new URI(aclResource.nextResource().getURI());
                     logger.info("Importing acl {}", destinationUri);
 
