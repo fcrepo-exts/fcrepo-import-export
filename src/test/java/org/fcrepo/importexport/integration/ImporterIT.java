@@ -33,6 +33,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.UUID;
 
 import org.apache.jena.graph.Graph;
@@ -171,7 +172,7 @@ public class ImporterIT extends AbstractResourceIT {
 
         // verify member resource content
         final FcrepoResponse response = clientBuilder.build().get(linkTo).accept("text/plain").perform();
-        final String triples = IOUtils.toString(response.getBody());
+        final String triples = IOUtils.toString(response.getBody(), Charset.defaultCharset());
         final String hasfileTriple = "<" + linkTo + "> <http://pcdm.org/models#hasFile> <" + linkToFile1 + "> .";
         assertEquals(1, count(triples, hasfileTriple));
     }

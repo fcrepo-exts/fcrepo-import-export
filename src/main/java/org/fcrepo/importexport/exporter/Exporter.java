@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -436,7 +437,7 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting rdf: {}", uri);
 
-            final String responseBody = IOUtils.toString(response.getBody(), "UTF-8");
+            final String responseBody = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8);
             final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
                     null, config.getRdfLanguage());
             Set<URI> inboundMembers = null;

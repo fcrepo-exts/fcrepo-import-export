@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -85,7 +86,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jena.ext.com.google.common.base.Charsets;
 import org.apache.jena.rdf.model.Property;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
@@ -360,7 +360,7 @@ public class Importer implements TransferProcess {
                     response.getStatusCode());
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
                         + " (" + response.getStatusCode() + "): "
-                        + IOUtils.toString(response.getBody(), Charsets.UTF_8));
+                        + IOUtils.toString(response.getBody(), StandardCharsets.UTF_8));
             } else {
                 logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
                 importLogger.info("import {} to {}", f.getAbsolutePath(), uri);
@@ -503,7 +503,8 @@ public class Importer implements TransferProcess {
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 final String message = "Error while importing " + f.getAbsolutePath() + " ("
-                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody(), Charsets.UTF_8);
+                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody(),
+                                                                              StandardCharsets.UTF_8);
                 logger.error(message);
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                     response.getStatusCode());
@@ -635,7 +636,7 @@ public class Importer implements TransferProcess {
             return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
-                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody(), Charsets.UTF_8));
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody(), StandardCharsets.UTF_8));
             return binaryResponse;
         }
     }

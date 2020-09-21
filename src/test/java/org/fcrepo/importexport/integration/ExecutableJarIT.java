@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -238,7 +239,7 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
         builder.directory(new File(TARGET_DIR));
         final Process process = builder.start();
-        logger.debug("Output of jar run: {}", IOUtils.toString(process.getInputStream()));
+        logger.debug("Output of jar run: {}", IOUtils.toString(process.getInputStream(), Charset.defaultCharset()));
         return process;
     }
 
