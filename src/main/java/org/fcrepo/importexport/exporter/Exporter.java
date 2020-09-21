@@ -603,14 +603,10 @@ public class Exporter implements TransferProcess {
         final URI timemapURI;
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, config.getUsername());
-            if (response.getLinkHeaders("type").stream()
-                .filter(x -> x.toString().equals(MEMENTO.getURI()))
-                .count() > 0) {
+            if (response.getLinkHeaders("type").contains(URI.create(MEMENTO.toString()))) {
                 logger.trace("Resource {} is a memento and therefore not versioned:  ", uri);
                 return;
-            } else if (response.getLinkHeaders("type").stream()
-                .filter(x -> x.toString().equals(TIMEMAP.getURI()))
-                .count() > 0) {
+            } else if (response.getLinkHeaders("type").contains(URI.create(TIMEMAP.toString()))) {
                 logger.trace("Resource {} is a timemap and therefore not versioned:  ", uri);
                 return;
             }
