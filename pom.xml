@@ -12,7 +12,7 @@
 
 
   <name>fcrepo-import-export</name>
-  <url>https://github.com/fcrepo4-labs/fcrepo-import-export</url>
+  <url>https://github.com/fcrepo-exts/fcrepo-import-export</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -98,9 +98,9 @@
   </dependencies>
 
   <scm>
-    <connection>scm:git:git://github.com/fcrepo4-labs/${project_name}.git</connection>
-    <developerConnection>scm:git:git@github.com:fcrepo4-labs/${project_name}.git</developerConnection>
-    <url>https://github.com/fcrepo4-labs/${project_name}</url>
+    <connection>scm:git:git://github.com/fcrepo-exts/${project_name}.git</connection>
+    <developerConnection>scm:git:git@github.com:fcrepo-exts/${project_name}.git</developerConnection>
+    <url>https://github.com/fcrepo-exts/${project_name}</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -243,7 +243,7 @@
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://github.com/fcrepo4/fcrepo4/releases/download/fcrepo-${fcrepo.version}/fcrepo-webapp-${fcrepo.version}.war</url>
+              <url>https://github.com/fcrepo/fcrepo/releases/download/fcrepo-${fcrepo.version}/fcrepo-webapp-${fcrepo.version}.war</url>
               <outputFileName>fcrepo-webapp.war</outputFileName>
               <targetDirectory>${project.build.directory}</targetDirectory>
             </configuration>

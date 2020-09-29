@@ -1,6 +1,6 @@
 Fedora 4 Import/Export Utility
 ==============================
-[![Build Status](https://travis-ci.com/fcrepo4-labs/fcrepo-import-export.svg?branch=master)](https://travis-ci.com/fcrepo4-labs/fcrepo-import-export)
+[![Build Status](https://travis-ci.com/fcrepo-exts/fcrepo-import-export.svg?branch=master)](https://travis-ci.com/fcrepo-exts/fcrepo-import-export)
 [![LICENSE](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](./LICENSE)
 
 Work in progress
@@ -146,7 +146,7 @@ each field you wish to manually supply. For example, setting metadata elements i
 ```yaml
 bag-info.txt:
   Source-Organization: org.fcrepo
-  Organization-Address: https://github.com/fcrepo4-labs/fcrepo-import-export
+  Organization-Address: https://github.com/fcrepo-exts/fcrepo-import-export
 ```
 
 **Note:** The import-export-utility will generate values for the `Bagging-Date`, `Payload-Oxum`, `Bag-Size`, and
