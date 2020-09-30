@@ -287,7 +287,7 @@ public class ArgParser {
             config = parseConfigFileOptions(c);
             addSharedOptions(c, config);
         } catch (final ParseException ignore) {
-            logger.debug("Command line argments weren't valid for specifying a config file.");
+            logger.debug("Command line arguments weren't valid for specifying a config file.");
         }
         if (config == null) {
             // check for presence of the help flag
