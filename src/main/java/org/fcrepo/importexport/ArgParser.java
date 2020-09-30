@@ -596,7 +596,7 @@ public class ArgParser {
                 c.setBagConfigPath(entry.getValue().toLowerCase());
             } else if (entry.getKey().trim().equalsIgnoreCase("bag-algorithms")) {
                 c.setBagAlgorithms(entry.getValue().split(","));
-            } else if (entry.getKey().trim().equalsIgnoreCase("serialization")) {
+            } else if (entry.getKey().trim().equalsIgnoreCase("bag-serialization")) {
                 c.setBagSerialization(entry.getValue());
             } else if (entry.getKey().equalsIgnoreCase("predicates")) {
                 c.setPredicates(entry.getValue().split(","));
