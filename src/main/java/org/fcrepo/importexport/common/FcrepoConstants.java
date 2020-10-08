@@ -18,11 +18,11 @@
 package org.fcrepo.importexport.common;
 
 
-import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 
 /**
  * @author awoods
@@ -52,6 +52,7 @@ public abstract class FcrepoConstants {
     public static final Resource INDIRECT_CONTAINER = createResource(LDP_NAMESPACE + "IndirectContainer");
 
     public static final Property MEMBERSHIP_RESOURCE = createProperty(LDP_NAMESPACE + "membershipResource");
+    public static final Property PREFER_MEMBERSHIP = createProperty(LDP_NAMESPACE + "PreferMembership");
     public static final Property NON_RDF_SOURCE = createProperty(LDP_NAMESPACE + "NonRDFSource");
     public static final Property RDF_SOURCE = createProperty(LDP_NAMESPACE + "RDFSource");
     public static final Property CONTAINS = createProperty(LDP_NAMESPACE + "contains");

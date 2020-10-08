@@ -17,23 +17,15 @@
  */
 package org.fcrepo.importexport.integration;
 
-import static org.apache.commons.io.FileUtils.readFileToString;
-import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.rdf.model.ResourceFactory.createStringLiteral;
-import static org.apache.jena.riot.RDFDataMgr.loadModel;
-import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
-import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
-import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.apache.commons.io.IOUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.junit.Test;
+import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -44,15 +36,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.Resource;
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.exporter.Exporter;
-import org.junit.Test;
-import org.slf4j.Logger;
+import static org.apache.commons.io.FileUtils.readFileToString;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import static org.apache.jena.rdf.model.ResourceFactory.createStringLiteral;
+import static org.apache.jena.riot.RDFDataMgr.loadModel;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
+import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * @author awoods
@@ -412,6 +412,44 @@ public class ExporterIT extends AbstractResourceIT {
                 createResource(fileURI.toString()),
                 HAS_MIME_TYPE,
                 createStringLiteral("text/plain")));
+    }
+
+    @Test
+    public void exportDirectContainerWithoutMembership() throws Exception {
+        final UUID uuid = UUID.randomUUID();
+        final String baseURI = serverAddress + uuid;
+        final URI res1 = URI.create(baseURI + "/res1");
+        final URI parts = URI.create(baseURI + "/res1/parts");
+        final URI part1 = URI.create(baseURI + "/res1/parts/part1");
+
+        final String partsTurtle = " <> <" + LDP_HAS_MEMBER_RELATION + "> <" + DCTERMS_HAS_PART + "> ; "
+                + "<" + LDP_MEMBERSHIP_RESOURCE + "> <" +  res1.toString() + "> .";
+
+        create(res1);
+
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Link", "<" + LDP_DIRECT_CONTAINER + ">; rel=\"type\"");
+
+        createTurtle(parts, partsTurtle, headers);
+        create(part1);
+
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR + "/" + uuid);
+        config.setResource(baseURI);
+        config.setOmitMembership(true);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        new Exporter(config, clientBuilder).run();
+
+        final File baseDir = new File(config.getBaseDirectory(), "/fcrepo/rest/" + uuid);
+        final File file = new File(baseDir, "res1" + DEFAULT_RDF_EXT);
+        assertTrue(file.exists());
+        final Model model = loadModel(file.getAbsolutePath());
+        assertFalse(model.contains(createResource(res1.toString()),
+                createProperty(DCTERMS_HAS_PART),
+                createResource(part1.toString())));
     }
 
     @Override
