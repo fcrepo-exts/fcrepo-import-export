@@ -137,6 +137,13 @@ public class ArgParser {
                 .desc("When present this flag indicates that inbound references should be exported.")
                 .required(false).build());
 
+        // Include membership
+        configOptions.addOption(Option.builder()
+                .longOpt("membership")
+                .hasArg(false)
+                .desc("When present this flag indicates that membership references should be exported.")
+                .required(false).build());
+
         // Write config file
         configOptions.addOption(Option.builder("w")
                 .longOpt("writeConfig")
@@ -406,6 +413,7 @@ public class ArgParser {
         config.setIncludeBinaries(cmd.hasOption('b'));
         config.setRetrieveExternal(cmd.hasOption('x'));
         config.setRetrieveInbound(cmd.hasOption('i'));
+        config.setIncludeMembership(cmd.hasOption("membership"));
         config.setOverwriteTombstones(cmd.hasOption('t'));
         config.setLegacy(cmd.hasOption("L"));
         config.setIncludeVersions(cmd.hasOption('V'));

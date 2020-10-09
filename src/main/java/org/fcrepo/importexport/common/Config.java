@@ -17,11 +17,8 @@
  */
 package org.fcrepo.importexport.common;
 
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
-import static org.slf4j.LoggerFactory.getLogger;
-import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
+import org.apache.jena.riot.Lang;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.net.URI;
@@ -29,8 +26,11 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jena.riot.Lang;
-import org.slf4j.Logger;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
+import static org.slf4j.LoggerFactory.getLogger;
+import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 
 
 /**
@@ -59,6 +59,7 @@ public class Config {
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
+    private boolean includeMembership = false;
     private boolean overwriteTombstones = false;
     private boolean legacy = false;
     private boolean includeVersions = false;
@@ -188,6 +189,24 @@ public class Config {
      */
     public boolean retrieveInbound() {
         return retrieveInbound;
+    }
+
+    /**
+     * Sets flag indicating whether or not membership should be included when exporting direct and indirect containers.
+     *
+     * @param includeMembership Whether to include membership
+     */
+    public void setIncludeMembership(final boolean includeMembership) {
+        this.includeMembership = includeMembership;
+    }
+
+    /**
+     * Get the include membership flag.
+     *
+     * @return true if membership should be included
+     */
+    public boolean includeMembership() {
+        return includeMembership;
     }
 
     /**
@@ -540,6 +559,7 @@ public class Config {
         map.put("binaries", Boolean.toString(this.includeBinaries));
         map.put("external", Boolean.toString(this.retrieveExternal));
         map.put("inbound", Boolean.toString(this.retrieveInbound));
+        map.put("membership", Boolean.toString(this.includeMembership));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
         map.put("legacyMode", Boolean.toString(this.isLegacy()));
         map.put("versions", Boolean.toString(this.includeVersions));

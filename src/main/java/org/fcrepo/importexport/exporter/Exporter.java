@@ -17,54 +17,6 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import static org.apache.commons.codec.binary.Hex.encodeHex;
-import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
-import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
-import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
-import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
-import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
-import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
-import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
-import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
-import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
-import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
-import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
-import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
-import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
-import static org.fcrepo.importexport.common.UriUtils.withSlash;
-import static org.fcrepo.importexport.common.UriUtils.withoutSlash;
-import static org.slf4j.LoggerFactory.getLogger;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
@@ -88,6 +40,54 @@ import org.fcrepo.client.GetBuilder;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.codec.binary.Hex.encodeHex;
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
+import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
+import static org.fcrepo.importexport.common.FcrepoConstants.INBOUND_REFERENCES;
+import static org.fcrepo.importexport.common.FcrepoConstants.MEMENTO;
+import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.PREFER_MEMBERSHIP;
+import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
+import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
+import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
+import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
+import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
+import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
+import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
+import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
+import static org.fcrepo.importexport.common.UriUtils.withSlash;
+import static org.fcrepo.importexport.common.UriUtils.withoutSlash;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Fedora Export Utility
@@ -426,11 +426,19 @@ public class Exporter implements TransferProcess {
             return;
         }
 
-        GetBuilder getBuilder = client().get(uri).accept(config.getRdfLanguage());
+        final GetBuilder getBuilder = client().get(uri).accept(config.getRdfLanguage());
+
+        final List<URI> includeUris = new ArrayList<>();
+        final List<URI> omitUris = new ArrayList<>();
+
         if (config.retrieveInbound()) {
-            getBuilder = getBuilder.preferRepresentation(
-                Arrays.asList(URI.create(INBOUND_REFERENCES.getURI())), null);
+            includeUris.add(URI.create(INBOUND_REFERENCES.getURI()));
         }
+        if (!config.includeMembership()) {
+            omitUris.add(URI.create(PREFER_MEMBERSHIP.getURI()));
+        }
+
+        getBuilder.preferRepresentation(includeUris, omitUris);
 
         try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri, config.getUsername());

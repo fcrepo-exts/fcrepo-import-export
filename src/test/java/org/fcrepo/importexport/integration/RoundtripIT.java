@@ -658,6 +658,7 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setMode("export");
         config.setBaseDirectory(TARGET_DIR + File.separator + UUID.randomUUID());
         config.setIncludeBinaries(includeBinary);
+        config.setIncludeMembership(true);
         config.setResource(uri);
         config.setPredicates(new String[]{ CONTAINS.toString() });
         config.setRdfExtension(DEFAULT_RDF_EXT);
