@@ -434,7 +434,7 @@ public class Exporter implements TransferProcess {
         if (config.retrieveInbound()) {
             includeUris.add(URI.create(INBOUND_REFERENCES.getURI()));
         }
-        if (config.omitMembership()) {
+        if (!config.includeMembership()) {
             omitUris.add(URI.create(PREFER_MEMBERSHIP.getURI()));
         }
 

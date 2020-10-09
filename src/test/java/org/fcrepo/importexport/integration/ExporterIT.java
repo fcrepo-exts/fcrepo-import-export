@@ -437,7 +437,7 @@ public class ExporterIT extends AbstractResourceIT {
         config.setMode("export");
         config.setBaseDirectory(TARGET_DIR + "/" + uuid);
         config.setResource(baseURI);
-        config.setOmitMembership(true);
+        config.setIncludeMembership(false);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
 

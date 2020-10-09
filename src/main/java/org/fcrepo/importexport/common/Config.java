@@ -59,7 +59,7 @@ public class Config {
     private boolean includeBinaries = false;
     private boolean retrieveExternal = false;
     private boolean retrieveInbound = false;
-    private boolean omitMembership = false;
+    private boolean includeMembership = false;
     private boolean overwriteTombstones = false;
     private boolean legacy = false;
     private boolean includeVersions = false;
@@ -194,19 +194,19 @@ public class Config {
     /**
      * Sets flag indicating whether or not membership should be included when exporting direct and indirect containers.
      *
-     * @param omitMembership Whether to omit membership
+     * @param includeMembership Whether to include membership
      */
-    public void setOmitMembership(final boolean omitMembership) {
-        this.omitMembership = omitMembership;
+    public void setIncludeMembership(final boolean includeMembership) {
+        this.includeMembership = includeMembership;
     }
 
     /**
-     * Get the omit membership flag.
+     * Get the include membership flag.
      *
-     * @return true if membership should be omitted
+     * @return true if membership should be included
      */
-    public boolean omitMembership() {
-        return omitMembership;
+    public boolean includeMembership() {
+        return includeMembership;
     }
 
     /**
@@ -559,7 +559,7 @@ public class Config {
         map.put("binaries", Boolean.toString(this.includeBinaries));
         map.put("external", Boolean.toString(this.retrieveExternal));
         map.put("inbound", Boolean.toString(this.retrieveInbound));
-        map.put("omit-membership", Boolean.toString(this.omitMembership));
+        map.put("membership", Boolean.toString(this.includeMembership));
         map.put("overwriteTombstones", Boolean.toString(this.overwriteTombstones()));
         map.put("legacyMode", Boolean.toString(this.isLegacy()));
         map.put("versions", Boolean.toString(this.includeVersions));
