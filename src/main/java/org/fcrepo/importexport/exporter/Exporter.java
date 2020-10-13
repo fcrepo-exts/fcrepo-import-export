@@ -364,6 +364,8 @@ public class Exporter implements TransferProcess {
                 exportRdf(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
+            } else if (uri.equals(URI.create(repositoryRoot.toString() + "/fcr:acl").normalize())) {
+                logger.info("The repository default root ACL is not being exported: {}", uri);
             } else {
                 logger.error("Resource is not an LDP Container, LDP RDFSource,  or an LDP NonRDFSource: {}", uri);
                 exportLogger.error("Resource is not an LDP Container, LDP RDFSource, or an LDP NonRDFSource: {}", uri);
