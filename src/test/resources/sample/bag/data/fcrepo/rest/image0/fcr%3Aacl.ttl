@@ -1,0 +1,24 @@
+@prefix webac:  <http://fedora.info/definitions/v4/webac#> .
+@prefix acl:  <http://www.w3.org/ns/auth/acl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+
+<http://localhost:8080/fcrepo/rest/image0/fcr:acl>
+        rdf:type               fedora:Resource ;
+        rdf:type               webac:Acl ;
+        fedora:lastModifiedBy  "bypassAdmin" ;
+        fedora:createdBy       "bypassAdmin" ;
+        fedora:created         "2020-09-11T18:03:03.109Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModified    "2020-09-11T18:03:03.109Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+
+<http://localhost:8080/fcrepo/rest/image0/fcr:acl#authz>
+        rdf:type      acl:Authorization ;
+        acl:accessTo  <http://localhost:8080/fcrepo/rest/image0> ;
+        acl:mode      acl:Read ;
+        acl:agent     "testuser" .
+
+<http://localhost:8080/fcrepo/rest/image0/fcr:acl>
+        rdf:type  ldp:RDFSource ;
+        rdf:type  ldp:Container ;
+        rdf:type  ldp:BasicContainer .

@@ -427,6 +427,7 @@ public class ExporterTest {
         final Config args = new Config();
         args.setMode("export");
         args.setBaseDirectory(basedir);
+        args.setIncludeAcls(true);
         args.setIncludeBinaries(true);
         args.setPredicates(predicates);
         args.setRdfLanguage("application/ld+json");

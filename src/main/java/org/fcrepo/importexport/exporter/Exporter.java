@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -363,12 +364,14 @@ public class Exporter implements TransferProcess {
                 exportRdf(uri, null);
                 // Export versions for this container
                 exportVersions(uri);
+            } else if (uri.equals(URI.create(repositoryRoot.toString() + "/fcr:acl").normalize())) {
+                logger.info("The repository default root ACL is not being exported: {}", uri);
             } else {
                 logger.error("Resource is not an LDP Container, LDP RDFSource,  or an LDP NonRDFSource: {}", uri);
                 exportLogger.error("Resource is not an LDP Container, LDP RDFSource, or an LDP NonRDFSource: {}", uri);
             }
 
-            if (acl != null) {
+            if (acl != null && config.isIncludeAcls()) {
                 export(acl);
             }
 
@@ -444,7 +447,7 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting rdf: {}", uri);
 
-            final String responseBody = IOUtils.toString(response.getBody(), "UTF-8");
+            final String responseBody = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8);
             final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
                     null, config.getRdfLanguage());
             Set<URI> inboundMembers = null;
@@ -611,14 +614,10 @@ public class Exporter implements TransferProcess {
         final URI timemapURI;
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             checkValidResponse(response, uri, config.getUsername());
-            if (response.getLinkHeaders("type").stream()
-                .filter(x -> x.toString().equals(MEMENTO.getURI()))
-                .count() > 0) {
+            if (response.getLinkHeaders("type").contains(URI.create(MEMENTO.toString()))) {
                 logger.trace("Resource {} is a memento and therefore not versioned:  ", uri);
                 return;
-            } else if (response.getLinkHeaders("type").stream()
-                .filter(x -> x.toString().equals(TIMEMAP.getURI()))
-                .count() > 0) {
+            } else if (response.getLinkHeaders("type").contains(URI.create(TIMEMAP.toString()))) {
                 logger.trace("Resource {} is a timemap and therefore not versioned:  ", uri);
                 return;
             }

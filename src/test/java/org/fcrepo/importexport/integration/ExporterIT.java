@@ -284,6 +284,7 @@ public class ExporterIT extends AbstractResourceIT {
         config.setRdfLanguage(DEFAULT_RDF_LANG);
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+        config.setIncludeAcls(true);
         config.setIncludeVersions(false);
         config.setIncludeBinaries(false);
 

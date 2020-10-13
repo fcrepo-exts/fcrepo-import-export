@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -345,7 +346,8 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
 
         assertTrue(binaryFile.exists() && binaryFile.isFile());
-        assertEquals("this is some content", IOUtils.toString(new FileInputStream(binaryFile)));
+        assertEquals("this is some content", IOUtils.toString(new FileInputStream(binaryFile),
+                                                              Charset.defaultCharset()));
         assertEquals(20L, binaryFile.length());
 
         assertTrue(descFile.exists() && descFile.isFile());
@@ -441,7 +443,7 @@ public class RoundtripIT extends AbstractResourceIT {
                 + config.getRdfExtension());
 
         assertTrue(binaryFile.exists() && binaryFile.isFile());
-        assertEquals("", IOUtils.toString(new FileInputStream(binaryFile)));
+        assertEquals("", IOUtils.toString(new FileInputStream(binaryFile), Charset.defaultCharset()));
         assertEquals(0L, binaryFile.length());
         assertTrue(binaryFileHeaders.exists() && binaryFileHeaders.isFile());
 
@@ -512,7 +514,7 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(contModel.contains(container, RDF_TYPE, CONTAINER));
 
         assertTrue(binaryFile.exists() && binaryFile.isFile());
-        assertEquals(contents, IOUtils.toString(new FileInputStream(binaryFile)));
+        assertEquals(contents, IOUtils.toString(new FileInputStream(binaryFile), Charset.defaultCharset()));
         assertEquals(binaryFileLength, binaryFile.length());
         assertTrue(binaryFileHeaders.exists() && binaryFileHeaders.isFile());
 
@@ -545,7 +547,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final URI childURI = URI.create(parentURI.toString() + "/child1");
         final URI fileURI = URI.create(parentURI.toString() + "/file1");
         final File binaryFile = new File("src/test/resources/binary.txt");
-        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile), Charset.defaultCharset());
 
         final FcrepoResponse response = createBody(uri, stream, "text/turtle");
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -569,7 +571,7 @@ public class RoundtripIT extends AbstractResourceIT {
     public void testRoundtripOverwriteBinary() throws Exception {
         final URI fileURI = URI.create(serverAddress + UUID.randomUUID());
         final File binaryFile = new File("src/test/resources/binary.txt");
-        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile), Charset.defaultCharset());
 
         final FcrepoResponse response = createBody(fileURI, new FileInputStream(binaryFile), "text/plain");
         assertEquals(SC_CREATED, response.getStatusCode());
@@ -586,7 +588,7 @@ public class RoundtripIT extends AbstractResourceIT {
     public void testRoundtripRdfBinary() throws Exception {
         final URI fileURI = URI.create(serverAddress + UUID.randomUUID());
         final File binaryFile = new File("src/test/resources/binary.txt");
-        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile));
+        final String binaryContent = IOUtils.toString(new FileInputStream(binaryFile), Charset.defaultCharset());
 
         // create a binary with an RDF content type
         final FcrepoResponse response = clientBuilder.build().put(fileURI)

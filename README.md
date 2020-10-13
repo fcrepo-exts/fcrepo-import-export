@@ -29,7 +29,7 @@ The standalone import/export utility can be run in either of two ways:
 The first time you run the utility with command-line arguments, a configuration file containing your provided arguments will be written to a file, the location of which will be displayed at the command line.
 
 ```sh
-$ java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries
+$ java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest --dir /tmp/test --binaries --acls
 INFO 15:15:10.048 (ArgParser) Saved configuration to: /tmp/importexport.config
 INFO 15:15:10.091 (Exporter) Running exporter...
 ```
@@ -66,10 +66,10 @@ The list of RDF languages supported:
 - text/plain
 - text/turtle (or application/x-turtle)    (**default**)
 
-For example, to export all of the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
+For example, to export all the resources from a Fedora repository at `http://localhost:8080/rest/`, and put binaries and rdf in `/tmp/test`:
 
 ```sh
-java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries
+java -jar fcrepo-import-export.jar --mode export --resource http://localhost:8080/rest/ --dir /tmp/test --binaries --acls
 ```
 
 To then load that data into an empty Fedora repository at the same URL, run the same command, but using `--mode import` instead of `--mode export`.
@@ -262,7 +262,8 @@ That configuration file is [Yaml](http://yaml.org) and allows for the following 
 
 * mode: [import|export] # which mode to operate in
 * dir: Directory to import from/export to
-* binaries: [true|false] # whether is import/export binary resources
+* acls: [true|false] # whether to import/export acl resources
+* binaries: [true|false] # whether to import/export binary resources
 * overwriteTombstones: [true|false] # whether to replace tombstones of previously deleted resources
 * external: [true|false] # whether to retrieve external content binaries when exporting
 * inbound: [true|false] # whether to export inbound references when exporting

@@ -19,13 +19,13 @@ package org.fcrepo.importexport.importer;
 
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
 import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
+import static org.fcrepo.importexport.common.FcrepoConstants.ACL_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTENT_TYPE_HEADER;
@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -138,8 +139,8 @@ public class Importer implements TransferProcess {
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
 
-    private Logger importLogger;
-    private AtomicLong successCount = new AtomicLong(); // set to zero at start
+    private final Logger importLogger;
+    private final AtomicLong successCount = new AtomicLong(); // set to zero at start
 
     final static Set<String> INTERACTION_MODELS = new HashSet<>(Arrays.asList(DIRECT_CONTAINER.getURI(),
                                                                               INDIRECT_CONTAINER.getURI()));
@@ -273,8 +274,8 @@ public class Importer implements TransferProcess {
 
     private void discoverMembershipResources(final File dir) {
         if (dir.listFiles() != null) {
-            stream(dir.listFiles()).filter(File::isFile).forEach(f -> parseMembershipResources(f));
-            stream(dir.listFiles()).filter(File::isDirectory).forEach(d -> discoverMembershipResources(d));
+            stream(dir.listFiles()).filter(File::isFile).forEach(this::parseMembershipResources);
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(this::discoverMembershipResources);
         }
     }
 
@@ -329,10 +330,10 @@ public class Importer implements TransferProcess {
 
     private void importRelatedResources() {
         if (relatedResources.size() > 0) {
-            final List<URI> referenceResources = relatedResources.stream().collect(toList());
+            final List<URI> referenceResources = new ArrayList<>(relatedResources);
             relatedResources.clear();
             // loop through for nested related resources
-            referenceResources.stream().forEach(uri -> {
+            referenceResources.forEach(uri -> {
                 logger.info("Importing related resources {} ...", uri);
                 processImport(uri);
             });
@@ -340,7 +341,7 @@ public class Importer implements TransferProcess {
     }
 
     private void importMembershipResources() {
-        membershipResources.stream().forEach(uri -> importMembershipResource(uri));
+        membershipResources.forEach(this::importMembershipResource);
     }
 
     private void importMembershipResource(final URI uri) {
@@ -358,7 +359,8 @@ public class Importer implements TransferProcess {
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), uri,
                     response.getStatusCode());
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
-                        + " (" + response.getStatusCode() + "): " + IOUtils.toString(response.getBody()));
+                        + " (" + response.getStatusCode() + "): "
+                        + IOUtils.toString(response.getBody(), StandardCharsets.UTF_8));
             } else {
                 logger.info("Imported membership resource {}: {}", f.getAbsolutePath(), uri);
                 importLogger.info("import {} to {}", f.getAbsolutePath(), uri);
@@ -383,8 +385,8 @@ public class Importer implements TransferProcess {
         // created as peartree nodes which can't be updated with properties
         // later.
         if (dir.listFiles() != null) {
-            stream(dir.listFiles()).filter(File::isFile).forEach(file -> importFile(file));
-            stream(dir.listFiles()).filter(File::isDirectory).forEach(directory -> importDirectory(directory));
+            stream(dir.listFiles()).filter(File::isFile).forEach(this::importFile);
+            stream(dir.listFiles()).filter(File::isDirectory).forEach(this::importDirectory);
         }
     }
 
@@ -458,6 +460,7 @@ public class Importer implements TransferProcess {
                 }
 
                 final ResIterator binaryResources = model.listResourcesWithProperty(RDF_TYPE, NON_RDF_SOURCE);
+                final ResIterator aclResource = model.listResourcesWithProperty(RDF_TYPE, ACL_SOURCE);
                 if (binaryResources.hasNext()) {
                     if (!config.isIncludeBinaries()) {
                         return;
@@ -465,6 +468,18 @@ public class Importer implements TransferProcess {
                     destinationUri = new URI(binaryResources.nextResource().getURI());
                     logger.info("Importing binary {}", sourceRelativePath);
                     response = importBinary(destinationUri, model);
+                } else if (aclResource.hasNext()) {
+                    if (!config.isIncludeAcls()) {
+                        return;
+                    }
+                    destinationUri = new URI(aclResource.nextResource().getURI());
+                    logger.info("Importing acl {}", destinationUri);
+
+                    final PutBuilder builder = client().put(destinationUri)
+                                                    .body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                                                    .preferLenient();
+                    addInteractionModels(builder, headers);
+                    response = builder.perform();
                 } else {
                     destinationUri = uriForFile(f);
                     if (membershipResources.contains(destinationUri)) {
@@ -488,7 +503,8 @@ public class Importer implements TransferProcess {
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 final String message = "Error while importing " + f.getAbsolutePath() + " ("
-                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody());
+                        + response.getStatusCode() + "): " + IOUtils.toString(response.getBody(),
+                                                                              StandardCharsets.UTF_8);
                 logger.error(message);
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
                     response.getStatusCode());
@@ -604,7 +620,7 @@ public class Importer implements TransferProcess {
     private FcrepoResponse importBinary(final URI binaryURI, final Model model)
             throws FcrepoOperationFailedException, IOException {
         final String contentType = model.getProperty(createResource(binaryURI.toString()), HAS_MIME_TYPE).getString();
-        final File binaryFile =  fileForBinaryURI(binaryURI);
+        final File binaryFile = fileForBinaryURI(binaryURI);
 
         final FcrepoResponse binaryResponse = binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         if (binaryResponse.getStatusCode() == 201 || binaryResponse.getStatusCode() == 204) {
@@ -620,7 +636,7 @@ public class Importer implements TransferProcess {
             return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
         } else {
             logger.error("Error while importing {} ({}): {}", binaryFile.getAbsolutePath(),
-                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody()));
+                    binaryResponse.getStatusCode(), IOUtils.toString(binaryResponse.getBody(), StandardCharsets.UTF_8));
             return binaryResponse;
         }
     }
@@ -653,8 +669,8 @@ public class Importer implements TransferProcess {
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
                 builder = builder.digest(checksum, digestAlgorithm);
             } else {
-                builder = builder.digest(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
-                                          .getObject().toString().replaceAll(".*:",""));
+                builder = builder.digestSha1(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
+                                                  .getObject().toString().replaceAll(".*:",""));
             }
         }
         return builder;
