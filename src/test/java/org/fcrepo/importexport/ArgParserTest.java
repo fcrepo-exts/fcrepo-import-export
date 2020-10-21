@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport;
 
+import static org.duraspace.bagit.profile.BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 
 import java.io.File;
@@ -26,6 +27,7 @@ import java.net.URI;
 import java.util.Map;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.importexport.common.Config;
 import org.junit.Assert;
 import org.junit.Before;
@@ -170,6 +172,10 @@ public class ArgParserTest {
         Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
         Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
         Assert.assertArrayEquals(new String[]{"md5", "sha1"}, config.getBagAlgorithms());
+
+        final BagProfile bagProfile = config.initBagProfile();
+        final BagProfile fedoraProfile = new BagProfile(FEDORA_IMPORT_EXPORT);
+        Assert.assertEquals(fedoraProfile.getIdentifier(), bagProfile.getIdentifier());
     }
 
     @Test(expected = RuntimeException.class)
