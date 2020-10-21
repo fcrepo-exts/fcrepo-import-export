@@ -177,17 +177,7 @@ public class Importer implements TransferProcess {
      */
     private void loadBagProfile(final String bagProfile) {
         try {
-            // try to initialize the BagProfile
-            BagProfile profile;
-            try {
-                // first assuming we're given a profile identifier in the BagConfig
-                profile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
-            } catch (IllegalArgumentException ignored) {
-                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
-                try (InputStream profileIn = Files.newInputStream(Paths.get(config.getBagProfile()))) {
-                    profile = new BagProfile(profileIn);
-                }
-            }
+            final BagProfile profile = config.initBagProfile();
 
             final Path root;
             final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();

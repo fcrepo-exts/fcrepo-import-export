@@ -53,7 +53,6 @@ import java.io.Reader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -150,23 +149,14 @@ public class Exporter implements TransferProcess {
 
     private void configureBagItParameters() {
         try {
-            // parse profile
+            // parse config + load profile
             final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
-
-            // try to initialize the BagProfile
-            BagProfile bagProfile;
-            try {
-                // first assuming we're given a profile identifier in the BagConfig
-                bagProfile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
-            } catch (IllegalArgumentException ignored) {
-                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
-                bagProfile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
-            }
+            final BagProfile bagProfile = config.initBagProfile();
 
             // configure the BagIt algorithms to use + setup the fields for the Exporter
             final Set<BagItDigest> algorithms = setupBagItDigests(bagProfile);
 
-            //enforce default metadata
+            // enforce default metadata
             bagProfile.validateConfig(bagConfig);
             final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
 
@@ -176,7 +166,7 @@ public class Exporter implements TransferProcess {
             // check if serialization is required
             final String serializationFormat = config.getBagSerialization();
             if (serializationFormat != null) {
-                // this throws an UnsupportedOperationException if the serialization format is not supported
+                // this can throw exceptions if the serialization format is not supported
                 bagSerializer = SerializationSupport.serializerFor(serializationFormat, bagProfile);
             }
 
