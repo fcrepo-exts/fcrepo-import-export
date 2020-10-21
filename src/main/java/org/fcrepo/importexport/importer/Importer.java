@@ -920,7 +920,11 @@ public class Importer implements TransferProcess {
      */
     private void configureBagItFileMap(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
-        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
+        final BagItDigest md5 = BagItDigest.MD5;
+        final BagItDigest sha = BagItDigest.SHA1;
+        final BagItDigest sha256 = BagItDigest.SHA256;
+        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(md5.bagitName(), sha.bagitName(),
+                                                                        sha256.bagitName()));
         final Manifest manifest = bag.getPayLoadManifests().stream()
                .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
                .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
@@ -934,18 +938,18 @@ public class Importer implements TransferProcess {
                                         Map.Entry::getValue));
         logger.debug("loaded checksum map: {}", bagItFileMap);
 
-        switch(manifest.getAlgorithm().getBagitName()) {
-            case BAGIT_MD5:
-                this.digestAlgorithm = BAGIT_MD5;
+        switch(BagItDigest.from(manifest.getAlgorithm().getBagitName())) {
+            case MD5:
+                this.digestAlgorithm = md5.bagitName();
                 break;
-            case BAGIT_SHA1:
+            case SHA1:
                 // fcrepo-client expects only "sha" for sha1 headers
                 this.digestAlgorithm = "sha";
                 break;
-            case BAGIT_SHA_256:
-                this.digestAlgorithm = BAGIT_SHA_256;
+            case SHA256:
+                this.digestAlgorithm = sha256.bagitName();
                 break;
-            default: throw new RuntimeException("Unsupported bagit algorithm!");
+            default: throw new RuntimeException("Unsupported BagIt algorithm!");
         }
     }
 
@@ -957,10 +961,10 @@ public class Importer implements TransferProcess {
      */
     private int manifestPriority(final Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
-        switch (bagItAlgorithm) {
-            case BAGIT_MD5: return 0;
-            case BAGIT_SHA1: return 1;
-            case BAGIT_SHA_256: return 2;
+        switch (BagItDigest.from(bagItAlgorithm)) {
+            case MD5: return 0;
+            case SHA1: return 1;
+            case SHA256: return 2;
             default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }
