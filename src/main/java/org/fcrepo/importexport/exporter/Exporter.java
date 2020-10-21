@@ -49,6 +49,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -267,14 +268,17 @@ public class Exporter implements TransferProcess {
     /**
      * Loads a bag config from path
      * @param bagConfigPath The path to the bag config yaml.
-     * @return
+     * @throws IOException if the bagConfigPath cannot be read
+     * @return the initialized {@link BagConfig}
      */
-    private BagConfig loadBagConfig(final String bagConfigPath) {
+    private BagConfig loadBagConfig(final String bagConfigPath) throws IOException {
         if (bagConfigPath == null) {
             throw new RuntimeException("The bag config path must not be null.");
         }
         final File bagConfigFile = new File(bagConfigPath);
-        return new BagConfig(bagConfigFile);
+        try (Reader bagConfigReader = Files.newBufferedReader(bagConfigFile.toPath())) {
+            return new BagConfig(bagConfigReader);
+        }
     }
 
     private FcrepoClient client() {
