@@ -53,6 +53,8 @@ import java.io.Reader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -265,8 +267,8 @@ public class Exporter implements TransferProcess {
         if (bagConfigPath == null) {
             throw new RuntimeException("The bag config path must not be null.");
         }
-        final File bagConfigFile = new File(bagConfigPath);
-        try (Reader bagConfigReader = Files.newBufferedReader(bagConfigFile.toPath())) {
+        final Path bagConfigFile = Paths.get(bagConfigPath);
+        try (Reader bagConfigReader = Files.newBufferedReader(bagConfigFile)) {
             return new BagConfig(bagConfigReader);
         }
     }
