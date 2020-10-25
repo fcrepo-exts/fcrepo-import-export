@@ -18,9 +18,11 @@
 package org.fcrepo.importexport.common;
 
 import org.apache.jena.riot.Lang;
+import org.duraspace.bagit.profile.BagProfile;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -369,6 +371,20 @@ public class Config {
      */
     public String getBagProfile() {
         return bagProfile;
+    }
+
+    /**
+     * Try to initialize a BagProfile for either the Importer or Exporter. If the bag profile passed in is "default",
+     * use the fedora-import-export identifier.
+     *
+     * @return the {@link BagProfile}
+     * @throws IOException if the {@link BagProfile} cannot be initialized
+     */
+    public BagProfile initBagProfile() throws IOException {
+        final BagProfile.BuiltIn builtIn = "default".equalsIgnoreCase(bagProfile)
+                                           ? BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT
+                                           : BagProfile.BuiltIn.from(bagProfile);
+        return new BagProfile(builtIn);
     }
 
     /**

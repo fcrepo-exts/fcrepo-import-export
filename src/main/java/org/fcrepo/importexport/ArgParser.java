@@ -17,9 +17,9 @@
  */
 package org.fcrepo.importexport;
 
-import static org.duraspace.bagit.SerializationSupport.GZIP_TYPES;
-import static org.duraspace.bagit.SerializationSupport.TAR_TYPES;
-import static org.duraspace.bagit.SerializationSupport.ZIP_TYPES;
+import static org.duraspace.bagit.serialize.SerializationSupport.GZIP_TYPES;
+import static org.duraspace.bagit.serialize.SerializationSupport.TAR_TYPES;
+import static org.duraspace.bagit.serialize.SerializationSupport.ZIP_TYPES;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -39,7 +39,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;

@@ -20,10 +20,7 @@ package org.fcrepo.importexport.integration;
 import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.duraspace.bagit.BagConfig.BAG_INFO_KEY;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
+import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -52,10 +49,9 @@ import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.ext.com.google.common.collect.ImmutableMap;
 import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagProfileConstants;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.profile.BagProfileConstants;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
@@ -135,11 +131,11 @@ public class BagItIT extends AbstractResourceIT {
 
     @Test
     public void testExportDefault() throws Exception {
-        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.DEFAULT);
+        final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT);
         final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
 
         final String exampleID = UUID.randomUUID().toString();
-        runExportBag(exampleID, BagProfile.BuiltIn.DEFAULT, defaultConfig, BagItDigest.SHA1);
+        runExportBag(exampleID, BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT, defaultConfig, BagItDigest.SHA1);
 
         final Path target = Paths.get(TARGET_DIR, exampleID);
         final Path bagInfo = target.resolve(BAG_INFO_KEY);
@@ -237,11 +233,6 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue("Could not find bag-info entry for: " + bagProfileId, packagedBagInfo.contains(bagProfileId));
 
         // use the allowed manifests to find each tag + payload manifest and check accuracy
-        // there isn't a helper in BagItDigest yet to create from the algorithm name, so create a mapping
-        final Map<String, BagItDigest> digestMap = ImmutableMap.of(BAGIT_MD5, BagItDigest.MD5,
-                                                                   BAGIT_SHA1, BagItDigest.SHA1,
-                                                                   BAGIT_SHA_256, BagItDigest.SHA256,
-                                                                   "sha512", BagItDigest.SHA512);
         for (String algorithm : bagProfile.getAllowedPayloadAlgorithms()) {
             // check both tag and payload manifests were found in the tarball
             final String manifestPath = id + "/manifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
@@ -250,7 +241,7 @@ public class BagItIT extends AbstractResourceIT {
             assertTrue("Could not find: " + tagManifestPath, filesFromArchive.containsKey(tagManifestPath));
 
             // Calculate the checksum for the data file
-            final BagItDigest bagItDigest = digestMap.get(algorithm);
+            final BagItDigest bagItDigest = BagItDigest.from(algorithm);
             final FcrepoResponse fcrepoResponse = clientBuilder.build().get(uri).perform();
             final MessageDigest messageDigest = bagItDigest.messageDigest();
             final byte[] buf = new byte[8192];

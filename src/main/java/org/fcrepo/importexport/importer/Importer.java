@@ -22,9 +22,6 @@ import static java.util.Arrays.stream;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_MD5;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA1;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_SHA_256;
 import static org.fcrepo.importexport.common.FcrepoConstants.ACL_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -87,9 +84,10 @@ import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Property;
-import org.duraspace.bagit.BagDeserializer;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.SerializationSupport;
+import org.duraspace.bagit.BagItDigest;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.serialize.BagDeserializer;
+import org.duraspace.bagit.serialize.SerializationSupport;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoLink;
 import org.fcrepo.client.FcrepoOperationFailedException;
@@ -179,17 +177,7 @@ public class Importer implements TransferProcess {
      */
     private void loadBagProfile(final String bagProfile) {
         try {
-            // try to initialize the BagProfile
-            BagProfile profile;
-            try {
-                // first assuming we're given a profile identifier in the BagConfig
-                profile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
-            } catch (IllegalArgumentException ignored) {
-                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
-                try (InputStream profileIn = Files.newInputStream(Paths.get(config.getBagProfile()))) {
-                    profile = new BagProfile(profileIn);
-                }
-            }
+            final BagProfile profile = config.initBagProfile();
 
             final Path root;
             final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
@@ -922,7 +910,11 @@ public class Importer implements TransferProcess {
      */
     private void configureBagItFileMap(final Bag bag) {
         // The fcrepo-client-java only supports up to sha256 so we only check against each of md5, sha1, and sha256
-        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(BAGIT_MD5, BAGIT_SHA1, BAGIT_SHA_256));
+        final BagItDigest md5 = BagItDigest.MD5;
+        final BagItDigest sha = BagItDigest.SHA1;
+        final BagItDigest sha256 = BagItDigest.SHA256;
+        final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(md5.bagitName(), sha.bagitName(),
+                                                                        sha256.bagitName()));
         final Manifest manifest = bag.getPayLoadManifests().stream()
                .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
                .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
@@ -936,18 +928,18 @@ public class Importer implements TransferProcess {
                                         Map.Entry::getValue));
         logger.debug("loaded checksum map: {}", bagItFileMap);
 
-        switch(manifest.getAlgorithm().getBagitName()) {
-            case BAGIT_MD5:
-                this.digestAlgorithm = BAGIT_MD5;
+        switch(BagItDigest.from(manifest.getAlgorithm().getBagitName())) {
+            case MD5:
+                this.digestAlgorithm = md5.bagitName();
                 break;
-            case BAGIT_SHA1:
+            case SHA1:
                 // fcrepo-client expects only "sha" for sha1 headers
                 this.digestAlgorithm = "sha";
                 break;
-            case BAGIT_SHA_256:
-                this.digestAlgorithm = BAGIT_SHA_256;
+            case SHA256:
+                this.digestAlgorithm = sha256.bagitName();
                 break;
-            default: throw new RuntimeException("Unsupported bagit algorithm!");
+            default: throw new RuntimeException("Unsupported BagIt algorithm!");
         }
     }
 
@@ -959,10 +951,10 @@ public class Importer implements TransferProcess {
      */
     private int manifestPriority(final Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
-        switch (bagItAlgorithm) {
-            case BAGIT_MD5: return 0;
-            case BAGIT_SHA1: return 1;
-            case BAGIT_SHA_256: return 2;
+        switch (BagItDigest.from(bagItAlgorithm)) {
+            case MD5: return 0;
+            case SHA1: return 1;
+            case SHA256: return 2;
             default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }

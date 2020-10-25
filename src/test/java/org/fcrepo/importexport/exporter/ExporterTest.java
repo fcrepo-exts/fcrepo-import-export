@@ -19,7 +19,7 @@ package org.fcrepo.importexport.exporter;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.readLines;
-import static org.duraspace.bagit.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
+import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -53,7 +53,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -181,7 +181,7 @@ public class ExporterTest {
         bagArgs.setPredicates(predicates);
         bagArgs.setRdfLanguage("application/ld+json");
         bagArgs.setResource(resource3);
-        bagArgs.setBagProfile("src/test/resources/profiles/profile.json");
+        bagArgs.setBagProfile("default");
         bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
         when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
@@ -203,30 +203,15 @@ public class ExporterTest {
 
         // verify all manifests are written and contain entries for the exported files
         final String manifestFiles = ".*alt_description\\.jsonld|.*file1\\.binary|.*fcr%3Ametadata\\.jsonld";
-        final File md5Manifest = new File(basedir + "/manifest-md5.txt");
         final File sha1Manifest = new File(basedir + "/manifest-sha1.txt");
-        final File sha256Manifest = new File(basedir + "/manifest-sha256.txt");
-        final File sha512Manifest = new File(basedir + "/manifest-sha512.txt");
-        assertTrue(md5Manifest.exists());
         assertTrue(sha1Manifest.exists());
-        assertTrue(sha256Manifest.exists());
-        assertTrue(sha512Manifest.exists());
-        assertTrue(Files.lines(md5Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
         assertTrue(Files.lines(sha1Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
-        assertTrue(Files.lines(sha256Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
-        assertTrue(Files.lines(sha512Manifest.toPath()).allMatch(string -> string.matches(manifestFiles)));
 
         // verify all tag files are written to the tag manifest (checksum + expected name)
-        final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt|.*manifest.*";
+        final String tagFiles = ".*bagit\\.txt|.*bag-info\\.txt|.*aptrust-info\\.txt|.*manifest-sha1\\.txt";
         final File sha1TagManifest = new File(basedir + "/tagmanifest-sha1.txt");
-        final File sha256TagManifest = new File(basedir + "/tagmanifest-sha256.txt");
-        final File sha512TagManifest = new File(basedir + "/tagmanifest-sha512.txt");
         assertTrue(sha1TagManifest.exists());
-        assertTrue(sha256TagManifest.exists());
-        assertTrue(sha512TagManifest.exists());
         assertTrue(Files.lines(sha1TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
-        assertTrue(Files.lines(sha256TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
-        assertTrue(Files.lines(sha512TagManifest.toPath()).allMatch(string -> string.matches(tagFiles)));
     }
 
     @Test

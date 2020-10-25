@@ -28,11 +28,11 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
 import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagProfileConstants;
-import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
-import org.duraspace.bagit.SerializationSupport;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.profile.BagProfileConstants;
+import org.duraspace.bagit.serialize.BagSerializer;
+import org.duraspace.bagit.serialize.SerializationSupport;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
@@ -49,9 +49,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
@@ -149,23 +151,14 @@ public class Exporter implements TransferProcess {
 
     private void configureBagItParameters() {
         try {
-            // parse profile
+            // parse config + load profile
             final BagConfig bagConfig = loadBagConfig(config.getBagConfigPath());
-
-            // try to initialize the BagProfile
-            BagProfile bagProfile;
-            try {
-                // first assuming we're given a profile identifier in the BagConfig
-                bagProfile = new BagProfile(BagProfile.BuiltIn.from(config.getBagProfile()));
-            } catch (IllegalArgumentException ignored) {
-                // ok, we weren't given a profile identifier; try to initialize from a FileInputStream instead
-                bagProfile = new BagProfile(Files.newInputStream(Paths.get(config.getBagProfile())));
-            }
+            final BagProfile bagProfile = config.initBagProfile();
 
             // configure the BagIt algorithms to use + setup the fields for the Exporter
             final Set<BagItDigest> algorithms = setupBagItDigests(bagProfile);
 
-            //enforce default metadata
+            // enforce default metadata
             bagProfile.validateConfig(bagConfig);
             final Map<String, String> profileMetadata = bagProfile.getProfileMetadata();
 
@@ -175,7 +168,7 @@ public class Exporter implements TransferProcess {
             // check if serialization is required
             final String serializationFormat = config.getBagSerialization();
             if (serializationFormat != null) {
-                // this throws an UnsupportedOperationException if the serialization format is not supported
+                // this can throw exceptions if the serialization format is not supported
                 bagSerializer = SerializationSupport.serializerFor(serializationFormat, bagProfile);
             }
 
@@ -267,14 +260,17 @@ public class Exporter implements TransferProcess {
     /**
      * Loads a bag config from path
      * @param bagConfigPath The path to the bag config yaml.
-     * @return
+     * @throws IOException if the bagConfigPath cannot be read
+     * @return the initialized {@link BagConfig}
      */
-    private BagConfig loadBagConfig(final String bagConfigPath) {
+    private BagConfig loadBagConfig(final String bagConfigPath) throws IOException {
         if (bagConfigPath == null) {
             throw new RuntimeException("The bag config path must not be null.");
         }
-        final File bagConfigFile = new File(bagConfigPath);
-        return new BagConfig(bagConfigFile);
+        final Path bagConfigFile = Paths.get(bagConfigPath);
+        try (Reader bagConfigReader = Files.newBufferedReader(bagConfigFile)) {
+            return new BagConfig(bagConfigReader);
+        }
     }
 
     private FcrepoClient client() {
