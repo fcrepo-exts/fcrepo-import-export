@@ -178,6 +178,7 @@ public class ExporterTest {
         bagArgs.setMode("export");
         bagArgs.setBaseDirectory(basedir);
         bagArgs.setIncludeBinaries(true);
+        bagArgs.setRetrieveExternal(true);
         bagArgs.setPredicates(predicates);
         bagArgs.setRdfLanguage("application/ld+json");
         bagArgs.setResource(resource3);
@@ -297,6 +298,7 @@ public class ExporterTest {
         config.setMode("export");
         config.setBaseDirectory(exportDirectory);
         config.setIncludeBinaries(true);
+        config.setRetrieveExternal(true);
         config.setPredicates(predicates);
         config.setRdfLanguage("application/ld+json");
         config.setResource(resource3);

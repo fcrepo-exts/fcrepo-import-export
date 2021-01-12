@@ -136,7 +136,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final FcrepoResponse memento = post(timemapURI);
         assertEquals(SC_CREATED, memento.getStatusCode());
         final URI mementoURI = memento.getLocation();
-        roundtrip(uri, new ArrayList<URI>(), true, true, false);
+        roundtrip(uri, new ArrayList<URI>(), true, true, false, false);
         //timemap will be there because it is created automatically
         assertEquals(SC_OK, get(timemapURI).getStatusCode());
         //the memento however should not have been imported.
@@ -390,7 +390,7 @@ public class RoundtripIT extends AbstractResourceIT {
         assertTrue(exists(res1));
         assertTrue(exists(file1));
 
-        final Config config = roundtrip(res1, Collections.singletonList(file1), true, false, true);
+        final Config config = roundtrip(res1, Collections.singletonList(file1), true, false, true, false);
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
@@ -498,7 +498,7 @@ public class RoundtripIT extends AbstractResourceIT {
 
         final String contentLength = get(file1).getHeaderValue("Content-Length");
         assertEquals("Unexpected Content-Length value", contentLength, binaryFileLength + "");
-        final Config config = roundtrip(URI.create(baseURI), true);
+        final Config config = roundtrip(URI.create(baseURI), true,true);
 
         // verify that files exist and contain expected content
         final File exportDir = config.getBaseDirectory();
@@ -648,12 +648,19 @@ public class RoundtripIT extends AbstractResourceIT {
         return createTypedLiteral(longString, XSDlong);
     }
 
-    private Config roundtrip(final URI uri, final boolean reset) throws FcrepoOperationFailedException {
-        return roundtrip(uri, new ArrayList<URI>(), true, true, true);
+    private Config roundtrip(final URI uri, final boolean reset)
+            throws FcrepoOperationFailedException {
+        return roundtrip(uri, new ArrayList<URI>(), true, true, true, false);
+    }
+
+    private Config roundtrip(final URI uri, final boolean reset, final boolean retrieveExternal)
+            throws FcrepoOperationFailedException {
+        return roundtrip(uri, new ArrayList<URI>(), true, true, true, retrieveExternal);
     }
 
     private Config roundtrip(final URI uri, final List<URI> relatedResources,
-            final boolean reset, final boolean includeBinary, final boolean includeVersions)
+            final boolean reset, final boolean includeBinary, final boolean includeVersions,
+                             final boolean retrieveExternal)
             throws FcrepoOperationFailedException {
         // export resources
         final Config config = new Config();
@@ -662,6 +669,7 @@ public class RoundtripIT extends AbstractResourceIT {
         config.setIncludeBinaries(includeBinary);
         config.setIncludeMembership(true);
         config.setResource(uri);
+        config.setRetrieveExternal(retrieveExternal);
         config.setPredicates(new String[]{ CONTAINS.toString() });
         config.setRdfExtension(DEFAULT_RDF_EXT);
         config.setRdfLanguage(DEFAULT_RDF_LANG);

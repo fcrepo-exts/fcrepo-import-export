@@ -177,6 +177,39 @@ public class ExporterIT extends AbstractResourceIT {
     }
 
     @Test
+    public void testExportRetrieveExternalDisabled() throws Exception {
+        // Create an external content resource pointing at another repository resource
+        final URI binaryURI = URI.create(serverAddress + UUID.randomUUID());
+        createBody(binaryURI, "content", "text/plain");
+        final Map<String,String> headers = new HashMap<>();
+        headers.put("Link", "<" + binaryURI.toString() + ">;" +
+                "      rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+                "      handling=\"redirect\"; " +
+                "      type=\"text/plain\"");
+
+        createBody(url, new ByteArrayInputStream("".getBytes()), "text/plain", headers);
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setIncludeBinaries(true);
+        config.setRetrieveExternal(false);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
+        assertTrue(externalFile.exists());
+        assertEquals("File length should be 0", 0, externalFile.length());
+
+    }
+
+    @Test
     public void testExportCustomPredicate() throws Exception {
         final String[] predicates = new String[]{ "http://example.org/custom" };
         final UUID uuid = UUID.randomUUID();
