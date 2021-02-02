@@ -405,13 +405,14 @@ public class Exporter implements TransferProcess {
 
             //only retrieve content of external resources when retrieve external flag is enabled
             //otherwise write a zero length file.
-            final InputStream is = external && !config.retrieveExternal() ?
-                    IOUtils.toInputStream("", Charset.defaultCharset()) : response.getBody();
-            logger.info("Exporting binary: {}", uri);
-            writeResponse(uri, is, describedby, file);
-            writeHeadersFile(response, getHeadersFile(file));
-            exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-            successCount.incrementAndGet();
+            try (final InputStream is = external && !config.retrieveExternal() ?
+                    IOUtils.toInputStream("", Charset.defaultCharset()) : response.getBody()) {
+                logger.info("Exporting binary: {}", uri);
+                writeResponse(uri, is, describedby, file);
+                writeHeadersFile(response, getHeadersFile(file));
+                exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
+                successCount.incrementAndGet();
+            }
 
         }
 
