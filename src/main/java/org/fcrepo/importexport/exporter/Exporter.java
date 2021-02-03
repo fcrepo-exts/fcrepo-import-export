@@ -51,6 +51,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -388,7 +389,7 @@ public class Exporter implements TransferProcess {
             throws FcrepoOperationFailedException, IOException {
 
         if (!config.isIncludeBinaries()) {
-            logger.info("Skipping {}", uri);
+            logger.debug("Skipping: {} -> binaries are not included in this export configuration", uri);
             return;
         }
 
@@ -402,11 +403,16 @@ public class Exporter implements TransferProcess {
             final File file = external ? fileForExternalResources(uri, null, null, config.getBaseDirectory()) :
                     fileForBinary(uri, null, null, config.getBaseDirectory());
 
-            logger.info("Exporting binary: {}", uri);
-            writeResponse(uri, response.getBody(), describedby, file);
-            writeHeadersFile(response, getHeadersFile(file));
-            exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-            successCount.incrementAndGet();
+            //only retrieve content of external resources when retrieve external flag is enabled
+            //otherwise write a zero length file.
+            try (final InputStream is = external && !config.retrieveExternal() ?
+                    IOUtils.toInputStream("", Charset.defaultCharset()) : response.getBody()) {
+                logger.info("Exporting binary: {}", uri);
+                writeResponse(uri, is, describedby, file);
+                writeHeadersFile(response, getHeadersFile(file));
+                exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
+                successCount.incrementAndGet();
+            }
 
         }
 

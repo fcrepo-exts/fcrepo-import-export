@@ -52,6 +52,7 @@ import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -174,6 +175,76 @@ public class ExporterIT extends AbstractResourceIT {
         final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
         assertTrue(externalFile.exists());
         assertEquals("content", readFileToString(externalFile, "UTF-8"));
+    }
+
+    @Test
+    public void testExportRetrieveExternalDisabledWithRedirect() throws Exception {
+        // Create an external content resource pointing at another repository resource
+        final URI binaryURI = URI.create(serverAddress + UUID.randomUUID());
+        createBody(binaryURI, "content", "text/plain");
+        final Map<String,String> headers = new HashMap<>();
+        headers.put("Link", "<" + binaryURI.toString() + ">;" +
+                "      rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+                "      handling=\"redirect\"; " +
+                "      type=\"text/plain\"");
+
+        createBody(url, new ByteArrayInputStream("".getBytes()), "text/plain", headers);
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setIncludeBinaries(true);
+        config.setRetrieveExternal(false);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
+        assertTrue(externalFile.exists());
+        assertEquals("File length should be 0", 0, externalFile.length());
+    }
+
+    @Test
+    public void testExportRetrieveExternalDisabledWithProxy() throws Exception {
+        // Create an external content resource pointing at a local file resource
+        final File file = File.createTempFile("test",".txt");
+        file.deleteOnExit();
+        final String fileStr = "file://" + file.toPath().toAbsolutePath().toString();
+        logger().debug("External File Resource = {}", fileStr);
+        final Map<String,String> headers = new HashMap<>();
+        headers.put("Link", "<" + fileStr + ">;" +
+                "rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; " +
+                "handling=\"proxy\"; type=\"text/plain\"");
+        final FcrepoResponse proxiedResourceResponse = createBody(url, new ByteArrayInputStream("".getBytes()),
+                "text/plain", headers);
+        assertEquals(SC_CREATED, proxiedResourceResponse.getStatusCode());
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setIncludeBinaries(true);
+        config.setRetrieveExternal(false);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        try {
+            exporter.run();
+        } catch(Exception ex) {
+            logger().error(ex.getMessage(), ex);
+            fail("Exporter failed unexpectedly: " + ex.getMessage());
+        }
+
+        // Verify
+        final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
+        assertTrue("External file should exist: " + externalFile.getAbsoluteFile(), externalFile.exists());
+        assertEquals("File length should be 0", 0, externalFile.length());
     }
 
     @Test
