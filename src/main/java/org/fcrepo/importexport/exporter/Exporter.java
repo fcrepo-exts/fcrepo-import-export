@@ -37,6 +37,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
+import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
@@ -354,8 +355,9 @@ public class Exporter implements TransferProcess {
             if (linkHeaders.contains(binaryURI)) {
                 logger.debug("Found binary at " + uri);
                 final boolean external = response.getHeaderValue("Content-Location") != null;
+                final boolean redirect = response.getStatusCode() >= 300 && response.getStatusCode() < 400;
                 final List<URI> describedby = response.getLinkHeaders("describedby");
-                exportBinary(uri, describedby, external);
+                exportBinary(uri, describedby, external, redirect);
             } else if (linkHeaders.contains(containerURI) || linkHeaders.contains(rdfSourceURI)) {
                 logger.debug("Found container at " + uri);
                 exportRdf(uri, null);
@@ -385,9 +387,8 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private void exportBinary(final URI uri, final List<URI> describedby, final boolean external)
-            throws FcrepoOperationFailedException, IOException {
-
+    private void exportBinary(final URI uri, final List<URI> describedby, final boolean external,
+                              final boolean redirect) throws FcrepoOperationFailedException, IOException {
         if (!config.isIncludeBinaries()) {
             logger.debug("Skipping: {} -> binaries are not included in this export configuration", uri);
             return;
@@ -410,6 +411,11 @@ public class Exporter implements TransferProcess {
                 logger.info("Exporting binary: {}", uri);
                 writeResponse(uri, is, describedby, file);
                 writeHeadersFile(response, getHeadersFile(file));
+
+                // For redirected content export headers from the repository as well
+                if (redirect && config.retrieveExternal()) {
+                    writeNonRedirectedHeaders(uri, file);
+                }
                 exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
                 successCount.incrementAndGet();
             }
@@ -418,6 +424,15 @@ public class Exporter implements TransferProcess {
 
         // Export versions for this binary
         exportVersions(uri);
+    }
+
+    private void writeNonRedirectedHeaders(final URI uri, final File file)
+        throws FcrepoOperationFailedException, IOException {
+        final HeadBuilder headBuilder = client().head(uri).disableRedirects();
+        try (final FcrepoResponse response = headBuilder.perform()) {
+            final File headers = new File(file.getParentFile(), file.getName() + ".fcrepo" + HEADERS_EXTENSION);
+            writeHeadersFile(response, headers);
+        }
     }
 
     private void exportRdf(final URI uri, final URI binaryURI)
@@ -495,7 +510,6 @@ public class Exporter implements TransferProcess {
     }
 
     void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
-
         final Map<String, List<String>> headers = response.getHeaders();
         if (!headers.isEmpty()) {
             final String json = new ObjectMapper().writeValueAsString(headers);
