@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,6 +77,9 @@ public class Config {
     private String rdfLanguage = DEFAULT_RDF_LANG;
     private String username;
     private String password;
+
+    private Integer threadCount;
+    private Path resourceFile;
 
     private boolean auditLog = false;
 
@@ -596,6 +600,12 @@ public class Config {
         final String predicates = String.join(",", this.getPredicates());
         map.put("predicates", predicates);
         map.put("auditLog", Boolean.toString(this.auditLog));
+        if (threadCount != null) {
+            map.put("threadCount", threadCount.toString());
+        }
+        if (resourceFile != null) {
+            map.put("resourceFile", resourceFile.toAbsolutePath().toString());
+        }
         return map;
     }
 
@@ -656,5 +666,39 @@ public class Config {
      */
     public void setIncludeAcls(final boolean includeAcls) {
         this.includeAcls = includeAcls;
+    }
+
+    /**
+     * @return the number of threads to use, may be null
+     */
+    public Integer getThreadCount() {
+        return threadCount;
+    }
+
+    /**
+     * Set the number of threads to use, must be at least 1
+     *
+     * @param threadCount the number of threads to use
+     */
+    public void setThreadCount(final Integer threadCount) {
+        if (threadCount == null) {
+            this.threadCount = threadCount;
+        } else {
+            this.threadCount = Math.max(threadCount, 1);
+        }
+    }
+
+    /**
+     * @return the path to the file that contains resource uris to process
+     */
+    public Path getResourceFile() {
+        return resourceFile;
+    }
+
+    /**
+     * @param resourceFile the path to the file that contains resource uris to process
+     */
+    public void setResourceFile(final Path resourceFile) {
+        this.resourceFile = resourceFile;
     }
 }

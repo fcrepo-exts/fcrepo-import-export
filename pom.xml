@@ -147,6 +147,7 @@
             <fcrepo.dynamic.test.port>${fcrepo.dynamic.test.port}</fcrepo.dynamic.test.port>
             <project.build.directory>${project.build.directory}</project.build.directory>
             <fcrepo.dynamic.tomcat.ajp.port>${fcrepo.dynamic.tomcat.ajp.port}</fcrepo.dynamic.tomcat.ajp.port>
+            <fcrepo.log.importexport.logdir>${project.build.directory}</fcrepo.log.importexport.logdir>
           </systemPropertyVariables>
         </configuration>
         <executions>
@@ -277,6 +278,7 @@
               <fcrepo.spring.eventing.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.eventing.configuration>
               <fcrepo.spring.jms.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.jms.configuration>
               <fcrepo.spring.transactions.configuration>file:${project.basedir}/src/test/resources/spring-test/noop.xml</fcrepo.spring.transactions.configuration>
+              <fcrepo.log.importexport.logdir>${project.build.directory}</fcrepo.log.importexport.logdir>
             </systemProperties>
           </container>
           <configuration>
