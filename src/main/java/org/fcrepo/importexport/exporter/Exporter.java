@@ -801,7 +801,7 @@ public class Exporter implements TransferProcess {
                     try {
                         Exporter.this.doExport(uri);
                     } catch (Exception e) {
-                        remainingLogger.info("{}", uri);
+                        remainingLogger.error("{}", uri);
 
                         if (e instanceof FcrepoOperationFailedException) {
                             logger.warn("Error retrieving content: {}", e.toString());
@@ -824,7 +824,7 @@ public class Exporter implements TransferProcess {
                     }
                 }));
             } catch (RejectedExecutionException e) {
-                remainingLogger.info("{}", uri);
+                remainingLogger.error("{}", uri);
             }
 
             count.incrementAndGet();
@@ -883,7 +883,7 @@ public class Exporter implements TransferProcess {
                     final Field field = FutureTask.class.getDeclaredField("callable");
                     field.setAccessible(true);
                     final ExportTask inner = (ExportTask) field.get(task);
-                    remainingLogger.info("{}", inner.uri);
+                    remainingLogger.error("{}", inner.uri);
                 } catch (Exception e) {
                     logger.warn("Failed to extract unprocessed resource URI", e);
                 }

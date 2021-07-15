@@ -32,62 +32,80 @@ INFO 15:15:10.091 (Exporter) Running exporter...
 The following CLI options for the import/export utility are available:
 
 ```
-Usage: fcrepo-import-export [-abhiLtVx] [--acls] [--membership]
-                            [--bag-algorithms=<algorithms>] [-d=<dir>] [-g=<profile>] 
-                            [-G=<path>] [-l=<rdfLang>] -m=<mode> [-M=<map>]  
-                            [-p=<predicates>] -r=<resource> [-R=<uri>] [-s=<format>] 
-                            [-u=<user>] [-w=<writeConfig>]
-       
-  -a,--auditLog     Enable audit log creation, disabled by default
-  --acls            When present this flag indicates that acls should be imported/exported.
-  -b,--binaries     When present this flag indicates that binaries should be imported/exported.
-  --bag-algorithms <algorithms>    
-                    Comma separated list of algorithms to use when creating a BagIt export
-    -d,--dir <dir>                      
-                    The directory to export repo to or import the repo from.
-    -g,--bag-profile <profile>          
-                    Export and import BagIt bags using profile
-                      [default|aptrust|metaarchive|perseids|beyondtherepository]
-    -G,--bag-config <path>              
-                    Path to the bag config file
-    -h,--help       Print these options
-    -i,--inbound    When present this flag indicates that inbound references should be exported.
-    -L,--legacyMode   
-                    When importing, omit certain server-managed-triples that aren't
-                      modifiable in old versions of fedora.
-    -l,--rdfLang <rdfLang>              
-                    RDF language 
-                      Default: text/turtle
-    -m,--mode <mode>                    
-                    Mode: [import|export]
-    -M,--map <map>                      
-                    Old and new base URIs, separated by comma, to map URIs when importing
-    --membership    When present this flag indicates that membership references should be exported.
-    -p,--predicates <predicates>        
-                    Comma-separated list of predicates to define resource containment
-    -r,--resource <resource>            
-                    Resource (URI) to import/export
-    -R,--repositoryRoot <uri>           
-                    When exporting, use this URI as the repository root; if not given, 
-                      export will attempt to automatically determine the repository root
-    -s,--bag-serialization <format>     
-                    Export BagIt bags into a serialized format. Available formats depend on the
-                      bag profile specified.
-                      aptrust: [tar]
-                      beyondtherepository: [zip, tar, gzip]
-                      fedora-import-export: [tar]
-                      metaarchive: [tar]
-                      perseids: [zip, tar]
-    -t,--overwriteTombstones            
-                    When importing, overwrite "tombstones" left behind after resources 
-                      were deleted.
-    -u,--user <user>                    
-                    username:password for fedora basic authentication
-    -V,--versions   When exporting, include versions of resources and binaries.
-    -w,--writeConfig <writeConfig>      
-                    When present this flag indicates that a sample config should be written 
-                      at the specified filename.
-    -x,--external   When present this flag indicates that external content should be exported.
+Running Import/Export Utility from command line arguments
+usage: java -jar import-export-driver.jar [-a] [--acls] [-b] [--bag-algorithms
+       <algorithms>] -d <dir> [-f <path>] [-g <profile>] [-G <path>] [-h] [-i]
+       [-L] [-l <rdfLang>] -m <mode> [-M <map>] [--membership] [-p <predicates>]
+       [-r <resource>] [-R <uri>] [-s <format>] [-t] [-T <num>] [-u <user>] [-V]
+       [-w <writeConfig>] [-x]
+    -a,--auditLog                       Enable audit log creation, disabled by
+                                        default
+       --acls                           When present this flag indicates that
+                                        acls should be imported/exported.
+    -b,--binaries                       When present this flag indicates that
+                                        binaries should be imported/exported.
+       --bag-algorithms <algorithms>    Comma separated list of algorithms to
+                                        use when creating a BagIt export
+    -d,--dir <dir>                      The directory to export repo to or
+                                        import the repo from.
+    -f,--resourcesFile <path>           Path to a file that contains a list of
+                                        resources to export
+    -g,--bag-profile <profile>          Export and import BagIt bags using
+                                        profile
+                                        [default|aptrust|metaarchive|perseids|
+                                        beyondtherepository]
+    -G,--bag-config <path>              Path to the bag config file
+    -h,--help                           Print these options
+    -i,--inbound                        When present this flag indicates that
+                                        inbound references should be exported.
+    -L,--legacyMode                     When importing, omit certain
+                                        server-managed-triples that aren't
+                                        modifiable in old versions of fedora.
+    -l,--rdfLang <rdfLang>              RDF language (default: text/turtle)
+    -m,--mode <mode>                    Mode: [import|export]
+    -M,--map <map>                      Old and new base URIs, separated by
+                                        comma, to map URIs when importing
+       --membership                     When present this flag indicates that
+                                        membership references should be
+                                        exported.
+    -p,--predicates <predicates>        Comma-separated list of predicates to
+                                        define resource containment
+    -r,--resource <resource>            Resource (URI) to import/export
+    -R,--repositoryRoot <uri>           When exporting, use this URI as the
+                                        repository root; if not given, export
+                                        will attempt to automatically determine
+                                        the repository root
+    -s,--bag-serialization <format>     Export BagIt bags into a serialized
+                                        format. Available formats depend on the
+                                        bag profile specified.
+                                        aptrust: [tar]
+                                        beyondtherepository: [zip, tar, gzip]
+                                        fedora-import-export: [tar]
+                                        metaarchive: [tar]
+                                        perseids: [zip, tar]
+    -t,--overwriteTombstones            When importing, overwrite "tombstones"
+                                        left behind after resources were
+                                        deleted.
+    -T,--threadCount <num>              Specifies the number of threads to use
+                                        when exporting resources. By default,
+                                        one less than the number of available
+                                        processors will be used.
+    -u,--user <user>                    username:password for fedora basic
+                                        authentication
+    -V,--versions                       When exporting, include versions of
+                                        resources and binaries.
+    -w,--writeConfig <writeConfig>      When present this flag indicates that a
+                                        sample config should be written at the
+                                        specified filename.
+    -x,--external                       When present this flag indicates that
+                                        external content should be exported.
+
+--- or ---
+
+Running Import/Export Utility from configuration file
+usage: java -jar import-export-driver.jar -c <config> [-u <user>]
+    -c,--config <config>    Path to config file
+    -u,--user <user>        username:password for fedora basic authentication
  ```
 
 
@@ -163,6 +181,22 @@ If running against a version of fedora in which fedora:lastModified, fedora:last
 java -jar fcrepo-import-export.jar --mode import --resource http://example.org:8080/fedora/rest/ --dir /tmp/test --binaries --legacyMode
 ```
 
+Resuming an Export
+------------------
+
+If an export is interrupted or a subset of resources fail to export, then a log file named `remaining_TIMESTAMP.log` is
+created that contains the URIs of the resources that were not exported. The export can be resumed by passing this file
+back to the utility on a subsequent run. For example:
+
+```shell
+java -jar fcrepo-import-export.jar
+  --dir my-5.1.1-export \
+  --user fedoraAdmin:fedoraAdmin \
+  --mode export \
+  --repositoryRoot http://localhost:8080/rest \
+  --resourcesFile remaining_TIMESTAMP.log \
+  --binaries --versions
+```
 
 Running the import/export utility with BagIt support
 ------------------------------------------------------
