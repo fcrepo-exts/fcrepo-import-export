@@ -762,7 +762,7 @@ public class Exporter implements TransferProcess {
             final long bytes = successBytes.get();
             final long count = successCount.get();
             final Duration duration = Duration.between(startTime, Instant.now());
-            final long rate = bytes / Math.min(duration.toMillis() / 1000, 1);
+            final long rate = bytes / Math.max(duration.toMillis() / 1000, 1);
 
             logger.info("Progress report: Exported {} resources in {} at {} bytes/sec", count, duration, rate);
         }
