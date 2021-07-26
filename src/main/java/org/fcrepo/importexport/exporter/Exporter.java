@@ -64,6 +64,8 @@ import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -119,6 +121,9 @@ public class Exporter implements TransferProcess {
 
     private static final Logger logger = getLogger(Exporter.class);
 
+    // Log progress every time this many resources have been exported
+    private static final int REPORTING_INTERVAL = 10_000;
+
     private final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final URI binaryURI;
@@ -138,6 +143,7 @@ public class Exporter implements TransferProcess {
     private final SimpleDateFormat dateFormat;
     private final AtomicLong successCount = new AtomicLong(); // set to zero at start
     private final AtomicLong successBytes = new AtomicLong();
+    private Instant startTime;
     protected URI repositoryRoot = null;
 
     private final TaskManager taskManager;
@@ -308,6 +314,8 @@ public class Exporter implements TransferProcess {
         }
         logger.debug("Repository root is " + repositoryRoot);
 
+        startTime = Instant.now();
+
         if (config.getResource() != null) {
             export(config.getResource());
         }
@@ -450,7 +458,7 @@ public class Exporter implements TransferProcess {
                     writeNonRedirectedHeaders(uri, file);
                 }
                 exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-                successCount.incrementAndGet();
+                incrementSuccessCount();
             }
 
         }
@@ -524,7 +532,7 @@ public class Exporter implements TransferProcess {
             writeHeadersFile(response, getHeadersFile(file));
 
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-            successCount.incrementAndGet();
+            incrementSuccessCount();
         } catch (RuntimeException | FcrepoOperationFailedException | IOException e) {
             // Cleanup a partially exported resource so that it can be retried
             try {
@@ -746,6 +754,17 @@ public class Exporter implements TransferProcess {
             if (sha512FileMap != null) {
                 sha512FileMap.put(file, Hex.encodeHexString(sha512.digest()));
             }
+        }
+    }
+
+    private void incrementSuccessCount() {
+        if (successCount.incrementAndGet() % REPORTING_INTERVAL == 0) {
+            final long bytes = successBytes.get();
+            final long count = successCount.get();
+            final Duration duration = Duration.between(startTime, Instant.now());
+            final long rate = bytes / Math.min(duration.toMillis() / 1000, 1);
+
+            logger.info("Progress report: Exported {} resources in {} at {} bytes/sec", count, duration, rate);
         }
     }
 
