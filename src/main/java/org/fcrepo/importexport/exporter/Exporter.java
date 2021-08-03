@@ -879,7 +879,7 @@ public class Exporter implements TransferProcess {
                     drainTasks();
                     logger.info("Waiting for inflight tasks to complete...");
                     if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
-                        logger.warn("Failed to shutdown executor service cleanly after 1 minute of waiting");
+                        logger.warn("Failed to shutdown executor service cleanly after 5 minute of waiting");
                         executorService.shutdownNow();
                     }
                 } catch (InterruptedException e) {
