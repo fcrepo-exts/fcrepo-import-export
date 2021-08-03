@@ -676,15 +676,16 @@ public class Config {
     }
 
     /**
-     * Set the number of threads to use, must be at least 1
+     * Set the number of threads to use. If null, then the number of threads will be defaulted
+     * based on the number of available processors.
      *
-     * @param threadCount the number of threads to use
+     * @param threadCount the number of threads to use, or null
      */
     public void setThreadCount(final Integer threadCount) {
-        if (threadCount == null) {
-            this.threadCount = threadCount;
+        if (threadCount == null || threadCount < 1) {
+            this.threadCount = null;
         } else {
-            this.threadCount = Math.max(threadCount, 1);
+            this.threadCount = threadCount;
         }
     }
 
