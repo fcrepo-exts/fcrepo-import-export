@@ -45,6 +45,7 @@ import org.fcrepo.importexport.patch.RdfWriterHelper;
 public interface TransferProcess {
 
     final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
+    final static String REMAINING_LOG_PREFIX = "org.fcrepo.importexport.remaining";
     final static String BAGIT_CHECKSUM_DELIMITER = "  ";
 
     // Used only to load patched RDF writers

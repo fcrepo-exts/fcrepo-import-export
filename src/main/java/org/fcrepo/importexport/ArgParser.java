@@ -27,6 +27,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -92,7 +93,14 @@ public class ArgParser {
                 .longOpt("resource")
                 .hasArg(true).numberOfArgs(1).argName("resource")
                 .desc("Resource (URI) to import/export")
-                .required(true).build());
+                .required(false).build());
+
+        // Resources file
+        configOptions.addOption(Option.builder("f")
+                .longOpt("resourcesFile")
+                .hasArg(true).numberOfArgs(1).argName("path")
+                .desc("Path to a file that contains a list of resources to export")
+                .required(false).build());
 
         // Source Resource option
         configOptions.addOption(Option.builder("M")
@@ -158,6 +166,14 @@ public class ArgParser {
                  .longOpt("overwriteTombstones")
                  .hasArg(false)
                  .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
+                 .required(false).build());
+
+        // Thread count
+        configOptions.addOption(Option.builder("T")
+                 .longOpt("threadCount")
+                 .hasArg(true).numberOfArgs(1).argName("num")
+                 .desc("Specifies the number of threads to use when exporting resources." +
+                         " By default, one less than the number of available processors will be used.")
                  .required(false).build());
 
         // Legacy Mode option
@@ -335,6 +351,17 @@ public class ArgParser {
             throw new RuntimeException("A bagit profile must be set when you set a bagit config.");
         }
 
+        if (config.isImport() && config.getResource() == null) {
+            throw new RuntimeException("A resource must be specified when importing");
+        }
+
+        if (config.isExport() && config.getResource() == null && config.getResourceFile() == null) {
+            throw new RuntimeException("Either a resource or a resource file must be specified when exporting");
+        }
+
+        if (config.isExport() && config.getRepositoryRoot() == null && config.getResource() == null) {
+            throw new RuntimeException("The repository root must be specified when exporting from a resources file");
+        }
     }
 
     /**
@@ -409,7 +436,9 @@ public class ArgParser {
         }
 
         config.setMode(mode);
-        config.setResource(cmd.getOptionValue('r'));
+        if (cmd.getOptionValue('r') != null) {
+            config.setResource(cmd.getOptionValue('r'));
+        }
         config.setBaseDirectory(cmd.getOptionValue('d'));
         config.setIncludeAcls(cmd.hasOption("acls"));
         config.setIncludeBinaries(cmd.hasOption('b'));
@@ -448,6 +477,14 @@ public class ArgParser {
         config.setBagAlgorithms(cmd.getOptionValues("bag-algorithms"));
 
         config.setAuditLog(cmd.hasOption('a'));
+
+        if (cmd.getOptionValue('T') != null) {
+            config.setThreadCount(Integer.parseInt(cmd.getOptionValue('T')));
+        }
+
+        if (cmd.getOptionValue('f') != null) {
+            config.setResourceFile(Paths.get(cmd.getOptionValue('f')));
+        }
 
         return config;
     }
@@ -610,6 +647,10 @@ public class ArgParser {
                 c.setPredicates(entry.getValue().split(","));
             } else if (entry.getKey().equalsIgnoreCase("auditLog")) {
                 c.setAuditLog(parseBoolean("auditLog", entry.getValue(), lineNumber));
+            } else if (entry.getKey().equalsIgnoreCase("threadCount")) {
+                c.setThreadCount(Integer.parseInt(entry.getValue()));
+            } else if (entry.getKey().equalsIgnoreCase("resourceFile")) {
+                c.setResourceFile(Paths.get(entry.getValue()));
             } else {
                 throw new java.text.ParseException(String.format("Unknown configuration key: %1$s", entry.getKey()),
                     lineNumber);

@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.integration;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
@@ -32,6 +33,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -90,6 +94,71 @@ public class ExporterIT extends AbstractResourceIT {
 
         // Verify
         assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
+    public void testExportBogusResource() throws Exception {
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setRepositoryRoot(serverAddress);
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(new String[]{ CONTAINS.toString() });
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        assertFalse(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+
+        // The failed resource should be logged to the remaining log
+        final File[] files = new File(TARGET_DIR).listFiles((dir, name) -> name.startsWith("remaining_"));
+        Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+
+        assertTrue(files.length > 0);
+
+        final String contents = FileUtils.readFileToString(files[0], StandardCharsets.UTF_8);
+
+        assertEquals(url + "\n", contents);
+    }
+
+    @Test
+    public void exportFromResourcesFile() throws Exception {
+        // Create a repository resource
+        final FcrepoResponse response = create(url);
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(url, response.getLocation());
+
+        final URI url2 = URI.create(serverAddress + UUID.randomUUID());
+
+        final FcrepoResponse response2 = create(url2);
+        assertEquals(SC_CREATED, response2.getStatusCode());
+        assertEquals(url2, response2.getLocation());
+
+        final File resourcesFile = new File(TARGET_DIR, UUID.randomUUID().toString());
+
+        FileUtils.writeLines(resourcesFile, Arrays.asList(serverAddress, url.toString(), url2.toString()));
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setRepositoryRoot(serverAddress);
+        config.setResourceFile(resourcesFile.toPath());
+        config.setRdfLanguage(DEFAULT_RDF_LANG);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(new String[]{ CONTAINS.toString() });
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+        assertTrue(new File(TARGET_DIR, url2.getPath() + DEFAULT_RDF_EXT).exists());
     }
 
     @Test

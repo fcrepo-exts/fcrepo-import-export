@@ -18,6 +18,7 @@
 package org.fcrepo.importexport.exporter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -39,9 +40,11 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.ResourceFileParser;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -51,14 +54,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -67,10 +74,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.apache.commons.codec.binary.Hex.encodeHex;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
@@ -107,28 +121,32 @@ public class Exporter implements TransferProcess {
 
     private static final Logger logger = getLogger(Exporter.class);
 
-    private Config config;
+    // Log progress every time this many resources have been exported
+    private static final int REPORTING_INTERVAL = 10_000;
+
+    private final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
-    private URI binaryURI;
-    private URI containerURI;
-    private URI rdfSourceURI;
+    private final URI binaryURI;
+    private final URI containerURI;
+    private final URI rdfSourceURI;
     private BagWriter bag;
     private BagSerializer bagSerializer;
     private String bagProfileId;
-    private MessageDigest sha1 = null;
-    private MessageDigest sha256 = null;
-    private MessageDigest sha512 = null;
-    private MessageDigest md5 = null;
     private HashMap<File, String> sha1FileMap = null;
     private HashMap<File, String> sha256FileMap = null;
     private HashMap<File, String> sha512FileMap = null;
     private HashMap<File, String> md5FileMap = null;
 
-    private Logger exportLogger;
-    private SimpleDateFormat dateFormat;
-    private AtomicLong successCount = new AtomicLong(); // set to zero at start
-    private AtomicLong successBytes = new AtomicLong();
+    private final Logger exportLogger;
+    private final Logger remainingLogger;
+
+    private final SimpleDateFormat dateFormat;
+    private final AtomicLong successCount = new AtomicLong(); // set to zero at start
+    private final AtomicLong successBytes = new AtomicLong();
+    private Instant startTime;
     protected URI repositoryRoot = null;
+
+    private final TaskManager taskManager;
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -143,8 +161,10 @@ public class Exporter implements TransferProcess {
         this.containerURI = URI.create(CONTAINER.getURI());
         this.rdfSourceURI = URI.create(RDF_SOURCE.getURI());
         this.exportLogger = config.getAuditLog();
+        this.remainingLogger = getLogger(REMAINING_LOG_PREFIX);
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         this.repositoryRoot = config.getRepositoryRoot();
+        this.taskManager = new TaskManager(config.getThreadCount());
 
         if (config.getBagProfile() != null) {
             configureBagItParameters();
@@ -239,19 +259,15 @@ public class Exporter implements TransferProcess {
     private void setupFileMap(final BagItDigest digest) {
         switch (digest) {
             case MD5:
-                this.md5 = digest.messageDigest();
                 this.md5FileMap = new HashMap<>();
                 break;
             case SHA1:
-                this.sha1 = digest.messageDigest();
                 this.sha1FileMap = new HashMap<>();
                 break;
             case SHA256:
-                this.sha256 = digest.messageDigest();
                 this.sha256FileMap = new HashMap<>();
                 break;
             case SHA512:
-                this.sha512 = digest.messageDigest();
                 this.sha512FileMap = new HashMap<>();
                 break;
             default:
@@ -298,21 +314,41 @@ public class Exporter implements TransferProcess {
         }
         logger.debug("Repository root is " + repositoryRoot);
 
-        export(config.getResource());
+        startTime = Instant.now();
+
+        if (config.getResource() != null) {
+            export(config.getResource());
+        }
+
+        if (config.getResourceFile() != null) {
+            logger.info("Loading resources to export from file {}", config.getResourceFile());
+            ResourceFileParser.parse(config.getResourceFile()).forEach(this::export);
+        }
+
+        try {
+            taskManager.awaitCompletion();
+            logger.info("Export complete");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } finally {
+            taskManager.shutdown();
+        }
+
         if (bag != null) {
             try {
                 logger.info("Finishing bag manifests...");
                 bag.addTags(BagConfig.BAG_INFO_KEY, bagTechMetadata());
-                if (sha1 != null) {
+                if (sha1FileMap != null) {
                     bag.registerChecksums(BagItDigest.SHA1, sha1FileMap);
                 }
-                if (sha256 != null) {
+                if (sha256FileMap != null) {
                     bag.registerChecksums(BagItDigest.SHA256, sha256FileMap);
                 }
-                if (sha512 != null) {
+                if (sha512FileMap != null) {
                     bag.registerChecksums(BagItDigest.SHA512, sha512FileMap);
                 }
-                if (md5 != null) {
+                if (md5FileMap != null) {
                     bag.registerChecksums(BagItDigest.MD5, md5FileMap);
                 }
                 bag.write();
@@ -340,7 +376,23 @@ public class Exporter implements TransferProcess {
         return metadata;
     }
 
+    /**
+     * Queues a new resource to be exported
+     *
+     * @param uri resource to export
+     */
     private void export(final URI uri) {
+        taskManager.submit(uri);
+    }
+
+    /**
+     * This does the actual work of exporting a resource. It should only be called from a export task.
+     *
+     * @param uri resource to export
+     * @throws FcrepoOperationFailedException
+     * @throws IOException
+     */
+    private void doExport(final URI uri) throws FcrepoOperationFailedException, IOException {
         logger.trace("HEAD " + uri);
         try (FcrepoResponse response = client().head(uri).disableRedirects().perform()) {
             if (response.getStatusCode() == 404 && uri.toString().endsWith("fcr:acl")) {
@@ -373,17 +425,6 @@ public class Exporter implements TransferProcess {
             if (acl != null && config.isIncludeAcls()) {
                 export(acl);
             }
-
-
-        } catch (FcrepoOperationFailedException ex) {
-            logger.warn("Error retrieving content: {}", ex.toString());
-            exportLogger.error(String.format("Error retrieving context of uri: %1$s, Message: %2$s",
-                    uri, ex.toString()),
-                ex);
-        } catch (IOException ex) {
-            logger.warn("Error writing content: {}", ex.toString());
-            exportLogger.error(String.format("Error writing content from uri: %1$s, Message: %2$s", uri, ex.toString()),
-                ex);
         }
     }
 
@@ -417,7 +458,7 @@ public class Exporter implements TransferProcess {
                     writeNonRedirectedHeaders(uri, file);
                 }
                 exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-                successCount.incrementAndGet();
+                incrementSuccessCount();
             }
 
         }
@@ -435,13 +476,9 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private void exportRdf(final URI uri, final URI binaryURI)
-            throws FcrepoOperationFailedException {
+    private void exportRdf(final URI uri, final URI binaryURI) throws FcrepoOperationFailedException, IOException {
         final File file = fileForURI(uri, null, null, config.getBaseDirectory(), config.getRdfExtension());
-        if (file == null) {
-            logger.info("Skipping {}", uri);
-            return;
-        } else if (file.exists()) {
+        if (file.exists()) {
             logger.info("Already exported {}", uri);
             return;
         }
@@ -460,14 +497,16 @@ public class Exporter implements TransferProcess {
 
         getBuilder.preferRepresentation(includeUris, omitUris);
 
+        Model model = null;
+        Set<URI> inboundMembers = null;
+
         try (FcrepoResponse response = getBuilder.perform()) {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting rdf: {}", uri);
 
             final String responseBody = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8);
-            final Model model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
+            model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
                     null, config.getRdfLanguage());
-            Set<URI> inboundMembers = null;
 
             if (!config.isIncludeBinaries() || config.retrieveInbound()) {
 
@@ -493,16 +532,21 @@ public class Exporter implements TransferProcess {
             writeHeadersFile(response, getHeadersFile(file));
 
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
-            successCount.incrementAndGet();
-
-            exportMembers(model, inboundMembers);
-            exportVersions(uri);
-        } catch ( Exception ex ) {
-            ex.printStackTrace();
-            exportLogger.error(String.format("Error exporting description: %1$s, Cause: %2$s",
-                    uri, ex.getMessage()), ex);
+            incrementSuccessCount();
+        } catch (RuntimeException | FcrepoOperationFailedException | IOException e) {
+            // Cleanup a partially exported resource so that it can be retried
+            try {
+                Files.deleteIfExists(file.toPath());
+            } catch (Exception e2) {
+                logger.warn("Failed to cleanup partially exported resource {}: {}", uri, e2.getMessage());
+                exportLogger.error(String.format("Failed to cleanup partially exported resource : %1$s, Message: %2$s",
+                        uri, e2), e2);
+            }
+            throw e;
         }
 
+        exportMembers(model, inboundMembers);
+        exportVersions(uri);
     }
 
     private File getHeadersFile(final File file) {
@@ -514,21 +558,7 @@ public class Exporter implements TransferProcess {
         if (!headers.isEmpty()) {
             final String json = new ObjectMapper().writeValueAsString(headers);
             final InputStream byteInputStream = new ByteArrayInputStream(json.getBytes());
-            try (OutputStream headerOut = Files.newOutputStream(file.toPath())) {
-                copy(byteInputStream, headerOut);
-                if (md5FileMap != null) {
-                    md5FileMap.put(file, new String(encodeHex(md5.digest())));
-                }
-                if (sha1FileMap != null) {
-                    sha1FileMap.put(file, new String(encodeHex(sha1.digest())));
-                }
-                if (sha256FileMap != null) {
-                    sha256FileMap.put(file, new String(encodeHex(sha256.digest())));
-                }
-                if (sha512FileMap != null) {
-                    sha512FileMap.put(file, new String(encodeHex(sha512.digest())));
-                }
-            }
+            copy(byteInputStream, file);
         }
     }
 
@@ -640,7 +670,7 @@ public class Exporter implements TransferProcess {
 
             timemapURI = response.getLinkHeaders("timemap").stream().findFirst().orElse(null);
             if (timemapURI == null) {
-                logger.trace("Resource {} is not versioned:  no rel=\"timemap\" Link header present on {}", uri);
+                logger.trace("Resource {} is not versioned:  no rel=\"timemap\" Link header present", uri);
                 return;
             }
         }
@@ -685,23 +715,8 @@ public class Exporter implements TransferProcess {
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
-        try (OutputStream out = new FileOutputStream(file)) {
-            copy(in, out);
-            logger.info("Exported {} to {}", uri, file.getAbsolutePath());
-
-            if (md5FileMap != null) {
-                md5FileMap.put(file, new String(encodeHex(md5.digest())));
-            }
-            if (sha1FileMap != null) {
-                sha1FileMap.put(file, new String(encodeHex(sha1.digest())));
-            }
-            if (sha256FileMap != null) {
-                sha256FileMap.put(file, new String(encodeHex(sha256.digest())));
-            }
-            if (sha512FileMap != null) {
-                sha512FileMap.put(file, new String(encodeHex(sha512.digest())));
-            }
-        }
+        copy(in, file);
+        logger.info("Exported {} to {}", uri, file.getAbsolutePath());
 
         if (describedby != null) {
             for (final Iterator<URI> it = describedby.iterator(); it.hasNext(); ) {
@@ -713,42 +728,201 @@ public class Exporter implements TransferProcess {
     /**
      * Copy bytes and generate checksums
      * @param in Source data
-     * @param out Data destination
+     * @param file destination
      * @throws IOException If an I/O error occurs
      */
-    private void copy(final InputStream in, final OutputStream out) throws IOException {
-        if (md5 != null) {
-            md5.reset();
+    private void copy(final InputStream in, final File file) throws IOException {
+        final MessageDigest md5 = md5FileMap == null ? null : BagItDigest.MD5.messageDigest();
+        final MessageDigest sha1 = sha1FileMap == null ? null : BagItDigest.SHA1.messageDigest();
+        final MessageDigest sha256 = sha256FileMap == null ? null : BagItDigest.SHA256.messageDigest();
+        final MessageDigest sha512 = sha512FileMap == null ? null : BagItDigest.SHA512.messageDigest();
+
+        final InputStream wrappedStream = wrap(wrap(wrap(wrap(in, md5), sha1), sha256), sha512);
+
+        try (final OutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            final int bytes = IOUtils.copy(wrappedStream, out);
+            successBytes.addAndGet(bytes);
+            if (md5FileMap != null) {
+                md5FileMap.put(file, Hex.encodeHexString(md5.digest()));
+            }
+            if (sha1FileMap != null) {
+                sha1FileMap.put(file, Hex.encodeHexString(sha1.digest()));
+            }
+            if (sha256FileMap != null) {
+                sha256FileMap.put(file, Hex.encodeHexString(sha256.digest()));
+            }
+            if (sha512FileMap != null) {
+                sha512FileMap.put(file, Hex.encodeHexString(sha512.digest()));
+            }
         }
-        if (sha1 != null) {
-            sha1.reset();
+    }
+
+    private void incrementSuccessCount() {
+        if (successCount.incrementAndGet() % REPORTING_INTERVAL == 0) {
+            final long bytes = successBytes.get();
+            final long count = successCount.get();
+            final Duration duration = Duration.between(startTime, Instant.now());
+            final long rate = bytes / Math.max(duration.toMillis() / 1000, 1);
+
+            logger.info("Progress report: Exported {} resources in {} at {} bytes/sec", count, duration, rate);
         }
-        if (sha256 != null) {
-            sha256.reset();
+    }
+
+    private InputStream wrap(final InputStream in, final MessageDigest digest) {
+        if (digest != null) {
+            return new DigestInputStream(in, digest);
         }
-        if (sha512 != null) {
-            sha512.reset();
+        return in;
+    }
+
+    private class TaskManager {
+
+        private final ExecutorService executorService;
+        private final BlockingQueue<Runnable> workQueue;
+        private final AtomicLong count;
+        private final Object lock;
+        private boolean shutdown = false;
+
+        /**
+         * Creates a new task manager that uses the specified number of threads
+         *
+         * @param threadCount the number of threads to use, may be null to use default
+         */
+        public TaskManager(final Integer threadCount) {
+            final int threads = Math.max(threadCount == null
+                    ? Runtime.getRuntime().availableProcessors() - 1 : threadCount, 1);
+
+            logger.info("Using {} threads to export resources", threads);
+
+            this.workQueue = new LinkedBlockingQueue<>();
+            this.executorService = new ThreadPoolExecutor(threads, threads,
+                    0L, TimeUnit.MILLISECONDS,
+                    workQueue);
+            this.count = new AtomicLong(0);
+            this.lock = new Object();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (!shutdown) {
+                    logger.info("Shutting down...");
+                    shutdown();
+                }
+            }));
         }
 
-        int read = 0;
-        final byte[] buf = new byte[8192];
-        while ((read = in.read(buf)) != -1) {
-            if (md5 != null) {
-                md5.update(buf, 0, read);
+        /**
+         * Submits a new resource to be exported
+         *
+         * @param uri the uri of the resource to export
+         */
+        public void submit(final URI uri) {
+            try {
+                executorService.submit(new ExportTask(uri, () -> {
+                    try {
+                        Exporter.this.doExport(uri);
+                    } catch (Exception e) {
+                        remainingLogger.error("{}", uri);
+
+                        if (e instanceof FcrepoOperationFailedException) {
+                            logger.warn("Error retrieving content: {}", e.toString());
+                            exportLogger.error(String.format("Error retrieving context of uri: %1$s, Message: %2$s",
+                                    uri, e), e);
+                        } else if (e instanceof IOException) {
+                            logger.warn("Error writing content: {}", e.toString());
+                            exportLogger.error(String.format("Error writing content from uri: %1$s, Message: %2$s",
+                                    uri, e), e);
+                        } else {
+                            logger.warn("Error exporting content: {}", e.toString());
+                            exportLogger.error(String.format("Error exporting content from uri: %1$s, Message: %2$s",
+                                    uri, e), e);
+                        }
+                    } finally {
+                        count.decrementAndGet();
+                        synchronized (lock) {
+                            lock.notifyAll();
+                        }
+                    }
+                }));
+            } catch (RejectedExecutionException e) {
+                remainingLogger.error("{}", uri);
             }
-            if (sha1 != null) {
-                sha1.update(buf, 0, read);
+
+            count.incrementAndGet();
+        }
+
+        /**
+         * Waits for all resources to be exported
+         *
+         * @throws InterruptedException
+         */
+        public void awaitCompletion() throws InterruptedException {
+            if (count.get() == 0) {
+                return;
             }
-            if (sha256 != null) {
-                sha256.update(buf, 0, read);
+
+            synchronized (lock) {
+                while (count.get() > 0) {
+                    lock.wait();
+                }
             }
-            if (sha512 != null) {
-                sha512.update(buf, 0, read);
+        }
+
+        /**
+         * Shutsdown the executor service, drains all remaining tasks to the log, and waits for the in progress
+         * tasks to complete.
+         */
+        public synchronized void shutdown() {
+            if (!shutdown) {
+                shutdown = true;
+
+                try {
+                    executorService.shutdown();
+                    drainTasks();
+                    logger.info("Waiting for inflight tasks to complete...");
+                    if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
+                        logger.warn("Failed to shutdown executor service cleanly after 5 minutes of waiting");
+                        executorService.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    logger.warn("Failed to shutdown executor service cleanly");
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
             }
-            if (out != null) {
-                out.write(buf, 0, read);
-                successBytes.addAndGet(read);
-            }
+        }
+
+        /**
+         * Empties the queue of unprocessed tasks and adds them to the remaining log
+         */
+        private void drainTasks() {
+            final List<Runnable> remaining = new ArrayList<>(workQueue.size());
+            workQueue.drainTo(remaining);
+            remaining.forEach(task -> {
+                try {
+                    // Dirty hack to get original callable
+                    final Field field = FutureTask.class.getDeclaredField("callable");
+                    field.setAccessible(true);
+                    final ExportTask inner = (ExportTask) field.get(task);
+                    remainingLogger.error("{}", inner.uri);
+                } catch (Exception e) {
+                    logger.warn("Failed to extract unprocessed resource URI", e);
+                }
+            });
+        }
+    }
+
+    private static class ExportTask implements Callable<Void> {
+        private final URI uri;
+        private final Runnable runnable;
+
+        private ExportTask(final URI uri, final Runnable runnable) {
+            this.uri = uri;
+            this.runnable = runnable;
+        }
+
+        @Override
+        public Void call() {
+            runnable.run();
+            return null;
         }
     }
 }
