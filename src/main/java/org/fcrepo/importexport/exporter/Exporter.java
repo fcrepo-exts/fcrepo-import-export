@@ -54,7 +54,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -74,12 +73,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -778,7 +777,6 @@ public class Exporter implements TransferProcess {
     private class TaskManager {
 
         private final ExecutorService executorService;
-        private final BlockingQueue<Runnable> workQueue;
         private final AtomicLong count;
         private final Object lock;
         private boolean shutdown = false;
@@ -794,10 +792,14 @@ public class Exporter implements TransferProcess {
 
             logger.info("Using {} threads to export resources", threads);
 
-            this.workQueue = new LinkedBlockingQueue<>();
             this.executorService = new ThreadPoolExecutor(threads, threads,
                     0L, TimeUnit.MILLISECONDS,
-                    workQueue);
+                    new LinkedBlockingQueue<>()) {
+                @Override
+                protected <T> RunnableFuture<T> newTaskFor(final Callable<T> callable) {
+                    return new FutureTaskWithCallable<>(callable);
+                }
+            };
             this.count = new AtomicLong(0);
             this.lock = new Object();
 
@@ -875,12 +877,11 @@ public class Exporter implements TransferProcess {
                 shutdown = true;
 
                 try {
-                    executorService.shutdown();
-                    drainTasks();
+                    final List<Runnable> remaining = executorService.shutdownNow();
+                    logRemainingTasks(remaining);
                     logger.info("Waiting for inflight tasks to complete...");
                     if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
                         logger.warn("Failed to shutdown executor service cleanly after 5 minutes of waiting");
-                        executorService.shutdownNow();
                     }
                 } catch (InterruptedException e) {
                     logger.warn("Failed to shutdown executor service cleanly");
@@ -891,23 +892,33 @@ public class Exporter implements TransferProcess {
         }
 
         /**
-         * Empties the queue of unprocessed tasks and adds them to the remaining log
+         * Adds remaining tasks to log
          */
-        private void drainTasks() {
-            final List<Runnable> remaining = new ArrayList<>(workQueue.size());
-            workQueue.drainTo(remaining);
+        @SuppressWarnings("unchecked")
+        private void logRemainingTasks(final List<Runnable> remaining) {
             remaining.forEach(task -> {
                 try {
-                    // Dirty hack to get original callable
-                    final Field field = FutureTask.class.getDeclaredField("callable");
-                    field.setAccessible(true);
-                    final ExportTask inner = (ExportTask) field.get(task);
-                    remainingLogger.error("{}", inner.uri);
+                    final ExportTask callable = (ExportTask) ((FutureTaskWithCallable<Void>) task).callable;
+                    remainingLogger.error("{}", callable.uri);
                 } catch (Exception e) {
                     logger.warn("Failed to extract unprocessed resource URI", e);
                 }
             });
         }
+    }
+
+    /**
+     * FutureTask extension that supports accessing the wrapped Callable
+     */
+    private static class FutureTaskWithCallable<V> extends FutureTask<V> {
+
+        private final Callable<V> callable;
+
+        public FutureTaskWithCallable(final Callable<V> callable) {
+            super(callable);
+            this.callable = callable;
+        }
+
     }
 
     private static class ExportTask implements Callable<Void> {
