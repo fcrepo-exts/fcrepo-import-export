@@ -28,7 +28,7 @@
     <jena.version>3.1.1</jena.version>
     <jena.patch.version>4.7.2</jena.patch.version>
     <junit.version>4.13.1</junit.version>
-    <logback.version>1.2.0</logback.version>
+    <logback.version>1.2.13</logback.version>
     <mockito.version>4.6.1</mockito.version>
     <shade.plugin.version>2.4.3</shade.plugin.version>
     <slf4j.version>1.7.10</slf4j.version>
