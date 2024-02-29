@@ -36,6 +36,7 @@
     <jersey.version>2.29</jersey.version>
     <download-maven-plugin.version>1.3.0</download-maven-plugin.version>
     <bagit-support.version>1.1.0</bagit-support.version>
+    <sonatype.host>s01.oss.sonatype.org</sonatype.host>
   </properties>
 
   <dependencies>
@@ -96,6 +97,48 @@
     </dependency>
 
   </dependencies>
+
+  <repositories>
+
+    <repository>
+      <id>sonatype-nexus-snapshots</id>
+      <name>Sonatype Nexus Snapshots</name>
+      <url>https://${sonatype.host}/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+
+  </repositories>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>sonatype-nexus-snapshots</id>
+      <name>Sonatype Nexus Shapshots</name>
+      <url>https://${sonatype.host}/content/repositories/snapshots/</url>
+    </snapshotRepository>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <url>https://${sonatype.host}/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>sonatype-nexus-snapshots</id>
+      <name>Sonatype Nexus Snapshots</name>
+      <url>https://${sonatype.host}/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
 
   <scm>
     <connection>scm:git:git://github.com/fcrepo-exts/${project_name}.git</connection>
