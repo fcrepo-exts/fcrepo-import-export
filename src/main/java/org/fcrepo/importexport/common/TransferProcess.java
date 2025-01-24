@@ -170,6 +170,8 @@ public interface TransferProcess {
             throw new AuthorizationDeniedRuntimeException(user, uri);
         case 404:
             throw new ResourceNotFoundRuntimeException(uri);
+        case 410:
+            throw new TombstoneFoundException(uri);
         default:
             if (response.getStatusCode() < 200 || response.getStatusCode() > 307) {
                 throw new RuntimeException("Export operation failed: unexpected status "

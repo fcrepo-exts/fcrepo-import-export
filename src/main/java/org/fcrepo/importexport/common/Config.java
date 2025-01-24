@@ -83,6 +83,8 @@ public class Config {
 
     private boolean auditLog = false;
 
+    private boolean skipTombstoneErrors = false;
+
     /**
      * This method returns true if the configuration is set for 'import'
      *
@@ -701,5 +703,19 @@ public class Config {
      */
     public void setResourceFile(final Path resourceFile) {
         this.resourceFile = resourceFile;
+    }
+
+    /**
+     * @return true if tombstone errors should be skipped
+     */
+    public boolean isSkipTombstoneErrors() {
+        return skipTombstoneErrors;
+    }
+
+    /**
+     * @param skipTombstoneErrors true if tombstone errors should be skipped
+     */
+    public void setSkipTombstoneErrors(final boolean skipTombstoneErrors) {
+        this.skipTombstoneErrors = skipTombstoneErrors;
     }
 }

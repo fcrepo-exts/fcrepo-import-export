@@ -36,8 +36,8 @@ Running Import/Export Utility from command line arguments
 usage: java -jar import-export-driver.jar [-a] [--acls] [-b] [--bag-algorithms
        <algorithms>] -d <dir> [-f <path>] [-g <profile>] [-G <path>] [-h] [-i]
        [-L] [-l <rdfLang>] -m <mode> [-M <map>] [--membership] [-p <predicates>]
-       [-r <resource>] [-R <uri>] [-s <format>] [-t] [-T <num>] [-u <user>] [-V]
-       [-w <writeConfig>] [-x]
+       [-r <resource>] [-R <uri>] [-s <format>] [--skip-tombstones] [-t] [-T
+       <num>] [-u <user>] [-V] [-w <writeConfig>] [-x]
     -a,--auditLog                       Enable audit log creation, disabled by
                                         default
        --acls                           When present this flag indicates that
@@ -83,6 +83,8 @@ usage: java -jar import-export-driver.jar [-a] [--acls] [-b] [--bag-algorithms
                                         fedora-import-export: [tar]
                                         metaarchive: [tar]
                                         perseids: [zip, tar]
+       --skip-tombstones                Skip tombstones errors during export,
+                                        disabled by default
     -t,--overwriteTombstones            When importing, overwrite "tombstones"
                                         left behind after resources were
                                         deleted.

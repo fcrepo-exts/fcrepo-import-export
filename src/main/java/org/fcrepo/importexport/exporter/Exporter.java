@@ -41,6 +41,7 @@ import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.ResourceFileParser;
+import org.fcrepo.importexport.common.TombstoneFoundException;
 import org.fcrepo.importexport.common.TransferProcess;
 import org.slf4j.Logger;
 
@@ -424,6 +425,13 @@ public class Exporter implements TransferProcess {
             if (acl != null && config.isIncludeAcls()) {
                 export(acl);
             }
+        } catch (final TombstoneFoundException e) {
+            if (config.isSkipTombstoneErrors()) {
+                logger.warn("Skipping tombstone resource: {}", uri);
+            } else {
+                logger.error("Tombstone resource found: {}", uri);
+                throw e;
+            }
         }
     }
 
@@ -533,6 +541,10 @@ public class Exporter implements TransferProcess {
             exportLogger.info("export {} to {}", uri, file.getAbsolutePath());
             incrementSuccessCount();
         } catch (RuntimeException | FcrepoOperationFailedException | IOException e) {
+            if (e instanceof TombstoneFoundException && config.isSkipTombstoneErrors()) {
+                // If we are skipping errors, we don't want to delete a parent that might have a tombstone child.
+                throw e;
+            }
             // Cleanup a partially exported resource so that it can be retried
             try {
                 Files.deleteIfExists(file.toPath());
@@ -619,6 +631,10 @@ public class Exporter implements TransferProcess {
                     final List<URI> linkHeaders = resp.getLinkHeaders("type");
                     if (linkHeaders.contains(binaryURI)) {
                         removeList.add(s);
+                    }
+                } catch (final TombstoneFoundException e) {
+                    if (!config.isSkipTombstoneErrors()) {
+                        throw e;
                     }
                 }
             }
