@@ -17,6 +17,36 @@
  */
 package org.fcrepo.importexport.exporter;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.duraspace.bagit.BagItDigest;
+import org.duraspace.bagit.profile.BagProfile;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.HeadBuilder;
+import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TombstoneFoundException;
+import org.fcrepo.importexport.test.util.ResponseMocker;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.readLines;
 import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
@@ -35,35 +65,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.profile.BagProfile;
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.client.HeadBuilder;
-import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 /**
  * @author escowles
@@ -513,6 +514,59 @@ public class ExporterTest {
         final List<String> customLines = readLines(customTags, UTF_8);
         assertTrue(customLines.contains("Foo: Bar"));
         assertTrue(customLines.contains("Baz: Quux"));
+    }
+
+    @Test(expected = TombstoneFoundException.class)
+    public void testExportTombsone() throws Exception {
+        final String basedir = exportDirectory + "/11";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(false);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
+        ResponseMocker.mockHeadResponseError(client, resource, 410);
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        exporter.run();
+    }
+
+    @Test
+    public void testExportTombstoneNested() throws Exception {
+        final String basedir = exportDirectory + "/12";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(false);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+
+        ResponseMocker.mockHeadResponseError(client, resource2, 410);
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        exporter.run();
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+    }
+
+    @Test
+    public void testExportTombstoneNestedWithSkip() throws Exception {
+        final String basedir = exportDirectory + "/13";
+        final Config args = new Config();
+        args.setMode("export");
+        args.setBaseDirectory(basedir);
+        args.setIncludeBinaries(false);
+        args.setPredicates(predicates);
+        args.setRdfLanguage("application/ld+json");
+        args.setResource(resource);
+        args.setSkipTombstoneErrors(true);
+
+        ResponseMocker.mockHeadResponseError(client, resource2, 410);
+
+        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+        exporter.run();
+        assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/1/2.jsonld")));
     }
 }
 

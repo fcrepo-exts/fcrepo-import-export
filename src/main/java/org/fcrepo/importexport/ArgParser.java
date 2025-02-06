@@ -293,6 +293,12 @@ public class ArgParser {
                 .desc("Enable audit log creation, disabled by default")
                 .required(false).build());
 
+        configOptions.addOption(Option.builder()
+                .longOpt("skip-tombstones")
+                .required(false)
+                .desc("Skip tombstones errors during export, disabled by default")
+                .build());
+
     }
 
     /**
@@ -486,6 +492,8 @@ public class ArgParser {
             config.setResourceFile(Paths.get(cmd.getOptionValue('f')));
         }
 
+        config.setSkipTombstoneErrors(cmd.hasOption("skip-tombstones"));
+
         return config;
     }
 
@@ -551,7 +559,7 @@ public class ArgParser {
     /**
      * Get a new client
      *
-     * @return
+     * @return the FcrepoClientBuilder
      */
     private FcrepoClient.FcrepoClientBuilder clientBuilder() {
         return FcrepoClient.client();
@@ -651,6 +659,8 @@ public class ArgParser {
                 c.setThreadCount(Integer.parseInt(entry.getValue()));
             } else if (entry.getKey().equalsIgnoreCase("resourceFile")) {
                 c.setResourceFile(Paths.get(entry.getValue()));
+            } else if (entry.getKey().equalsIgnoreCase("membership")) {
+                c.setIncludeMembership(parseBoolean("membership", entry.getValue(), lineNumber));
             } else {
                 throw new java.text.ParseException(String.format("Unknown configuration key: %1$s", entry.getKey()),
                     lineNumber);
