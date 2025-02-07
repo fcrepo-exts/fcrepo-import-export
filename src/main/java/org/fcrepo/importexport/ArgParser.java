@@ -230,6 +230,13 @@ public class ArgParser {
                 .desc("Comma separated list of algorithms to use when creating a BagIt export")
                 .build());
 
+        configOptions.addOption(Option.builder()
+                .longOpt("streaming").argName("streaming")
+                .hasArg(false)
+                .required(false)
+                .desc("Use streaming mode for export, implies rdfLang set to application/n-triples" )
+                .build());
+
         // create the description for the serialization option
         // this shows which options are available for each of the built in BagProfiles
         final String zip = "zip";
@@ -368,6 +375,14 @@ public class ArgParser {
         if (config.isExport() && config.getRepositoryRoot() == null && config.getResource() == null) {
             throw new RuntimeException("The repository root must be specified when exporting from a resources file");
         }
+
+        if (!config.isExport() && config.isStreaming()) {
+            throw new RuntimeException("Streaming mode is only available for export");
+        }
+
+        if (config.isExport() && config.isStreaming() && config.isRdfSet() && !config.getRdfLanguage().equals("application/n-triples")) {
+            throw new RuntimeException("Streaming mode is only available for export and does not support setting the RDF language to something other than application/n-triples");
+        }
     }
 
     /**
@@ -491,6 +506,8 @@ public class ArgParser {
         if (cmd.getOptionValue('f') != null) {
             config.setResourceFile(Paths.get(cmd.getOptionValue('f')));
         }
+
+        config.setStreaming(cmd.hasOption("streaming"));
 
         config.setSkipTombstoneErrors(cmd.hasOption("skip-tombstones"));
 
@@ -659,6 +676,8 @@ public class ArgParser {
                 c.setThreadCount(Integer.parseInt(entry.getValue()));
             } else if (entry.getKey().equalsIgnoreCase("resourceFile")) {
                 c.setResourceFile(Paths.get(entry.getValue()));
+            } else if (entry.getKey().trim().equalsIgnoreCase("streaming")) {
+                c.setStreaming(parseBoolean("streaming", entry.getValue(), lineNumber));
             } else if (entry.getKey().equalsIgnoreCase("membership")) {
                 c.setIncludeMembership(parseBoolean("membership", entry.getValue(), lineNumber));
             } else {

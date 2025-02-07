@@ -97,6 +97,30 @@ public class ExporterIT extends AbstractResourceIT {
     }
 
     @Test
+    public void testExportStreaming() throws Exception {
+        // Create a repository resource
+        final FcrepoResponse response = create(url);
+        assertEquals(SC_CREATED, response.getStatusCode());
+        assertEquals(url, response.getLocation());
+
+        // Run an export process
+        final Config config = new Config();
+        config.setMode("export");
+        config.setBaseDirectory(TARGET_DIR);
+        config.setResource(url);
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+        config.setPredicates(new String[]{ CONTAINS.toString() });
+        config.setStreaming(true);
+
+        final Exporter exporter = new Exporter(config, clientBuilder);
+        exporter.run();
+
+        // Verify
+        assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
+    }
+
+    @Test
     public void testExportBogusResource() throws Exception {
         final Config config = new Config();
         config.setMode("export");

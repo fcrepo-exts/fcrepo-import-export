@@ -19,6 +19,7 @@ package org.fcrepo.importexport;
 
 import static org.duraspace.bagit.profile.BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -395,5 +396,70 @@ public class ArgParserTest {
         Assert.assertEquals("false", config.get("auditLog"));
         Assert.assertEquals("false", config.get("versions"));
         Assert.assertNull(config.get("writeConfig"));
+    }
+
+    @Test
+    public void testStreamingImport() {
+        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "--streaming")));
+    }
+
+    @Test
+    public void testStreamingExportRdfLang() {
+        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/ld+json")));
+    }
+
+    /**
+     * Test that default RDF language is set to application/n-triples when streaming is enabled and isRdfSet is false
+     */
+    @Test
+    public void testStreamingExport() {
+        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming")).getMap();
+        Assert.assertEquals("export", config.get("mode"));
+        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assert.assertEquals("false", config.get("isRdfSet"));
+    }
+
+    /**
+     * Test that default RDF language is set to application/n-triples when streaming is enabled and isRdfSet is true
+     */
+    @Test
+    public void testStreamingExportSetRdfLang() {
+        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/n-triples")).getMap();
+        Assert.assertEquals("export", config.get("mode"));
+        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assert.assertEquals("true", config.get("streaming"));
+        Assert.assertEquals("true", config.get("isRdfSet"));
+    }
+
+    /**
+     * Test that default RDF language is set to application/n-triples when streaming is not enabled and isRdfSet is true
+     */
+    @Test
+    public void testNonStreamingExportRdfSet() {
+        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "application/n-triples")).getMap();
+        Assert.assertEquals("export", config.get("mode"));
+        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assert.assertEquals("false", config.get("streaming"));
+        Assert.assertEquals("true", config.get("isRdfSet"));
+    }
+
+    /**
+     * Test that default RDF language is set to text/turtle when streaming is not enabled and isRdfSet is false
+     */
+    @Test
+    public void testNonStreamingExportRdf() {
+        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS)).getMap();
+        Assert.assertEquals("export", config.get("mode"));
+        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assert.assertEquals("/tmp/rdf", config.get("dir"));
+        Assert.assertEquals("text/turtle", config.get("rdfLang"));
+        Assert.assertEquals("false", config.get("streaming"));
+        Assert.assertEquals("false", config.get("isRdfSet"));
     }
 }

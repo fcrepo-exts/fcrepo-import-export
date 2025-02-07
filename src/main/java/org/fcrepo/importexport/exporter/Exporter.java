@@ -57,7 +57,6 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -85,6 +84,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
@@ -148,6 +148,8 @@ public class Exporter implements TransferProcess {
 
     private final TaskManager taskManager;
 
+    protected StreamTripleHandler streamTripleHandler = null;
+
     /**
      * Constructor that takes the Import/Export configuration
      *
@@ -169,6 +171,13 @@ public class Exporter implements TransferProcess {
         if (config.getBagProfile() != null) {
             configureBagItParameters();
         }
+    }
+
+    private StreamTripleHandler getStreamTripleHandler() {
+        if (streamTripleHandler == null) {
+            streamTripleHandler = new StreamTripleHandler(config, this, client());
+        }
+        return streamTripleHandler;
     }
 
     private void configureBagItParameters() {
@@ -381,7 +390,7 @@ public class Exporter implements TransferProcess {
      *
      * @param uri resource to export
      */
-    private void export(final URI uri) {
+    protected void export(final URI uri) {
         taskManager.submit(uri);
     }
 
@@ -511,28 +520,32 @@ public class Exporter implements TransferProcess {
             checkValidResponse(response, uri, config.getUsername());
             logger.info("Exporting rdf: {}", uri);
 
-            final String responseBody = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8);
-            model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
-                    null, config.getRdfLanguage());
-
-            if (!config.isIncludeBinaries() || config.retrieveInbound()) {
-
-                if (!config.isIncludeBinaries()) {
-                    filterBinaryReferences(uri, model);
-                }
-
-                if (config.retrieveInbound()) {
-                    final URI subject = (binaryURI != null) ? binaryURI : uri;
-                    inboundMembers = filterInboundReferences(subject, model);
-                }
-
-                try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                    RDFDataMgr.write(out, model, contentTypeToLang(config.getRdfLanguage()));
-                    writeResponse(uri, new ByteArrayInputStream(out.toByteArray()), null, file);
-                }
+            if (config.isStreaming()) {
+                final StreamTripleHandler handler = getStreamTripleHandler().setResource(uri).setFile(file);
+                RDFDataMgr.parse(handler, response.getBody(), contentTypeToLang(config.getRdfLanguage()));
             } else {
-                // we can write the body to disk unfiltered
-                writeResponse(uri, new ByteArrayInputStream(responseBody.getBytes()), null, file);
+                final String responseBody = IOUtils.toString(response.getBody(), UTF_8);
+                model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),
+                        null, config.getRdfLanguage());
+                if (!config.isIncludeBinaries() || config.retrieveInbound()) {
+
+                    if (!config.isIncludeBinaries()) {
+                        filterBinaryReferences(uri, model);
+                    }
+
+                    if (config.retrieveInbound()) {
+                        final URI subject = (binaryURI != null) ? binaryURI : uri;
+                        inboundMembers = filterInboundReferences(subject, model);
+                    }
+
+                    try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                        RDFDataMgr.write(out, model, contentTypeToLang(config.getRdfLanguage()));
+                        writeResponse(uri, new ByteArrayInputStream(out.toByteArray()), null, file);
+                    }
+                } else {
+                    // we can write the body to disk unfiltered
+                    writeResponse(uri, new ByteArrayInputStream(responseBody.getBytes()), null, file);
+                }
             }
 
             //write headers file
@@ -556,7 +569,10 @@ public class Exporter implements TransferProcess {
             throw e;
         }
 
-        exportMembers(model, inboundMembers);
+        if (!config.isStreaming()) {
+            // Handled in the StreamTripleHandler for streaming
+            exportMembers(model, inboundMembers);
+        }
         exportVersions(uri);
     }
 
@@ -769,6 +785,41 @@ public class Exporter implements TransferProcess {
             if (sha512FileMap != null) {
                 sha512FileMap.put(file, Hex.encodeHexString(sha512.digest()));
             }
+        }
+    }
+
+    /**
+     * Generates checksums and byte counts for a file
+     * @param file the file to generate checksums for
+     */
+    protected void generateChecksums(final File file) {
+        final MessageDigest md5 = md5FileMap == null ? null : BagItDigest.MD5.messageDigest();
+        final MessageDigest sha1 = sha1FileMap == null ? null : BagItDigest.SHA1.messageDigest();
+        final MessageDigest sha256 = sha256FileMap == null ? null : BagItDigest.SHA256.messageDigest();
+        final MessageDigest sha512 = sha512FileMap == null ? null : BagItDigest.SHA512.messageDigest();
+        final byte[] buffer = new byte[8192];
+
+        try (final InputStream in = Files.newInputStream(file.toPath())) {
+            final InputStream wrappedStream = wrap(wrap(wrap(wrap(in, md5), sha1), sha256), sha512);
+            int bytesRead;
+            while ((bytesRead = wrappedStream.read(buffer)) != -1) {
+                // Read the entire stream to generate checksums
+                successBytes.addAndGet(bytesRead);
+            }
+            if (md5FileMap != null) {
+                md5FileMap.put(file, Hex.encodeHexString(md5.digest()));
+            }
+            if (sha1FileMap != null) {
+                sha1FileMap.put(file, Hex.encodeHexString(sha1.digest()));
+            }
+            if (sha256FileMap != null) {
+                sha256FileMap.put(file, Hex.encodeHexString(sha256.digest()));
+            }
+            if (sha512FileMap != null) {
+                sha512FileMap.put(file, Hex.encodeHexString(sha512.digest()));
+            }
+        } catch (IOException e) {
+            logger.error("Error generating checksums for file: {}", file, e);
         }
     }
 

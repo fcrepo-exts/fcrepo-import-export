@@ -19,7 +19,6 @@ package org.fcrepo.importexport.exporter;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.profile.BagProfile;
@@ -31,7 +30,6 @@ import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TombstoneFoundException;
 import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,11 +37,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,12 +49,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.readLines;
 import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
-import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
-import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
 import static org.junit.Assert.assertFalse;
@@ -70,33 +65,25 @@ import static org.mockito.Mockito.when;
  * @author escowles
  * @since 2016-08-30
  */
-public class ExporterTest {
+public class ExporterTest extends ExportTestBase {
 
-    private FcrepoClient client;
-    private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private FcrepoResponse headResponse;
-    private List<URI> binaryLinks;
-    private List<URI> containerLinks;
-    private List<URI> descriptionLinks;
-    private List<URI> describedbyLinks;
-    private URI rootResource;
-    private URI resource;
     private URI resourceAcl;
     private URI resource2;
     private URI resource3;
     private URI resource4;
     private URI resource5;
-    private String exportDirectory = "target/export";
-    private String[] predicates = new String[]{ CONTAINS.toString() };
+
+    public ExporterTest() throws URISyntaxException {
+        super();
+        exportDirectory = "target/export";
+    }
 
     @Before
     public void setUp() throws Exception {
-        clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
-        client = mock(FcrepoClient.class);
-        when(clientBuilder.build()).thenReturn(client);
+        super.setUp();
 
         headResponse = mock(FcrepoResponse.class);
-        rootResource = new URI("http://localhost:8080/rest");
         resource = new URI("http://localhost:8080/rest/1");
         resourceAcl = new URI("http://localhost:8080/rest/1/fcr:acl");
 
@@ -105,14 +92,12 @@ public class ExporterTest {
         resource4 = new URI("http://localhost:8080/rest/file1/fcr:metadata");
         resource5 = new URI("http://localhost:8080/rest/alt_description");
 
-        binaryLinks = Arrays.asList(new URI(NON_RDF_SOURCE.getURI()));
-        containerLinks = Arrays.asList(new URI(CONTAINER.getURI()));
-        descriptionLinks = Arrays.asList(new URI(RDF_SOURCE.getURI()));
-        describedbyLinks = Arrays.asList(new URI(resource4.toString()), new URI(resource5.toString()));
+        describedbyLinks.add(resource4);
+        describedbyLinks.add(resource5);
 
         mockResponse(resource, containerLinks, new ArrayList<>(), resourceAcl,"{\"@id\":\"" + resource.toString()
                 + "\",\"@type\":[\"" + REPOSITORY_NAMESPACE + "RepositoryRoot\"],\""
-                + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}");
+                + CONTAINS.getURI() + "\":[{\"@id\":\"" + resource2.toString() + "\"}]}", null);
         mockResponse(resourceAcl, containerLinks, new ArrayList<>(), "{}");
 
         mockResponse(resource2, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource2.toString() + "\"}");
@@ -122,27 +107,6 @@ public class ExporterTest {
         mockResponse(resource5, containerLinks, new ArrayList<>(), "{\"@id\":\"" + resource5.toString() + "\"}");
         mockResponse(rootResource, containerLinks, new ArrayList<>(), "{\"@id\":\"" + rootResource.toString()
                 + "\",\"@type\":[\"" + REPOSITORY_ROOT.getURI() + "\"]}");
-    }
-
-    @After
-    public void tearDown() {
-        try {
-            FileUtils.deleteDirectory(new File(exportDirectory));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
-            final String body) throws FcrepoOperationFailedException {
-        mockResponse(uri, typeLinks, describedbyLinks, null, body);
-
-    }
-
-    private void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
-                              final URI aclLink, final String body) throws FcrepoOperationFailedException {
-        ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null, aclLink);
-        ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, aclLink, body);
     }
 
     @Test
@@ -235,6 +199,7 @@ public class ExporterTest {
         assertTrue(exporter.wroteFile(new File(exportDirectory + "/data/rest/alt_description.jsonld")));
 
         assertTrue(Files.exists(Paths.get(exportDirectory + ".tar")));
+        tearDownFiles.add(new File(exportDirectory + ".tar"));
 
         // instead of extracting the tarball, search for the aptrust-info.txt and load it if found
         List<String> aptrustInfoLines = Collections.emptyList();

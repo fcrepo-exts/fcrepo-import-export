@@ -69,6 +69,7 @@ public abstract class FcrepoConstants {
             createResource("http://fedora.info/definitions/fcrepo#PreferInboundReferences");
     public static final Resource PAIRTREE = createResource(REPOSITORY_NAMESPACE + "Pairtree");
     public static final Resource REPOSITORY_ROOT = createResource(REPOSITORY_NAMESPACE + "RepositoryRoot");
+    public static final Resource NON_RDF_DESCRIPTION = createResource(REPOSITORY_NAMESPACE + "NonRdfSourceDescription");
 
     public static final String BAG_INFO_FIELDNAME = "Bag-Info";
 
