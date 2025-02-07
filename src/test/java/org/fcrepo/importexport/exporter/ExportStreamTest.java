@@ -140,8 +140,6 @@ public class ExportStreamTest extends ExportTestBase {
 
     @Test
     public void testContent() throws Exception {
-        final StreamTripleHandlerWrapper handler = new StreamTripleHandlerWrapper(config, exporter, client);
-        exporter.setHandler(handler);
         final String content = "<" + resource + "> <" + DC.title + "> \"Title\" .\n" +
                 "<" + resource + "> <" + DC.creator + "> \"Creator\" .\n";
         mockResponse(resource, descriptionLinks, describedbyLinks, content);
@@ -179,8 +177,6 @@ public class ExportStreamTest extends ExportTestBase {
     public void testExportBinaryAndDescription() throws Exception, FcrepoOperationFailedException {
         config.setIncludeBinaries(true);
         config.setResource(resource2);
-
-        reconfigureExporter();
 
         exporter.run();
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION));
@@ -328,8 +324,6 @@ public class ExportStreamTest extends ExportTestBase {
         config.setIncludeBinaries(false);
         config.setResource(resource2);
 
-        reconfigureExporter();
-
         exporter.run();
         assertFalse(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION));
         assertFalse(handler.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
@@ -340,8 +334,6 @@ public class ExportStreamTest extends ExportTestBase {
     public void testExternalContent() throws Exception {
         config.setIncludeBinaries(true);
         config.setResource(resource2);
-
-        reconfigureExporter();
 
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse headResponse = mock(FcrepoResponse.class);
@@ -367,8 +359,6 @@ public class ExportStreamTest extends ExportTestBase {
         config.setIncludeBinaries(true);
         config.setResource(resource);
 
-        reconfigureExporter();
-
         exporter.run();
         assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
     }
@@ -387,8 +377,6 @@ public class ExportStreamTest extends ExportTestBase {
         mockResponse(resourceAcl, containerLinks, emptyList(), "<" + resourceAcl + "> <" + RDF_TYPE + "> <" +
                 RDF_SOURCE + "> .");
 
-        reconfigureExporter();
-
         exporter.run();
 
         assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
@@ -403,7 +391,7 @@ public class ExportStreamTest extends ExportTestBase {
 
         final URI resourceAcl = URI.create(resource.toString() + "/fcr:acl");
         final URI resource2 = URI.create(resource.toString() + "/2");
-        final URI resource3 = URI.create(resource2.toString() + "/fcr%3Ametadata");
+        final URI resource3 = URI.create(resource2 + "/fcr%3Ametadata");
 
         mockResponse(resource, containerLinks, new ArrayList<>(), resourceAcl,"<" + resource
                         + "> <" + RDF_TYPE + "> <" + REPOSITORY_NAMESPACE + "RepositoryRoot> .\n"
@@ -414,8 +402,6 @@ public class ExportStreamTest extends ExportTestBase {
         mockResponse(resource2, binaryLinks, singletonList(resource3), "binary");
         mockResponse(resource3, containerLinks, emptyList(), "<" + resource3 + "> <" + RDF_TYPE + "> <" +
                 RDF_SOURCE + "> .");
-
-        reconfigureExporter();
 
         exporter.run();
 
@@ -432,8 +418,6 @@ public class ExportStreamTest extends ExportTestBase {
         config.setIncludeBinaries(true);
         config.setResource(resource);
 
-        reconfigureExporter();
-
         ResponseMocker.mockHeadResponseError(client, resource, 401);
 
         assertThrows(AuthenticationRequiredRuntimeException.class, () -> exporter.run());
@@ -442,8 +426,6 @@ public class ExportStreamTest extends ExportTestBase {
     @Test
     public void testMetadataOnlyDoesNotExportBinaries() throws Exception {
         config.setResource(resource);
-
-        reconfigureExporter();
 
         exporter.run();
 
@@ -454,8 +436,6 @@ public class ExportStreamTest extends ExportTestBase {
     @Test
     public void testMetadataOnlyExportsContainers() throws Exception {
         config.setResource(resource);
-
-        reconfigureExporter();
 
         exporter.run();
         assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
@@ -469,7 +449,6 @@ public class ExportStreamTest extends ExportTestBase {
         mockResponse(resource6, containerLinks, emptyList(), "<" + resource6 + "> <" + RDF_TYPE + "> <" + RDF_SOURCE + "> .");
         config.setResource(resource);
 
-        reconfigureExporter();
         exporter.run();
         assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
         assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/2.nt"));
