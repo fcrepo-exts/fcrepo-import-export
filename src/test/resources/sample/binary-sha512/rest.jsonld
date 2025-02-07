@@ -1,0 +1,4 @@
+[ {
+  "@id" : "http://localhost:8080/rest",
+  "@type" : [ "http://fedora.info/definitions/v4/repository#RepositoryRoot", "http://fedora.info/definitions/v4/repository#Resource", "http://www.w3.org/ns/ldp#Container" ]
+} ]

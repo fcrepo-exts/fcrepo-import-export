@@ -17,11 +17,64 @@
  */
 package org.fcrepo.importexport.importer;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
+import gov.loc.repository.bagit.reader.BagReader;
+import gov.loc.repository.bagit.verify.BagVerifier;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+import java.util.ArrayList;
+import java.util.Arrays;
 import static java.util.Arrays.stream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.ResIterator;
+import org.apache.jena.rdf.model.Resource;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.riot.RDFDataMgr;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
+import org.apache.jena.riot.RiotException;
+import org.duraspace.bagit.BagItDigest;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.serialize.BagDeserializer;
+import org.duraspace.bagit.serialize.SerializationSupport;
+import org.fcrepo.client.FcrepoClient;
+import org.fcrepo.client.FcrepoLink;
+import org.fcrepo.client.FcrepoOperationFailedException;
+import org.fcrepo.client.FcrepoResponse;
+import org.fcrepo.client.PostBuilder;
+import org.fcrepo.client.PutBuilder;
+import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
+import org.fcrepo.importexport.common.Config;
 import static org.fcrepo.importexport.common.FcrepoConstants.ACL_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -47,72 +100,15 @@ import static org.fcrepo.importexport.common.FcrepoConstants.PAIRTREE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
+import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
+import org.fcrepo.importexport.common.TransferProcess;
 import static org.fcrepo.importexport.common.TransferProcess.fileForBinary;
 import static org.fcrepo.importexport.common.TransferProcess.fileForExternalResources;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.fcrepo.importexport.common.TransferProcess.isRepositoryRoot;
 import static org.fcrepo.importexport.common.UriUtils.withSlash;
-import static org.slf4j.LoggerFactory.getLogger;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.loc.repository.bagit.domain.Manifest;
-import gov.loc.repository.bagit.verify.BagVerifier;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.jena.rdf.model.Property;
-import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.profile.BagProfile;
-import org.duraspace.bagit.serialize.BagDeserializer;
-import org.duraspace.bagit.serialize.SerializationSupport;
-import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoLink;
-import org.fcrepo.client.FcrepoOperationFailedException;
-import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.client.PostBuilder;
-import org.fcrepo.client.PutBuilder;
-import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
-import org.fcrepo.importexport.common.Config;
-import org.fcrepo.importexport.common.ResourceNotFoundRuntimeException;
-import org.fcrepo.importexport.common.TransferProcess;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RiotException;
 import org.slf4j.Logger;
-
-import gov.loc.repository.bagit.domain.Bag;
-import gov.loc.repository.bagit.reader.BagReader;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Fedora Import Utility
@@ -123,6 +119,7 @@ import gov.loc.repository.bagit.reader.BagReader;
  * @since 2016-08-29
  */
 public class Importer implements TransferProcess {
+
     private static final Logger logger = getLogger(Importer.class);
     private final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
@@ -132,7 +129,8 @@ public class Importer implements TransferProcess {
     private URI repositoryRoot = null;
 
     /**
-     * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's payload manifest
+     * When importing a BagIt bag, this stores a mapping of filenames to checksums from the bag's
+     * payload manifest
      */
     private Map<String, String> bagItFileMap;
     private String digestAlgorithm;
@@ -141,13 +139,12 @@ public class Importer implements TransferProcess {
     private final AtomicLong successCount = new AtomicLong(); // set to zero at start
 
     final static Set<String> INTERACTION_MODELS = new HashSet<>(Arrays.asList(DIRECT_CONTAINER.getURI(),
-                                                                              INDIRECT_CONTAINER.getURI()));
+            INDIRECT_CONTAINER.getURI()));
 
     /**
-     * A directory within the metadata directory that serves as the
-     * root of the resource being imported.  If the export directory
-     * contains /fcrepo/rest/one/two/three and we're importing
-     * the resource at /fcrepo/rest/one/two, this stores that path.
+     * A directory within the metadata directory that serves as the root of the resource being
+     * imported. If the export directory contains /fcrepo/rest/one/two/three and we're importing the
+     * resource at /fcrepo/rest/one/two, this stores that path.
      */
     protected File importContainerDirectory;
 
@@ -170,8 +167,8 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * Load a {@link BagProfile} for a given directory and initialize the Importer iff the bag passes validation on the
-     * profile and the BagIt spec (handled by {@link #verifyBag}.
+     * Load a {@link BagProfile} for a given directory and initialize the Importer iff the bag
+     * passes validation on the profile and the BagIt spec (handled by {@link #verifyBag}.
      *
      * @param bagProfile the name of the {@link BagProfile} to use
      */
@@ -183,8 +180,8 @@ public class Importer implements TransferProcess {
             final File bagDir = config.getBaseDirectory().getAbsoluteFile().getParentFile();
 
             // if the bag is serialized (a single file), try to extract first
-            if (bagDir.isFile() && (profile.getSerialization() == BagProfile.Serialization.OPTIONAL ||
-                                    profile.getSerialization() == BagProfile.Serialization.REQUIRED)) {
+            if (bagDir.isFile() && (profile.getSerialization() == BagProfile.Serialization.OPTIONAL
+                    || profile.getSerialization() == BagProfile.Serialization.REQUIRED)) {
                 final BagDeserializer deserializer = SerializationSupport.deserializerFor(bagDir.toPath(), profile);
                 root = deserializer.deserialize(bagDir.toPath());
                 // update the base directory so we don't attempt to work on the serialized bag later
@@ -275,11 +272,11 @@ public class Importer implements TransferProcess {
 
         try {
             final Model model = parseStream(new FileInputStream(f));
-            if (model.contains(null, MEMBERSHIP_RESOURCE, (RDFNode)null)) {
-                    model.listObjectsOfProperty(MEMBERSHIP_RESOURCE).forEachRemaining(node -> {
-                        logger.info("Membership resource: {}", node);
-                        membershipResources.add(URI.create(node.toString()));
-                    });
+            if (model.contains(null, MEMBERSHIP_RESOURCE, (RDFNode) null)) {
+                model.listObjectsOfProperty(MEMBERSHIP_RESOURCE).forEachRemaining(node -> {
+                    logger.info("Membership resource: {}", node);
+                    membershipResources.add(URI.create(node.toString()));
+                });
             }
 
             // Discover all the related resources with member predicates. Those related resources that aren't imported
@@ -338,14 +335,14 @@ public class Importer implements TransferProcess {
             final Model diskModel = parseStream(new FileInputStream(f));
             final Model repoModel = parseStream(client().get(uri).perform().getBody());
             final FcrepoResponse response = importContainer(uri,
-                                                            sanitize(diskModel.difference(repoModel)),
-                                                            parseHeaders(getHeadersFile(f)));
+                    sanitize(diskModel.difference(repoModel)),
+                    parseHeaders(getHeadersFile(f)));
             if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(), uri);
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), uri,
-                    response.getStatusCode());
+                        response.getStatusCode());
                 throw new RuntimeException("Error while importing membership resource " + f.getAbsolutePath()
                         + " (" + response.getStatusCode() + "): "
                         + IOUtils.toString(response.getBody(), StandardCharsets.UTF_8));
@@ -356,13 +353,13 @@ public class Importer implements TransferProcess {
             }
         } catch (FcrepoOperationFailedException ex) {
             importLogger.error(
-                String.format("Error importing: %1$s to %2$s, Message: %3$s",
-                        f.getAbsolutePath(), uri, ex.getMessage()), ex);
+                    String.format("Error importing: %1$s to %2$s, Message: %3$s",
+                            f.getAbsolutePath(), uri, ex.getMessage()), ex);
             throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (IOException ex) {
             importLogger.error(
-                String.format("Error reading/parsing file: %1$s, Message: %2$s",
-                        f.getAbsolutePath(), ex.getMessage()), ex);
+                    String.format("Error reading/parsing file: %1$s, Message: %2$s",
+                            f.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException(
                     "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
@@ -381,8 +378,8 @@ public class Importer implements TransferProcess {
     private void importFile(final File f) {
         // The path, relative to the base in the export directory.
         // This is used in place of the full path to make the output more readable.
-        final String sourceRelativePath =
-                config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
+        final String sourceRelativePath
+                = config.getBaseDirectory().toPath().relativize(f.toPath()).toString();
         final String filePath = f.getPath();
 
         //ignore header files
@@ -394,7 +391,7 @@ public class Importer implements TransferProcess {
         }
 
         //parse headers from headers file
-        final Map<String,List<String>> headers = parseHeaders(getHeadersFile(f));
+        final Map<String, List<String>> headers = parseHeaders(getHeadersFile(f));
 
         //always skip timemaps since they are derived from the mementos they contain.
         if (isTimeMap(headers)) {
@@ -416,7 +413,7 @@ public class Importer implements TransferProcess {
             if (!isMemento) {
                 if (config.isIncludeBinaries()) {
                     logger.debug("Skipping binary {}: it will be imported when its metadata is imported.",
-                        sourceRelativePath);
+                            sourceRelativePath);
                 } else {
                     logger.debug("Skipping binary {}", sourceRelativePath);
                 }
@@ -464,8 +461,8 @@ public class Importer implements TransferProcess {
                     logger.info("Importing acl {}", destinationUri);
 
                     final PutBuilder builder = client().put(destinationUri)
-                                                    .body(modelToStream(sanitize(model)), config.getRdfLanguage())
-                                                    .preferLenient();
+                            .body(modelToStream(sanitize(model)), config.getRdfLanguage())
+                            .preferLenient();
                     addInteractionModels(builder, headers);
                     response = builder.perform();
                 } else {
@@ -484,18 +481,17 @@ public class Importer implements TransferProcess {
                 }
             }
 
-
             if (response.getStatusCode() == 401) {
                 importLogger.error("Error importing {} to {}, 401 Unauthorized", f.getAbsolutePath(),
-                    destinationUri);
+                        destinationUri);
                 throw new AuthenticationRequiredRuntimeException();
             } else if (response.getStatusCode() > 204 || response.getStatusCode() < 200) {
                 final String message = "Error while importing " + f.getAbsolutePath() + " ("
                         + response.getStatusCode() + "): " + IOUtils.toString(response.getBody(),
-                                                                              StandardCharsets.UTF_8);
+                        StandardCharsets.UTF_8);
                 logger.error(message);
                 importLogger.error("Error importing {} to {}, received {}", f.getAbsolutePath(), destinationUri,
-                    response.getStatusCode());
+                        response.getStatusCode());
             } else {
                 logger.info("Imported {}: {}", f.getAbsolutePath(), destinationUri);
                 importLogger.info("import {} to {}", f.getAbsolutePath(), destinationUri);
@@ -503,7 +499,7 @@ public class Importer implements TransferProcess {
             }
         } catch (FcrepoOperationFailedException ex) {
             importLogger.error(String.format("Error importing %1$s to %2$s, Message: %3$s", f.getAbsolutePath(),
-                destinationUri, ex.getMessage()), ex);
+                    destinationUri, ex.getMessage()), ex);
             throw new RuntimeException("Error importing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (IOException ex) {
             importLogger.error(String.format("Error reading/parsing %1$s to %2$s, Message: %3$s",
@@ -512,20 +508,20 @@ public class Importer implements TransferProcess {
                     "Error reading or parsing " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         } catch (URISyntaxException ex) {
             importLogger.error(
-                String.format("Error building URI for %1$s, Message: %2$s",
-                        f.getAbsolutePath(), ex.getMessage()), ex);
+                    String.format("Error building URI for %1$s, Message: %2$s",
+                            f.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException("Error building URI for " + f.getAbsolutePath() + ": " + ex.toString(), ex);
         }
     }
 
     private FcrepoResponse importMemento(final File mementoFile, final Map<String, List<String>> headers)
-        throws IOException, FcrepoOperationFailedException {
+            throws IOException, FcrepoOperationFailedException {
         final String mementoDatetime = getFirstByKey(headers, MEMENTO_DATETIME_HEADER);
         final String contentType = getFirstByKey(headers, CONTENT_TYPE_HEADER);
         final URI timeMapURI = getLinkValueByRel(headers, "timemap");
         final PostBuilder builder = client().post(timeMapURI)
-            .body(new FileInputStream(mementoFile), contentType)
-            .addHeader(MEMENTO_DATETIME_HEADER, mementoDatetime);
+                .body(new FileInputStream(mementoFile), contentType)
+                .addHeader(MEMENTO_DATETIME_HEADER, mementoDatetime);
         return builder.perform();
     }
 
@@ -584,21 +580,21 @@ public class Importer implements TransferProcess {
             //converting json to Map
             final byte[] mapData = Files.readAllBytes(Paths.get(headersFile.toURI()));
             final ObjectMapper objectMapper = new ObjectMapper();
-            final Map<String, List<String>> headers =
-                objectMapper.readValue(mapData, new TypeReference<HashMap<String, List<String>>>() {
-                });
+            final Map<String, List<String>> headers
+                    = objectMapper.readValue(mapData, new TypeReference<HashMap<String, List<String>>>() {
+                    });
             return headers;
         } catch (IOException ex) {
             importLogger.error(String.format("Error reading/parsing headers file for %1$s - Message: %2$s",
-                headersFile.getAbsolutePath(), ex.getMessage()), ex);
+                    headersFile.getAbsolutePath(), ex.getMessage()), ex);
             throw new RuntimeException(
-                "Error reading or parsing headers file for" + headersFile.getAbsolutePath() + ": " + ex.toString(), ex);
+                    "Error reading or parsing headers file for" + headersFile.getAbsolutePath() + ": " + ex.toString(), ex);
         }
     }
 
     private Model parseStream(final InputStream in) throws IOException {
         final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(config.getSource(),
-                                                                           config.getDestination());
+                config.getDestination());
         try (final InputStream in2 = in) {
             RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
         }
@@ -618,7 +614,7 @@ public class Importer implements TransferProcess {
 
             final URI descriptionURI = binaryResponse.getLinkHeaders("describedby").get(0);
             return client().put(descriptionURI).body(modelToStream(sanitize(model)), config.getRdfLanguage())
-                .preferLenient().perform();
+                    .preferLenient().perform();
         } else if (binaryResponse.getStatusCode() == 410 && config.overwriteTombstones()) {
             deleteTombstone(binaryResponse);
             return binaryBuilder(binaryURI, binaryFile, contentType, model).perform();
@@ -643,11 +639,11 @@ public class Importer implements TransferProcess {
         }
 
         PutBuilder builder = client().put(binaryURI)
-                                     .filename(null);
+                .filename(null);
 
         if (externalContentLocation != null) {
             builder.externalContent(URI.create(externalContentLocation), contentType,
-                                    isRedirect ? "redirect" : "proxy");
+                    isRedirect ? "redirect" : "proxy");
         } else {
             builder.body(new FileInputStream(binaryFile), contentType).ifUnmodifiedSince(currentTimestamp());
 
@@ -657,16 +653,25 @@ public class Importer implements TransferProcess {
                 logger.debug("Using Bagit checksum ({}) for file ({}): {}", checksum, binaryFile.getPath(), binaryURI);
                 builder = builder.digest(checksum, digestAlgorithm);
             } else {
-                builder = builder.digestSha1(model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
-                                                  .getObject().toString().replaceAll(".*:",""));
+
+                // guess hash algorithm
+                String checksum = model.getProperty(createResource(binaryURI.toString()), HAS_MESSAGE_DIGEST)
+                        .getObject().toString().replaceAll(".*:", "");
+                String algorithm;
+                switch (checksum.getBytes(StandardCharsets.US_ASCII).length * 4) {
+                    case 256: algorithm = "sha256"; break;
+                    case 512: algorithm = "sha512"; break;
+                    default: algorithm = "sha"; break;
+                }
+
+                builder = builder.digest(checksum, algorithm);
             }
         }
         return builder;
     }
 
-
-    private FcrepoResponse importContainer(final URI uri, final Model model, final Map<String,List<String>> headers)
-        throws FcrepoOperationFailedException {
+    private FcrepoResponse importContainer(final URI uri, final Model model, final Map<String, List<String>> headers)
+            throws FcrepoOperationFailedException {
         final FcrepoResponse response = containerBuilder(uri, model, headers).preferLenient().perform();
         if (response.getStatusCode() == 410 && config.overwriteTombstones()) {
             deleteTombstone(response);
@@ -676,10 +681,10 @@ public class Importer implements TransferProcess {
         }
     }
 
-    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String,List<String>> headers) {
+    private PutBuilder containerBuilder(final URI uri, final Model model, final Map<String, List<String>> headers) {
         PutBuilder builder = client().put(uri)
-                                     .body(modelToStream(model), config.getRdfLanguage())
-                                     .ifUnmodifiedSince(currentTimestamp());
+                .body(modelToStream(model), config.getRdfLanguage())
+                .ifUnmodifiedSince(currentTimestamp());
         if (bagItFileMap != null && config.getBagProfile() != null) {
             // Use the bagIt checksum
             final File containerFile = Paths.get(fileForContainerURI(uri).toURI()).normalize().toFile();
@@ -694,16 +699,16 @@ public class Importer implements TransferProcess {
 
     private void addInteractionModels(final PutBuilder builder, final Map<String, List<String>> headers) {
         headers.entrySet().stream().filter(entry -> entry.getKey().equals("Link"))
-            .flatMap(entry -> entry.getValue().stream())
-            .forEach(linkstr -> {
-                final FcrepoLink link = FcrepoLink.valueOf(linkstr);
-                if (link.getRel().equals("type")) {
-                    final String interactionModel = link.getUri().toString();
-                    if (INTERACTION_MODELS.contains(interactionModel)) {
-                        builder.addInteractionModel(interactionModel);
+                .flatMap(entry -> entry.getValue().stream())
+                .forEach(linkstr -> {
+                    final FcrepoLink link = FcrepoLink.valueOf(linkstr);
+                    if (link.getRel().equals("type")) {
+                        final String interactionModel = link.getUri().toString();
+                        if (INTERACTION_MODELS.contains(interactionModel)) {
+                            builder.addInteractionModel(interactionModel);
+                        }
                     }
-                }
-            });
+                });
     }
 
     private String currentTimestamp() {
@@ -730,20 +735,20 @@ public class Importer implements TransferProcess {
      *
      * Certain triples included in a resource from fedora cannot be explicitly stored, but because
      * they're derived from other content that *can* be stored will still appear identical when the
-     * other RDF and content is ingested.  Examples include those properties that reflect innate
-     * characteristics of binary resources like file size and message digest,  Or triples that
+     * other RDF and content is ingested. Examples include those properties that reflect innate
+     * characteristics of binary resources like file size and message digest, Or triples that
      * represent characteristics of rdf resources like the number of children, whether it has
      * versions and some of the types.
      *
      * @param model the RDF statements about an exported resource
-     * @return the provided model updated to omit statements that may not be updated directly through
-     *         the fedora API
+     * @return the provided model updated to omit statements that may not be updated directly
+     * through the fedora API
      * @throws IOException
      * @throws FcrepoOperationFailedException
      */
     private Model sanitize(final Model model) throws IOException, FcrepoOperationFailedException {
         final List<Statement> remove = new ArrayList<>();
-        for (final StmtIterator it = model.listStatements(); it.hasNext(); ) {
+        for (final StmtIterator it = model.listStatements(); it.hasNext();) {
             final Statement s = it.nextStatement();
 
             if ((s.getPredicate().getNameSpace().equals(REPOSITORY_NAMESPACE) && !relaxedPredicate(s.getPredicate()))
@@ -766,21 +771,23 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * RDF type URIs that have special meaning in fedora and that are managed by fedora and
-     * not eligible for modification through the fedora API.
+     * RDF type URIs that have special meaning in fedora and that are managed by fedora and not
+     * eligible for modification through the fedora API.
+     *
      * @param resource the URI resource that is part of an rdf:type statement
      * @return true if the resource represents a type that may not be added/removed explicitly
      */
     private boolean forbiddenType(final Resource resource) {
         return resource.getNameSpace().equals(REPOSITORY_NAMESPACE)
-            || resource.getNameSpace().equals(MEMENTO_NAMESPACE)
-            || resource.getNameSpace().equals(LDP_NAMESPACE);
+                || resource.getNameSpace().equals(MEMENTO_NAMESPACE)
+                || resource.getNameSpace().equals(LDP_NAMESPACE);
     }
 
     /**
      * Tests whether the provided property is one of the small subset of the predicates within the
-     * repository namespace that may be modified.  This method always returns false if the
+     * repository namespace that may be modified. This method always returns false if the
      * import/export configuration is set to "legacy" mode.
+     *
      * @param p the property (predicate) to test
      * @return true if the predicate is of the type that can be modified
      */
@@ -839,7 +846,7 @@ public class Importer implements TransferProcess {
         relative = TransferProcess.decodePath(relative);
 
         // rebase the path on the destination uri (translating source/destination if needed)
-        if ( config.getSource() != null && config.getDestination() != null ) {
+        if (config.getSource() != null && config.getDestination() != null) {
             relative = baseURI(config.getSource()) + relative;
             relative = relative.replaceFirst(config.getSource().toString(), config.getDestination().toString());
         } else {
@@ -860,13 +867,13 @@ public class Importer implements TransferProcess {
 
     private File fileForBinaryURI(final URI uri) {
         final File file = fileForExternalResources(uri, config.getSourcePath(), config.getDestinationPath(),
-                    config.getBaseDirectory());
+                config.getBaseDirectory());
 
         if (file.exists()) {
             return file;
         } else {
             return fileForBinary(uri, config.getSourcePath(), config.getDestinationPath(),
-                config.getBaseDirectory());
+                    config.getBaseDirectory());
         }
     }
 
@@ -903,8 +910,8 @@ public class Importer implements TransferProcess {
     }
 
     /**
-     * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to populate the
-     * {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files
+     * Query a {@link Bag} for the highest ranking {@link Manifest} and use that in order to
+     * populate the {@code bagItFileMap} and {@code digestAlgorithm} for use when importing files
      *
      * @param bag The {@link Bag} to read from
      */
@@ -914,21 +921,21 @@ public class Importer implements TransferProcess {
         final BagItDigest sha = BagItDigest.SHA1;
         final BagItDigest sha256 = BagItDigest.SHA256;
         final Set<String> fcrepoSupported = new HashSet<>(Arrays.asList(md5.bagitName(), sha.bagitName(),
-                                                                        sha256.bagitName()));
+                sha256.bagitName()));
         final Manifest manifest = bag.getPayLoadManifests().stream()
-               .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
-               .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
-               .orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import " +
-                                                       "utility can use! Available algorithms are: " +
-                                                       StringUtils.join(fcrepoSupported, ",")));
+                .filter(streamManifest -> fcrepoSupported.contains(streamManifest.getAlgorithm().getBagitName()))
+                .reduce((m1, m2) -> manifestPriority(m1) > manifestPriority(m2) ? m1 : m2)
+                .orElseThrow(() -> new RuntimeException("Bag does not contain any manifests the import "
+                + "utility can use! Available algorithms are: "
+                + StringUtils.join(fcrepoSupported, ",")));
 
         this.bagItFileMap = manifest.getFileToChecksumMap().entrySet().stream()
-                                    .collect(Collectors.toMap(
-                                        entry -> entry.getKey().toAbsolutePath().toString(),
-                                        Map.Entry::getValue));
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().toAbsolutePath().toString(),
+                        Map.Entry::getValue));
         logger.debug("loaded checksum map: {}", bagItFileMap);
 
-        switch(BagItDigest.from(manifest.getAlgorithm().getBagitName())) {
+        switch (BagItDigest.from(manifest.getAlgorithm().getBagitName())) {
             case MD5:
                 this.digestAlgorithm = md5.bagitName();
                 break;
@@ -939,7 +946,8 @@ public class Importer implements TransferProcess {
             case SHA256:
                 this.digestAlgorithm = sha256.bagitName();
                 break;
-            default: throw new RuntimeException("Unsupported BagIt algorithm!");
+            default:
+                throw new RuntimeException("Unsupported BagIt algorithm!");
         }
     }
 
@@ -952,10 +960,14 @@ public class Importer implements TransferProcess {
     private int manifestPriority(final Manifest manifest) {
         final String bagItAlgorithm = manifest.getAlgorithm().getBagitName();
         switch (BagItDigest.from(bagItAlgorithm)) {
-            case MD5: return 0;
-            case SHA1: return 1;
-            case SHA256: return 2;
-            default: throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
+            case MD5:
+                return 0;
+            case SHA1:
+                return 1;
+            case SHA256:
+                return 2;
+            default:
+                throw new RuntimeException("Algorithm not allowed! " + bagItAlgorithm);
         }
     }
 
@@ -963,9 +975,10 @@ public class Importer implements TransferProcess {
      * Method to find and set the repository root from the resource uri.
      *
      * Note: This method is public to allow access for testing purposes.
+     *
      * @param uri the URI for the resource
-     * @return The URI of the repository root, or the URI with path removed if neither the URI nor none of its
-     *         parent paths declare themselves fedora:RepositoryRoot.
+     * @return The URI of the repository root, or the URI with path removed if neither the URI nor
+     * none of its parent paths declare themselves fedora:RepositoryRoot.
      */
     public URI findRepositoryRoot(final URI uri) {
         final String s = uri.toString();
