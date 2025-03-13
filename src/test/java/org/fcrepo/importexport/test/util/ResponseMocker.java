@@ -46,7 +46,7 @@ public abstract class ResponseMocker {
 
     /**
      * Mocks a successful HEAD request response
-     * 
+     *
      * @param client client
      * @param uri uri of destination being mocked
      * @param typeLinks type links
@@ -56,6 +56,24 @@ public abstract class ResponseMocker {
      */
     public static void mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
                                         final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink)
+            throws FcrepoOperationFailedException {
+        mockHeadResponse(client, uri, typeLinks, describedbyLinks, timemapLink, aclLink, null);
+    }
+
+    /**
+     * Mocks a successful HEAD request response
+     *
+     * @param client client
+     * @param uri uri of destination being mocked
+     * @param typeLinks type links
+     * @param describedbyLinks described by links
+     * @param timemapLink timemap links
+     * @param contentType content type of response
+     * @throws FcrepoOperationFailedException client failures
+     */
+    public static void mockHeadResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
+                                        final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink,
+                                        final String contentType)
             throws FcrepoOperationFailedException {
         final HeadBuilder headBuilder = mock(HeadBuilder.class);
         final FcrepoResponse headResponse = mock(FcrepoResponse.class);
@@ -73,6 +91,25 @@ public abstract class ResponseMocker {
         if (aclLink != null) {
             when(headResponse.getLinkHeaders(eq("acl"))).thenReturn(Arrays.asList(aclLink));
         }
+        if (contentType != null) {
+            when(headResponse.getContentType()).thenReturn(contentType);
+        }
+    }
+
+    /**
+     * Mocks a successful GET request response
+     *
+     * @param client client
+     * @param uri uri of destination being mocked
+     * @param typeLinks type links
+     * @param describedbyLinks described by links
+     * @param body body of response
+     * @throws FcrepoOperationFailedException client failures
+     */
+    public static void mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
+                                       final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink,
+                                       final String body) throws FcrepoOperationFailedException {
+        mockGetResponse(client, uri, typeLinks, describedbyLinks, timemapLink, aclLink, body, null);
     }
 
     /**
@@ -83,11 +120,12 @@ public abstract class ResponseMocker {
      * @param typeLinks type links
      * @param describedbyLinks described by links
      * @param body body of response
+     * @param contentType content type of response
      * @throws FcrepoOperationFailedException client failures
      */
     public static void mockGetResponse(final FcrepoClient client, final URI uri, final List<URI> typeLinks,
                                        final List<URI> describedbyLinks, final URI timemapLink, final URI aclLink,
-                                       final String body)
+                                       final String body, final String contentType)
         throws FcrepoOperationFailedException {
         final GetBuilder getBuilder = mock(GetBuilder.class);
         final FcrepoResponse getResponse = mock(FcrepoResponse.class);
@@ -111,6 +149,10 @@ public abstract class ResponseMocker {
 
         if (aclLink != null) {
             when(getResponse.getLinkHeaders(eq("acl"))).thenReturn(Arrays.asList(aclLink));
+        }
+
+        if (contentType != null) {
+            when(getResponse.getContentType()).thenReturn(contentType);
         }
     }
 

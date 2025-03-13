@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
@@ -37,6 +36,7 @@ import org.fcrepo.client.PutBuilder;
 import org.junit.Before;
 import org.slf4j.Logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.jena.rdf.model.ResourceFactory.createPlainLiteral;
@@ -176,7 +176,7 @@ public abstract class AbstractResourceIT {
                 uri, response.getStatusCode(), response.getHeaderValue("Location"));
 
         try {
-            logger().debug("body = {}", IOUtils.toString(response.getBody(), "UTF-8"));
+            logger().debug("body = {}", IOUtils.toString(response.getBody(), UTF_8));
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
@@ -195,13 +195,8 @@ public abstract class AbstractResourceIT {
     }
 
     protected InputStream insertTitle(final String title) {
-        try {
-            return new ByteArrayInputStream(("INSERT DATA { <> <" + DC_TITLE + "> '" + title + "' . }")
-                    .getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            // can't actually happen
-            throw new RuntimeException(e);
-        }
+        return new ByteArrayInputStream(("INSERT DATA { <> <" + DC_TITLE + "> '" + title + "' . }")
+            .getBytes(UTF_8));
     }
 
     protected FcrepoResponse patch(final URI uri, final String command) throws FcrepoOperationFailedException {
@@ -221,7 +216,7 @@ public abstract class AbstractResourceIT {
 
     protected String getAsString(final URI uri) throws FcrepoOperationFailedException, IOException {
         final FcrepoResponse response = clientBuilder.build().get(uri).perform();
-        return IOUtils.toString(response.getBody());
+        return IOUtils.toString(response.getBody(), UTF_8);
     }
 
     protected void assertHasTitle(final URI uri, final String title) throws FcrepoOperationFailedException {

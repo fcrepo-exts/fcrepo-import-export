@@ -48,6 +48,7 @@ public class Config {
 
     public static final String DEFAULT_RDF_LANG = "text/turtle";
     public static final String DEFAULT_RDF_EXT = getRDFExtension(DEFAULT_RDF_LANG);
+    public static final String DEFAULT_STREAMING_RDF_LANG = "application/n-triples";
     public static final String[] DEFAULT_PREDICATES = new String[] { CONTAINS.toString() };
 
     private String mode;
@@ -82,6 +83,12 @@ public class Config {
     private Path resourceFile;
 
     private boolean auditLog = false;
+
+    private boolean streaming = false;
+    /**
+     * Flag indicating whether the RDF language has been set by the user.
+     */
+    private boolean rdf_set = false;
 
     private boolean skipTombstoneErrors = false;
 
@@ -474,6 +481,7 @@ public class Config {
      * @param language of the exported RDF
      */
     public void setRdfLanguage(final String language) {
+        this.rdf_set = true;
         this.rdfLanguage = language;
         this.rdfExtension = getRDFExtension(language);
     }
@@ -481,10 +489,17 @@ public class Config {
     /**
      * Gets the RDF language
      *
-     * @return rdfLanguage
+     * @return rdfLanguage if set or default RDF language depending on streaming
      */
     public String getRdfLanguage() {
-        return rdfLanguage;
+        return (this.rdf_set ? rdfLanguage : (this.isStreaming() ? DEFAULT_STREAMING_RDF_LANG : DEFAULT_RDF_LANG));
+    }
+
+    /**
+     * @return boolean Whether the RDF language has been set by the user.
+     */
+    public boolean isRdfSet() {
+        return rdf_set;
     }
 
     /**
@@ -608,6 +623,8 @@ public class Config {
         if (resourceFile != null) {
             map.put("resourceFile", resourceFile.toAbsolutePath().toString());
         }
+        map.put("streaming", Boolean.toString(this.streaming));
+        map.put("isRdfSet", Boolean.toString(this.isRdfSet()));
         return map;
     }
 
@@ -703,6 +720,20 @@ public class Config {
      */
     public void setResourceFile(final Path resourceFile) {
         this.resourceFile = resourceFile;
+    }
+
+    /**
+     * @return true if mode is export and streaming is enabled
+     */
+    public boolean isStreaming() {
+        return this.streaming;
+    }
+
+    /**
+     * @param streaming true if streaming is enabled for export
+     */
+    public void setStreaming(final boolean streaming) {
+        this.streaming = streaming;
     }
 
     /**
