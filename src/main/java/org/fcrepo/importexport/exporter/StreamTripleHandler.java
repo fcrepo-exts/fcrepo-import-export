@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.TransferProcess.checkValidResponse;
@@ -113,7 +114,10 @@ public class StreamTripleHandler implements StreamRDF {
      * @return this
      */
     public StreamTripleHandler setResource(final URI resource) {
-        this.uri = ResourceFactory.createResource(resource.toString()).asNode();
+        // Strip trailing slashes from the resource URI
+        final String resourceUri = resource.toString().endsWith("/") ?
+                resource.toString().substring(0, resource.toString().length() - 1 ) : resource.toString();
+        this.uri = createURI(resourceUri);
         return this;
     }
 
@@ -152,7 +156,17 @@ public class StreamTripleHandler implements StreamRDF {
     @Override
     public void triple(final Triple triple) {
         LOGGER.trace("Triple: {}", triple);
-        if (triple.subjectMatches(uri)) {
+        // Strip trailing slashes from subject and object URIs
+        final Node subject = triple.getSubject().getURI().endsWith("/") ?
+                createURI(triple.getSubject().getURI().substring(0, triple.getSubject().getURI().length() - 1)) :
+                triple.getSubject();
+        final Node object;
+        if (triple.getObject().isURI() && triple.getObject().getURI().endsWith("/")) {
+            object = createURI(triple.getObject().getURI().substring(0, triple.getObject().getURI().length() - 1));
+        } else {
+            object = triple.getObject();
+        }
+        if (subject.equals(uri)) {
             LOGGER.debug("Found triple with subject: {}", uri);
             if (predicates.stream().anyMatch(triple::predicateMatches)) {
                 LOGGER.trace("Capturing object resource {} with predicate {}", uri, triple.getPredicate());
@@ -166,9 +180,9 @@ public class StreamTripleHandler implements StreamRDF {
                         LOGGER.error("Error checking if resource is binary: {}", e.getMessage());
                     }
                 }
-                exports.add(triple.getObject());
+                exports.add(object);
             }
-        } else if (triple.objectMatches(uri)) {
+        } else if (object.equals(uri)) {
             LOGGER.debug("Found triple with object: {}", uri);
             if (config.retrieveInbound()) {
                 LOGGER.trace("Capturing inbound reference: {}", uri);
