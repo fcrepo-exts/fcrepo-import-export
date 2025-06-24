@@ -21,6 +21,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.vocabulary.DC;
+import org.awaitility.Duration;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
@@ -49,6 +50,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.io.FileUtils.readLines;
+import static org.awaitility.Awaitility.await;
 import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -406,11 +408,11 @@ public class ExportStreamTest extends ExportTestBase {
         exporter.run();
 
         final String first_resource_path = exportDirectory + "/rest/" + id;
-        assertTrue(handler.wroteFile(first_resource_path + ".nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
-        assertTrue(exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
-        assertTrue(exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
-        assertTrue(handler.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
+        await().atMost(Duration.ONE_SECOND).until(() -> handler.wroteFile(first_resource_path + ".nt"));
+        await().atMost(Duration.ONE_SECOND).until(() -> handler.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
+        await().atMost(Duration.ONE_SECOND).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
+        await().atMost(Duration.ONE_SECOND).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
+        await().atMost(Duration.ONE_SECOND).until(() -> handler.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
     }
 
     @Test
