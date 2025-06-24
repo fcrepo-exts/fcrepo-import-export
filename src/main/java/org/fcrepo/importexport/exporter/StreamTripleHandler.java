@@ -156,33 +156,30 @@ public class StreamTripleHandler implements StreamRDF {
     @Override
     public void triple(final Triple triple) {
         LOGGER.trace("Triple: {}", triple);
-        // Strip trailing slashes from subject and object URIs
-        final Node subject = triple.getSubject().getURI().endsWith("/") ?
-                createURI(triple.getSubject().getURI().substring(0, triple.getSubject().getURI().length() - 1)) :
-                triple.getSubject();
+        // Strip trailing slashes from object URIs
         final Node object;
         if (triple.getObject().isURI() && triple.getObject().getURI().endsWith("/")) {
             object = createURI(triple.getObject().getURI().substring(0, triple.getObject().getURI().length() - 1));
         } else {
             object = triple.getObject();
         }
-        if (subject.equals(uri)) {
-            LOGGER.debug("Found triple with subject: {}", uri);
-            if (predicates.stream().anyMatch(triple::predicateMatches)) {
-                LOGGER.trace("Capturing object resource {} with predicate {}", uri, triple.getPredicate());
-                if (!config.isIncludeBinaries()) {
-                    try {
-                        if (isBinary(URI.create(triple.getObject().getURI()))) {
-                            LOGGER.debug("Skipping binary resource: {}", triple.getObject());
-                            return;
-                        }
-                    } catch (IOException | FcrepoOperationFailedException e) {
-                        LOGGER.error("Error checking if resource is binary: {}", e.getMessage());
+
+        LOGGER.debug("Found triple with subject: {}", uri);
+        if (predicates.stream().anyMatch(triple::predicateMatches)) {
+            LOGGER.trace("Capturing object resource {} with predicate {}", uri, triple.getPredicate());
+            if (!config.isIncludeBinaries()) {
+                try {
+                    if (triple.getObject().isURI() && isBinary(URI.create(triple.getObject().getURI()))) {
+                        LOGGER.debug("Skipping binary resource: {}", triple.getObject());
+                        return;
                     }
+                } catch (IOException | FcrepoOperationFailedException e) {
+                    LOGGER.error("Error checking if resource is binary: {}", e.getMessage());
                 }
-                exports.add(object);
             }
-        } else if (object.equals(uri)) {
+            exports.add(object);
+        }
+        if (object.equals(uri)) {
             LOGGER.debug("Found triple with object: {}", uri);
             if (config.retrieveInbound()) {
                 LOGGER.trace("Capturing inbound reference: {}", uri);
