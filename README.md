@@ -1,6 +1,5 @@
 Fedora Import/Export Utility
 ==============================
-[![Build Status](https://travis-ci.com/fcrepo-exts/fcrepo-import-export.svg?branch=master)](https://travis-ci.com/fcrepo-exts/fcrepo-import-export)
 [![LICENSE](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](./LICENSE)
 
 Requirements:
