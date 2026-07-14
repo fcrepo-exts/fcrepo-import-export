@@ -9,14 +9,8 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
     steps:
-    - name: Git support longpaths
-      run: git config --global core.longpaths true
     - name: Checkout
       uses: actions/checkout@v4
     - name: Set up JDK 8
@@ -37,7 +31,6 @@ jobs:
         install
         org.jacoco:jacoco-maven-plugin:0.8.12:report
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
