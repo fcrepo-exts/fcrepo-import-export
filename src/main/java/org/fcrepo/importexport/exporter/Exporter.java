@@ -148,8 +148,6 @@ public class Exporter implements TransferProcess {
 
     private final TaskManager taskManager;
 
-    protected StreamTripleHandler streamTripleHandler = null;
-
     /**
      * Constructor that takes the Import/Export configuration
      *
@@ -173,11 +171,14 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private StreamTripleHandler getStreamTripleHandler() {
-        if (streamTripleHandler == null) {
-            streamTripleHandler = new StreamTripleHandler(config, this, client());
-        }
-        return streamTripleHandler;
+    /**
+     * Creates a triple handler for streaming a single resource. A handler holds the state of the resource it is
+     * writing, so resources exported concurrently must not share one.
+     *
+     * @return a new stream triple handler
+     */
+    protected StreamTripleHandler newStreamTripleHandler() {
+        return new StreamTripleHandler(config, this, client());
     }
 
     private void configureBagItParameters() {
@@ -300,7 +301,7 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private FcrepoClient client() {
+    protected FcrepoClient client() {
         if (config.getUsername() != null) {
             clientBuilder.credentials(config.getUsername(), config.getPassword());
         }
@@ -521,7 +522,7 @@ public class Exporter implements TransferProcess {
             logger.info("Exporting rdf: {}", uri);
 
             if (config.isStreaming()) {
-                final StreamTripleHandler handler = getStreamTripleHandler().setResource(uri).setFile(file);
+                final StreamTripleHandler handler = newStreamTripleHandler().setResource(uri).setFile(file);
                 RDFDataMgr.parse(handler, response.getBody(), contentTypeToLang(config.getRdfLanguage()));
             } else {
                 final String responseBody = IOUtils.toString(response.getBody(), UTF_8);
@@ -884,6 +885,10 @@ public class Exporter implements TransferProcess {
          * @param uri the uri of the resource to export
          */
         public void submit(final URI uri) {
+            // The count must be incremented before the task is submitted, otherwise the task may complete and
+            // decrement the count before it was ever incremented, allowing awaitCompletion() to return early.
+            count.incrementAndGet();
+
             try {
                 executorService.submit(new ExportTask(uri, () -> {
                     try {
@@ -913,9 +918,11 @@ public class Exporter implements TransferProcess {
                 }));
             } catch (RejectedExecutionException e) {
                 remainingLogger.error("{}", uri);
+                count.decrementAndGet();
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
             }
-
-            count.incrementAndGet();
         }
 
         /**
