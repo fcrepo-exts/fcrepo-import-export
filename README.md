@@ -1,5 +1,7 @@
 Fedora Import/Export Utility
 ==============================
+[![Build Status](https://github.com/fcrepo-exts/fcrepo-import-export/actions/workflows/build.yml/badge.svg)](https://github.com/fcrepo-exts/fcrepo-import-export/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/fcrepo-exts/fcrepo-import-export/branch/main/graph/badge.svg)](https://codecov.io/gh/fcrepo-exts/fcrepo-import-export)
 [![LICENSE](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](./LICENSE)
 
 Requirements:

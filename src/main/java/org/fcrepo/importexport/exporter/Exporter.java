@@ -124,7 +124,7 @@ public class Exporter implements TransferProcess {
     // Log progress every time this many resources have been exported
     private static final int REPORTING_INTERVAL = 10_000;
 
-    private final Config config;
+    final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final URI binaryURI;
     private final URI containerURI;
@@ -147,8 +147,6 @@ public class Exporter implements TransferProcess {
     protected URI repositoryRoot = null;
 
     private final TaskManager taskManager;
-
-    protected StreamTripleHandler streamTripleHandler = null;
 
     /**
      * Constructor that takes the Import/Export configuration
@@ -173,11 +171,11 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private StreamTripleHandler getStreamTripleHandler() {
-        if (streamTripleHandler == null) {
-            streamTripleHandler = new StreamTripleHandler(config, this, client());
-        }
-        return streamTripleHandler;
+    // A StreamTripleHandler holds per-resource state (output stream, file, current uri), so each RDF export
+    // gets its own instance. Sharing one across the export thread pool caused concurrent exports to overwrite
+    // each other's state, producing NullPointerExceptions and missing output files.
+    StreamTripleHandler newStreamTripleHandler() {
+        return new StreamTripleHandler(config, this, client());
     }
 
     private void configureBagItParameters() {
@@ -300,7 +298,7 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private FcrepoClient client() {
+    FcrepoClient client() {
         if (config.getUsername() != null) {
             clientBuilder.credentials(config.getUsername(), config.getPassword());
         }
@@ -521,7 +519,7 @@ public class Exporter implements TransferProcess {
             logger.info("Exporting rdf: {}", uri);
 
             if (config.isStreaming()) {
-                final StreamTripleHandler handler = getStreamTripleHandler().setResource(uri).setFile(file);
+                final StreamTripleHandler handler = newStreamTripleHandler().setResource(uri).setFile(file);
                 RDFDataMgr.parse(handler, response.getBody(), contentTypeToLang(config.getRdfLanguage()));
             } else {
                 final String responseBody = IOUtils.toString(response.getBody(), UTF_8);
@@ -884,6 +882,9 @@ public class Exporter implements TransferProcess {
          * @param uri the uri of the resource to export
          */
         public void submit(final URI uri) {
+            // Increment before submitting so a worker can never decrement the count for this task
+            // before it has been incremented, which would let awaitCompletion() return early.
+            count.incrementAndGet();
             try {
                 executorService.submit(new ExportTask(uri, () -> {
                     try {
@@ -913,9 +914,12 @@ public class Exporter implements TransferProcess {
                 }));
             } catch (RejectedExecutionException e) {
                 remainingLogger.error("{}", uri);
+                // The task will never run, so undo the increment and wake any waiting thread.
+                count.decrementAndGet();
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
             }
-
-            count.incrementAndGet();
         }
 
         /**
