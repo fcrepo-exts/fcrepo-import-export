@@ -124,7 +124,7 @@ public class Exporter implements TransferProcess {
     // Log progress every time this many resources have been exported
     private static final int REPORTING_INTERVAL = 10_000;
 
-    private final Config config;
+    final Config config;
     protected FcrepoClient.FcrepoClientBuilder clientBuilder;
     private final URI binaryURI;
     private final URI containerURI;
@@ -171,13 +171,10 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    /**
-     * Creates a triple handler for streaming a single resource. A handler holds the state of the resource it is
-     * writing, so resources exported concurrently must not share one.
-     *
-     * @return a new stream triple handler
-     */
-    protected StreamTripleHandler newStreamTripleHandler() {
+    // A StreamTripleHandler holds per-resource state (output stream, file, current uri), so each RDF export
+    // gets its own instance. Sharing one across the export thread pool caused concurrent exports to overwrite
+    // each other's state, producing NullPointerExceptions and missing output files.
+    StreamTripleHandler newStreamTripleHandler() {
         return new StreamTripleHandler(config, this, client());
     }
 
@@ -301,7 +298,7 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    protected FcrepoClient client() {
+    FcrepoClient client() {
         if (config.getUsername() != null) {
             clientBuilder.credentials(config.getUsername(), config.getPassword());
         }
@@ -885,10 +882,9 @@ public class Exporter implements TransferProcess {
          * @param uri the uri of the resource to export
          */
         public void submit(final URI uri) {
-            // The count must be incremented before the task is submitted, otherwise the task may complete and
-            // decrement the count before it was ever incremented, allowing awaitCompletion() to return early.
+            // Increment before submitting so a worker can never decrement the count for this task
+            // before it has been incremented, which would let awaitCompletion() return early.
             count.incrementAndGet();
-
             try {
                 executorService.submit(new ExportTask(uri, () -> {
                     try {
@@ -918,6 +914,7 @@ public class Exporter implements TransferProcess {
                 }));
             } catch (RejectedExecutionException e) {
                 remainingLogger.error("{}", uri);
+                // The task will never run, so undo the increment and wake any waiting thread.
                 count.decrementAndGet();
                 synchronized (lock) {
                     lock.notifyAll();

@@ -21,6 +21,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.vocabulary.DC;
+import org.awaitility.Duration;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
@@ -42,14 +43,15 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.synchronizedList;
 import static org.apache.commons.io.FileUtils.readLines;
+import static org.awaitility.Awaitility.await;
 import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDENTIFIER;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
@@ -90,7 +92,6 @@ public class ExportStreamTest extends ExportTestBase {
     private URI resource4;
 
     private StreamExporterWrapper exporter;
-    private FileRecorder handler;
 
     public ExportStreamTest() throws URISyntaxException {
         super();
@@ -131,11 +132,10 @@ public class ExportStreamTest extends ExportTestBase {
     }
 
     /**
-     * Reconfigure the exporter and handler to use the current configuration.
+     * Reconfigure the exporter to use the current configuration.
      */
     private void reconfigureExporter() {
-        handler = new FileRecorder();
-        exporter = new StreamExporterWrapper(config, clientBuilder, handler);
+        exporter = new StreamExporterWrapper(config, clientBuilder);
     }
 
     @Test
@@ -144,7 +144,7 @@ public class ExportStreamTest extends ExportTestBase {
                 "<" + resource + "> <" + DC.creator + "> \"Creator\" .\n";
         mockResponse(resource, descriptionLinks, describedbyLinks, content);
         exporter.run();
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
     }
 
     @Test
@@ -167,9 +167,9 @@ public class ExportStreamTest extends ExportTestBase {
         exporter.run();
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + BINARY_EXTENSION));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + BINARY_EXTENSION + ".headers"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Ametadata.nt"));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Ametadata.nt.headers"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + alternateID + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + alternateID + ".nt"));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + alternateID + ".nt.headers"));
     }
 
@@ -180,8 +180,8 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/alt_description.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/alt_description.nt"));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION + HEADERS_EXTENSION));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt" + HEADERS_EXTENSION));
         assertTrue(exporter.wroteFile(exportDirectory + "/rest/alt_description.nt" + HEADERS_EXTENSION));
@@ -199,8 +199,8 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
         assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
 
         final File baginfo = new File(exportDirectory + "/bag-info.txt");
         assertTrue(baginfo.exists());
@@ -236,8 +236,8 @@ public class ExportStreamTest extends ExportTestBase {
         assertTrue(Files.exists(Paths.get(exportDirectory, "manifest-md5.txt")));
         assertTrue(Files.exists(Paths.get(exportDirectory, "manifest-sha256.txt")));
         assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
 
         assertTrue(Files.exists(Paths.get(exportDirectory + ".tar")));
         tearDownFiles.add(new File(exportDirectory + ".tar"));
@@ -268,7 +268,7 @@ public class ExportStreamTest extends ExportTestBase {
         createAptrustBagConfig();
         config.setBagConfigPath("src/test/resources/configs/bagit-config-missing-access.yml");
 
-        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder, handler));
+        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder));
     }
 
     @Test
@@ -278,7 +278,7 @@ public class ExportStreamTest extends ExportTestBase {
         config.setBagSerialization("tar");
         config.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
 
-        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder, handler));
+        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder));
     }
 
     @Test
@@ -297,8 +297,8 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
         assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1" + BINARY_EXTENSION));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/file1/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/data/rest/alt_description.nt"));
 
         final File bagInfo = new File(exportDirectory + "/bag-info.txt");
         assertTrue(bagInfo.exists());
@@ -316,7 +316,7 @@ public class ExportStreamTest extends ExportTestBase {
         config.setBagProfile("beyondtherepository");
         config.setBagConfigPath("src/test/resources/configs/bagit-config-missing-source-org.yml");
 
-        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder, handler));
+        assertThrows(RuntimeException.class, () -> new StreamExporterWrapper(config, clientBuilder));
     }
 
     @Test
@@ -326,8 +326,8 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
         assertFalse(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION));
-        assertFalse(handler.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
-        assertFalse(handler.wroteFile(exportDirectory + "/rest/alt_description.nt"));
+        assertFalse(exporter.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
+        assertFalse(exporter.wroteFile(exportDirectory + "/rest/alt_description.nt"));
     }
 
     @Test
@@ -351,7 +351,7 @@ public class ExportStreamTest extends ExportTestBase {
         final String externalResourceFile = exportDirectory + "/rest/file1" + EXTERNAL_RESOURCE_EXTENSION;
         assertTrue(exporter.wroteFile(externalResourceFile));
         assertTrue(new File(externalResourceFile).exists());
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/file1/fcr%3Ametadata.nt"));
     }
 
     @Test
@@ -360,7 +360,7 @@ public class ExportStreamTest extends ExportTestBase {
         config.setResource(resource);
 
         exporter.run();
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
     }
 
     @Test
@@ -379,8 +379,8 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
 
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
     }
 
     @Test
@@ -406,11 +406,11 @@ public class ExportStreamTest extends ExportTestBase {
         exporter.run();
 
         final String first_resource_path = exportDirectory + "/rest/" + id;
-        assertTrue(handler.wroteFile(first_resource_path + ".nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
-        assertTrue(exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
-        assertTrue(exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
-        assertTrue(handler.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
+        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + ".nt"));
+        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
+        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
+        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
+        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
     }
 
     @Test
@@ -429,7 +429,7 @@ public class ExportStreamTest extends ExportTestBase {
 
         exporter.run();
 
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
         assertFalse(exporter.wroteFile(exportDirectory + "/rest/file1" + BINARY_EXTENSION));
     }
 
@@ -438,7 +438,7 @@ public class ExportStreamTest extends ExportTestBase {
         config.setResource(resource);
 
         exporter.run();
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
     }
 
     @Test
@@ -450,8 +450,8 @@ public class ExportStreamTest extends ExportTestBase {
         config.setResource(resource);
 
         exporter.run();
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
-        assertTrue(handler.wroteFile(exportDirectory + "/rest/" + id + "/2.nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + ".nt"));
+        assertTrue(exporter.wroteFile(exportDirectory + "/rest/" + id + "/2.nt"));
     }
 
     private void createAptrustBagConfig() {
@@ -469,60 +469,53 @@ public class ExportStreamTest extends ExportTestBase {
  * A wrapper around the Exporter class to allow for testing of the StreamTripleHandler.
  */
 class StreamExporterWrapper extends Exporter {
-    private final FileRecorder writtenFiles = new FileRecorder();
-
-    private final FileRecorder handlerFiles;
-
-    private final Config config;
+    // Written to from multiple export threads, so keep it thread-safe.
+    private final List<String> writtenFiles = Collections.synchronizedList(new ArrayList<>());
 
     StreamExporterWrapper(
             final Config config,
-            final FcrepoClient.FcrepoClientBuilder clientBuilder,
-            final FileRecorder handlerFiles
+            final FcrepoClient.FcrepoClientBuilder clientBuilder
     ) {
         super(config, clientBuilder);
-        this.config = config;
-        this.handlerFiles = handlerFiles;
-    }
-
-    @Override
-    protected StreamTripleHandler newStreamTripleHandler() {
-        return new StreamTripleHandlerWrapper(config, this, client(), handlerFiles);
     }
 
     @Override
     void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
         super.writeResponse(uri, in, describedby, file);
-        writtenFiles.record(file);
+        writtenFiles.add(file.getAbsolutePath());
     }
 
     @Override
     void writeHeadersFile(final FcrepoResponse response, final File file) throws IOException {
         super.writeHeadersFile(response, file);
-        writtenFiles.record(file);
+        writtenFiles.add(file.getAbsolutePath());
 
     }
 
+    @Override
+    StreamTripleHandler newStreamTripleHandler() {
+        return new StreamTripleHandlerWrapper(config, this, client(), writtenFiles);
+    }
+
     boolean wroteFile(final String file) {
-        return writtenFiles.wroteFile(file);
+        return writtenFiles.contains(file);
     }
 
 }
 
 /**
- * A wrapper around the StreamTripleHandler class to allow for validating the files written. The exporter creates a
- * handler per resource, so the files are recorded to a recorder shared by all of them.
+ * A wrapper around the StreamTripleHandler class to record the files written by the streaming handler.
  */
 class StreamTripleHandlerWrapper extends StreamTripleHandler {
 
-    private final FileRecorder files;
+    private final List<String> files;
 
     StreamTripleHandlerWrapper(
             final Config config,
             final Exporter transferProcess,
             final FcrepoClient client,
-            final FileRecorder files
+            final List<String> files
     ) {
         super(config, transferProcess, client);
         this.files = files;
@@ -530,29 +523,12 @@ class StreamTripleHandlerWrapper extends StreamTripleHandler {
 
     @Override
     public void finish() {
-        // Need to make a copy of the file before calling super.finish() because the file reference is set to null.
-        // The file is only written if the outputstream exists in finish().
+        // Copy the file reference before super.finish() sets it to null.
+        // The file is only written if the output stream exists in finish().
         final File file = this.file;
         super.finish();
-        if (file.exists()) {
-            files.record(file);
+        if (file != null && file.exists()) {
+            files.add(file.getAbsolutePath());
         }
-    }
-}
-
-/**
- * Records the files written during an export. Resources are exported concurrently, so this is written to from
- * multiple threads.
- */
-class FileRecorder {
-
-    private final List<String> files = synchronizedList(new ArrayList<>());
-
-    void record(final File file) {
-        files.add(file.getAbsolutePath());
-    }
-
-    boolean wroteFile(final String filename) {
-        return files.contains(filename);
     }
 }
