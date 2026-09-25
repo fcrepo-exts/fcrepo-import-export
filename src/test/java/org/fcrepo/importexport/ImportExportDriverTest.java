@@ -17,37 +17,42 @@
  */
 package org.fcrepo.importexport;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import static org.junit.Assert.assertFalse;
+
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
+import org.junit.Test;
 
 /**
- * Unit test for simple App.
+ * Tests for the command line entry point.
  *
  * @author barmintor
  * @since 2016-08-31
  */
-public class ImportExportDriverTest extends TestCase {
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public ImportExportDriverTest(final String testName ) {
-        super( testName );
+public class ImportExportDriverTest {
+
+    private final File exportDir = new File("target/driver-test-export");
+
+    @After
+    public void tearDown() {
+        FileUtils.deleteQuietly(exportDir);
     }
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite() {
-        return new TestSuite( ImportExportDriverTest.class );
+    @Test
+    public void testMainWithInvalidArgsDoesNotThrow() {
+        ImportExportDriver.main(new String[]{"-m", "invalid"});
     }
 
-    /**
-     * Rigourous Test :-)
-     */
-    public void testexport() {
-        assertTrue( true );
+    @Test
+    public void testMainRunsExport() {
+        // Nothing listens on port 1, so the export task fails and is logged, but the run itself completes
+        ImportExportDriver.main(new String[]{"-m", "export",
+                "-d", exportDir.getPath(),
+                "-r", "http://localhost:1/rest/foo",
+                "-R", "http://localhost:1/rest",
+                "-T", "1"});
+        assertFalse(new File(exportDir, "rest/foo.ttl").exists());
     }
 }

@@ -25,11 +25,16 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.text.ParseException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.importexport.common.Config;
+import org.fcrepo.importexport.common.TransferProcess;
+import org.fcrepo.importexport.exporter.Exporter;
+import org.fcrepo.importexport.importer.Importer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -461,5 +466,143 @@ public class ArgParserTest {
         Assert.assertEquals("text/turtle", config.get("rdfLang"));
         Assert.assertEquals("false", config.get("streaming"));
         Assert.assertEquals("false", config.get("isRdfSet"));
+    }
+
+    @Test
+    public void testParseReturnsExporter() {
+        final TransferProcess process = parser.parse(MINIMAL_VALID_EXPORT_ARGS);
+        Assert.assertTrue(process instanceof Exporter);
+    }
+
+    @Test
+    public void testParseReturnsImporter() {
+        final TransferProcess process = parser.parse(MINIMAL_VALID_IMPORT_ARGS);
+        Assert.assertTrue(process instanceof Importer);
+    }
+
+    @Test
+    public void parseLongHelp() {
+        assertThrows(RuntimeException.class,
+                () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--help")));
+    }
+
+    @Test
+    public void parseInvalidMode() {
+        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(
+                new String[]{"-m", "sideways", "-d", "/tmp/rdf", "-r", "http://localhost:8080/rest/1"}));
+    }
+
+    @Test
+    public void parseImportWithoutResource() {
+        final RuntimeException e = assertThrows(RuntimeException.class,
+                () -> parser.parseConfiguration(new String[]{"-m", "import", "-d", "/tmp/rdf"}));
+        Assert.assertEquals("A resource must be specified when importing", e.getMessage());
+    }
+
+    @Test
+    public void parseResourceFileWithoutRepositoryRoot() {
+        final RuntimeException e = assertThrows(RuntimeException.class, () -> parser.parseConfiguration(
+                new String[]{"-m", "export", "-d", "/tmp/rdf", "-f", "/tmp/resources.txt"}));
+        Assert.assertEquals("The repository root must be specified when exporting from a resources file",
+                e.getMessage());
+    }
+
+    @Test
+    public void parseResourceFileAndOptions() {
+        final Config config = parser.parseConfiguration(new String[]{"-m", "export", "-d", "/tmp/rdf",
+                "-f", "/tmp/resources.txt", "-R", "http://localhost:8080/rest", "-T", "3", "--acls",
+                "--membership", "-a", "--skip-tombstones", "--bag-algorithms", "sha1,md5"});
+        Assert.assertEquals(new File("/tmp/resources.txt").toPath(), config.getResourceFile());
+        Assert.assertEquals(URI.create("http://localhost:8080/rest"), config.getRepositoryRoot());
+        Assert.assertEquals(Integer.valueOf(3), config.getThreadCount());
+        Assert.assertTrue(config.isIncludeAcls());
+        Assert.assertTrue(config.includeMembership());
+        Assert.assertTrue(config.isSkipTombstoneErrors());
+        Assert.assertArrayEquals(new String[]{"sha1", "md5"}, config.getBagAlgorithms());
+    }
+
+    @Test
+    public void parseMapWithSingleValue() {
+        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "-M", "http://localhost:8080/rest")));
+    }
+
+    @Test
+    public void parseMissingConfigFile() {
+        assertThrows(RuntimeException.class,
+                () -> parser.parseConfiguration(new String[]{"-c", "/does/not/exist/config.yml"}));
+    }
+
+    @Test
+    public void parseUnwritableWriteConfig() {
+        final RuntimeException e = assertThrows(RuntimeException.class, () -> parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-w", "/does/not/exist/config.yml")));
+        Assert.assertTrue(e.getMessage().startsWith("Unable to write configuration file"));
+    }
+
+    @Test
+    public void testConfigFromFileAllKeys() throws ParseException {
+        final Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("mode", "import");
+        vars.put("resource", "http://localhost:8080/rest/1");
+        vars.put("map", "http://localhost:8080/rest,http://example.org/rest");
+        vars.put("dir", "/tmp/rdf");
+        vars.put("rdfLang", "application/ld+json");
+        vars.put("binaries", "true");
+        vars.put("acls", "true");
+        vars.put("external", "true");
+        vars.put("inbound", "true");
+        vars.put("writeConfig", "/tmp/written.yml");
+        vars.put("overwriteTombstones", "true");
+        vars.put("legacyMode", "true");
+        vars.put("versions", "true");
+        vars.put("bag-profile", "DEFAULT");
+        vars.put("bag-config", "/tmp/Bag-Config.yml");
+        vars.put("bag-algorithms", "sha1,sha256");
+        vars.put("bag-serialization", "tar");
+        vars.put("predicates", "http://example.org/a,http://example.org/b");
+        vars.put("auditLog", "true");
+        vars.put("threadCount", "2");
+        vars.put("resourceFile", "/tmp/resources.txt");
+        vars.put("streaming", "false");
+        vars.put("membership", "true");
+
+        final Config config = ArgParser.configFromFile(vars);
+        Assert.assertTrue(config.isImport());
+        Assert.assertEquals(URI.create("http://localhost:8080/rest/1"), config.getResource());
+        Assert.assertEquals(URI.create("http://example.org/rest"), config.getDestination());
+        Assert.assertEquals("application/ld+json", config.getRdfLanguage());
+        Assert.assertTrue(config.isIncludeBinaries());
+        Assert.assertTrue(config.isIncludeAcls());
+        Assert.assertTrue(config.retrieveExternal());
+        Assert.assertTrue(config.retrieveInbound());
+        Assert.assertEquals(new File("/tmp/written.yml"), config.getWriteConfig());
+        Assert.assertTrue(config.overwriteTombstones());
+        Assert.assertTrue(config.isLegacy());
+        Assert.assertTrue(config.includeVersions());
+        Assert.assertEquals("default", config.getBagProfile());
+        Assert.assertEquals("/tmp/bag-config.yml", config.getBagConfigPath());
+        Assert.assertArrayEquals(new String[]{"sha1", "sha256"}, config.getBagAlgorithms());
+        Assert.assertEquals("tar", config.getBagSerialization());
+        Assert.assertArrayEquals(new String[]{"http://example.org/a", "http://example.org/b"},
+                config.getPredicates());
+        Assert.assertEquals(Integer.valueOf(2), config.getThreadCount());
+        Assert.assertEquals(new File("/tmp/resources.txt").toPath(), config.getResourceFile());
+        Assert.assertFalse(config.isStreaming());
+        Assert.assertTrue(config.includeMembership());
+    }
+
+    @Test
+    public void testConfigFromFileInvalidMode() {
+        final Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("mode", "sideways");
+        assertThrows(ParseException.class, () -> ArgParser.configFromFile(vars));
+    }
+
+    @Test
+    public void testConfigFromFileInvalidMap() {
+        final Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("map", "http://localhost:8080/rest");
+        assertThrows(ParseException.class, () -> ArgParser.configFromFile(vars));
     }
 }
