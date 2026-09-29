@@ -5,10 +5,10 @@ Fedora Import/Export Utility
 [![LICENSE](https://img.shields.io/badge/license-Apache-blue.svg?style=flat-square)](./LICENSE)
 
 Requirements:
-* Java 8
+* Java 21
 
 Additional requirements for building:
-* Maven 3
+* Maven 3.9
 
 Building
 --------

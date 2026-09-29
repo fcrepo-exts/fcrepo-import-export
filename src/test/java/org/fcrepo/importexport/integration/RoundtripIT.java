@@ -45,7 +45,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
@@ -64,9 +64,9 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -121,7 +121,7 @@ public class RoundtripIT extends AbstractResourceIT {
 
         final String mementoDatetimeImported = get(mementoURI).getHeaderValue("Memento-Datetime");
 
-        assertEquals("Date headers do not match", mementoDatetime, mementoDatetimeImported);
+        assertEquals(mementoDatetime, mementoDatetimeImported, "Date headers do not match");
     }
 
     @Test
@@ -165,7 +165,7 @@ public class RoundtripIT extends AbstractResourceIT {
         final FcrepoResponse getResponse = get(mementoURI);
         assertEquals(SC_OK, getResponse.getStatusCode());
         final String mementoDatetimeImported = getResponse.getHeaderValue("Memento-Datetime");
-        assertEquals("Date headers do not match", mementoDatetime, mementoDatetimeImported);
+        assertEquals(mementoDatetime, mementoDatetimeImported, "Date headers do not match");
         //TODO Uncomment the line below once https://jira.duraspace.org/browse/FCREPO-3018
         //is resolved in the Fedora Core.  The returned content type is
         //"application/octet-stream" rather than text/plain.  This should be uncommented when it is
@@ -497,7 +497,7 @@ public class RoundtripIT extends AbstractResourceIT {
         patch(file1desc, file1patch);
 
         final String contentLength = get(file1).getHeaderValue("Content-Length");
-        assertEquals("Unexpected Content-Length value", contentLength, binaryFileLength + "");
+        assertEquals(contentLength, binaryFileLength + "", "Unexpected Content-Length value");
         final Config config = roundtrip(URI.create(baseURI), true,true);
 
         // verify that files exist and contain expected content
@@ -530,8 +530,8 @@ public class RoundtripIT extends AbstractResourceIT {
         final FcrepoResponse getResponse = client.get(file1).perform();
         assertEquals(200, getResponse.getStatusCode());
         assertEquals(externalURI.toString(), getResponse.getHeaderValue("Content-Location"));
-        assertEquals("Unexpected Content-Length value", getResponse.getHeaderValue("Content-Length"),
-            binaryFileLength + "");
+        assertEquals(getResponse.getHeaderValue("Content-Length"), binaryFileLength + "",
+            "Unexpected Content-Length value");
 
         final Model model = getAsModel(file1desc);
         assertTrue(model.contains(binary, RDF_TYPE, createResource(LDP_NON_RDF_SOURCE)));
@@ -633,11 +633,11 @@ public class RoundtripIT extends AbstractResourceIT {
         final ExtendedIterator<Triple> originalTripleIt = orig.getGraph().find(Node.ANY, Node.ANY, Node.ANY);
         while (originalTripleIt.hasNext()) {
             final Triple t = originalTripleIt.next();
-            assertTrue("Roundtripped resource should contain triple " + t + "!", roundtrippedGraph.contains(t));
+            assertTrue(roundtrippedGraph.contains(t), "Roundtripped resource should contain triple " + t + "!");
             roundtrippedGraph.delete(t);
         }
-        assertTrue("Triples round in roundtripped resource that weren't in original!\n" + roundtrippedGraph,
-                roundtrippedGraph.isEmpty());
+        assertTrue(roundtrippedGraph.isEmpty(),
+                "Triples round in roundtripped resource that weren't in original!\n" + roundtrippedGraph);
     }
 
     private Literal dateLiteral(final String dateString) {

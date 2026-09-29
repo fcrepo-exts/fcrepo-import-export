@@ -380,8 +380,10 @@ public class ArgParser {
             throw new RuntimeException("Streaming mode is only available for export");
         }
 
-        if (config.isExport() && config.isStreaming() && config.isRdfSet() && !config.getRdfLanguage().equals("application/n-triples")) {
-            throw new RuntimeException("Streaming mode is only available for export and does not support setting the RDF language to something other than application/n-triples");
+        if (config.isExport() && config.isStreaming() && config.isRdfSet() &&
+                !config.getRdfLanguage().equals("application/n-triples")) {
+            throw new RuntimeException("Streaming mode is only available for export and does not support setting " +
+                    "the RDF language to something other than application/n-triples");
         }
     }
 

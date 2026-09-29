@@ -19,15 +19,15 @@ package org.fcrepo.importexport.integration;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createLiteralString;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -43,10 +43,9 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-
+import org.junit.jupiter.api.Test;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
-import org.junit.Test;
 import org.slf4j.Logger;
 
 /**
@@ -109,8 +108,8 @@ public class ImporterIT extends AbstractResourceIT {
         // Verify
         assertHasTitle(parent, parentTitle);
         assertHasTitle(child, childTitle);
-        assertEquals("Binary should have been imported!",
-                binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
+        assertEquals(binaryText,
+                IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"), "Binary should have been imported!");
     }
 
     @Test
@@ -236,10 +235,10 @@ public class ImporterIT extends AbstractResourceIT {
         model.read(response.getBody(), "", "N3");
         response.close();
         final Graph graph = model.getGraph();
-        assertTrue("DC title should exist. \n" + graph.toString(), graph.contains(createURI(String.valueOf(parentURI)),
-                createURI("http://purl.org/dc/terms/title"), createLiteral("foo")));
-        assertTrue("Membership triple should exist.", graph.contains(createURI(String.valueOf(parentURI)),
-                createURI("http://pcdm.org/models#hasMember"), createURI(String.valueOf(memberURI))));
+        assertTrue(graph.contains(createURI(String.valueOf(parentURI)),
+                createURI("http://purl.org/dc/terms/title"), createLiteralString("foo")), "DC title should exist. \n" + graph.toString());
+        assertTrue(graph.contains(createURI(String.valueOf(parentURI)),
+                createURI("http://pcdm.org/models#hasMember"), createURI(String.valueOf(memberURI))), "Membership triple should exist.");
     }
 
     @Test

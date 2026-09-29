@@ -17,7 +17,7 @@
  */
 package org.fcrepo.importexport.importer;
 
-import static org.apache.jena.graph.Factory.createDefaultGraph;
+import static org.apache.jena.graph.GraphMemFactory.createDefaultGraph;
 import static org.apache.jena.rdf.model.ModelFactory.createModelForGraph;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.slf4j.LoggerFactory.getLogger;

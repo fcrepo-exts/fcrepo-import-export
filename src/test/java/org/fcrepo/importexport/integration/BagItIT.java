@@ -24,10 +24,11 @@ import static org.duraspace.bagit.profile.BagProfileConstants.BAGIT_PROFILE_IDEN
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_EXT;
 import static org.fcrepo.importexport.common.Config.DEFAULT_RDF_LANG;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -57,7 +58,7 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
 import org.fcrepo.importexport.importer.Importer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 /**
@@ -210,7 +211,7 @@ public class BagItIT extends AbstractResourceIT {
              final TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
             TarArchiveEntry entry;
 
-            while ((entry = tais.getNextTarEntry()) != null) {
+            while ((entry = tais.getNextEntry()) != null) {
                 final List<String> lines = IOUtils.readLines(tais, Charset.defaultCharset());
                 filesFromArchive.put(entry.getName(), lines);
             }
@@ -221,24 +222,24 @@ public class BagItIT extends AbstractResourceIT {
         final String bagInfoPath = id + "/" + BAG_INFO_KEY;
         final String dataFilePath = id + "/data" + uri.getPath() + DEFAULT_RDF_EXT;
         final String headersFilePath = dataFilePath + ".headers";
-        assertTrue("Could not find: " + bagItPath, filesFromArchive.containsKey(bagItPath));
-        assertTrue("Could not find: " + bagInfoPath, filesFromArchive.containsKey(bagInfoPath));
-        assertTrue("Could not find: " + dataFilePath, filesFromArchive.containsKey(dataFilePath));
-        assertTrue("Could not find: " + headersFilePath, filesFromArchive.containsKey(headersFilePath));
+        assertTrue(filesFromArchive.containsKey(bagItPath), "Could not find: " + bagItPath);
+        assertTrue(filesFromArchive.containsKey(bagInfoPath), "Could not find: " + bagInfoPath);
+        assertTrue(filesFromArchive.containsKey(dataFilePath), "Could not find: " + dataFilePath);
+        assertTrue(filesFromArchive.containsKey(headersFilePath), "Could not find: " + headersFilePath);
 
         // check the BagIt-Profile-Identifier value exists in the bag-info
         final BagProfile bagProfile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
         final String bagProfileId = BAGIT_PROFILE_IDENTIFIER + ": " + bagProfile.getIdentifier();
         final List<String> packagedBagInfo = filesFromArchive.get(bagInfoPath);
-        assertTrue("Could not find bag-info entry for: " + bagProfileId, packagedBagInfo.contains(bagProfileId));
+        assertTrue(packagedBagInfo.contains(bagProfileId), "Could not find bag-info entry for: " + bagProfileId);
 
         // use the allowed manifests to find each tag + payload manifest and check accuracy
         for (String algorithm : bagProfile.getAllowedPayloadAlgorithms()) {
             // check both tag and payload manifests were found in the tarball
             final String manifestPath = id + "/manifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
             final String tagManifestPath = id + "/tagmanifest-" + algorithm + BagProfileConstants.BAGIT_TAG_SUFFIX;
-            assertTrue("Could not find: " + manifestPath, filesFromArchive.containsKey(manifestPath));
-            assertTrue("Could not find: " + tagManifestPath, filesFromArchive.containsKey(tagManifestPath));
+            assertTrue(filesFromArchive.containsKey(manifestPath), "Could not find: " + manifestPath);
+            assertTrue(filesFromArchive.containsKey(tagManifestPath), "Could not find: " + tagManifestPath);
 
             // Calculate the checksum for the data file
             final BagItDigest bagItDigest = BagItDigest.from(algorithm);
@@ -256,8 +257,9 @@ public class BagItIT extends AbstractResourceIT {
             final String entryPath = "data" + uri.getPath() + DEFAULT_RDF_EXT;
             final String expectedEntry = checksum + "  " + entryPath;
             final List<String> foundEntry = filesFromArchive.get(manifestPath);
-            assertTrue("Could not find matching manifest entry for: " + expectedEntry + "; existing are\n" + foundEntry,
-                       foundEntry.contains(expectedEntry));
+            assertTrue(foundEntry.contains(expectedEntry),
+                       "Could not find matching manifest entry for: " + expectedEntry + "; existing are\n" +
+                       foundEntry);
         }
     }
 
@@ -363,46 +365,50 @@ public class BagItIT extends AbstractResourceIT {
         assertTrue(exists(resourceURI));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testImportBagVerifyBinaryDigest() {
-        final URI resourceURI = URI.create(serverAddress);
-        final String bagPath = TARGET_DIR + "/test-classes/sample/bagcorrupted";
+        assertThrows(RuntimeException.class, () -> {
+            final URI resourceURI = URI.create(serverAddress);
+            final String bagPath = TARGET_DIR + "/test-classes/sample/bagcorrupted";
 
-        final Config config = new Config();
-        config.setMode("import");
-        config.setBaseDirectory(bagPath);
-        config.setIncludeBinaries(true);
-        config.setRdfLanguage(DEFAULT_RDF_LANG);
-        config.setResource(resourceURI);
-        config.setMap(new String[] { "http://localhost:8080/fcrepo/rest/", serverAddress });
-        config.setUsername(USERNAME);
-        config.setPassword(PASSWORD);
-        config.setBagProfile(DEFAULT_BAG_PROFILE);
+            final Config config = new Config();
+            config.setMode("import");
+            config.setBaseDirectory(bagPath);
+            config.setIncludeBinaries(true);
+            config.setRdfLanguage(DEFAULT_RDF_LANG);
+            config.setResource(resourceURI);
+            config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
+            config.setUsername(USERNAME);
+            config.setPassword(PASSWORD);
+            config.setBagProfile(DEFAULT_BAG_PROFILE);
 
-        // run import, expected to fail on bag validation
-        final Importer importer = new Importer(config, clientBuilder);
-        importer.run();
+            // run import, expected to fail on bag validation
+            final Importer importer = new Importer(config, clientBuilder);
+            importer.run();
+        });
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testImportBagFailsProfileValidation() {
-        final URI resourceURI = URI.create(serverAddress);
-        final String bagPath = TARGET_DIR + "/test-classes/sample/baginvalid";
+        assertThrows(RuntimeException.class, () -> {
+            final URI resourceURI = URI.create(serverAddress);
+            final String bagPath = TARGET_DIR + "/test-classes/sample/baginvalid";
 
-        final Config config = new Config();
-        config.setMode("import");
-        config.setBaseDirectory(bagPath);
-        config.setIncludeBinaries(true);
-        config.setRdfLanguage(DEFAULT_RDF_LANG);
-        config.setResource(resourceURI);
-        config.setMap(new String[] { "http://localhost:8080/fcrepo/rest/", serverAddress });
-        config.setUsername(USERNAME);
-        config.setPassword(PASSWORD);
-        config.setBagProfile(DEFAULT_BAG_PROFILE);
+            final Config config = new Config();
+            config.setMode("import");
+            config.setBaseDirectory(bagPath);
+            config.setIncludeBinaries(true);
+            config.setRdfLanguage(DEFAULT_RDF_LANG);
+            config.setResource(resourceURI);
+            config.setMap(new String[]{"http://localhost:8080/fcrepo/rest/", serverAddress});
+            config.setUsername(USERNAME);
+            config.setPassword(PASSWORD);
+            config.setBagProfile(DEFAULT_BAG_PROFILE);
 
-        // run import, expected to fail on bag validation
-        final Importer importer = new Importer(config, clientBuilder);
-        importer.run();
+            // run import, expected to fail on bag validation
+            final Importer importer = new Importer(config, clientBuilder);
+            importer.run();
+        });
     }
 
     @Override

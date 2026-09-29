@@ -19,7 +19,7 @@ package org.fcrepo.importexport;
 
 import static org.duraspace.bagit.profile.BagProfile.BuiltIn.FEDORA_IMPORT_EXPORT;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -30,9 +30,9 @@ import java.util.Map;
 import org.apache.commons.lang3.ArrayUtils;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.importexport.common.Config;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 
 /**
@@ -52,7 +52,7 @@ public class ArgParserTest {
             "-r", "http://localhost:8080/rest/1"};
 
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         parser = new ArgParser();
     }
@@ -64,16 +64,16 @@ public class ArgParserTest {
                                            "-l", "application/ld+json",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
-        Assert.assertFalse(config.isIncludeBinaries());
-        Assert.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
-        Assert.assertEquals(".jsonld", config.getRdfExtension());
-        Assert.assertEquals("application/ld+json", config.getRdfLanguage());
-        Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
-        Assert.assertFalse(config.retrieveExternal());
-        Assert.assertFalse(config.retrieveInbound());
-        Assert.assertNull(config.getWriteConfig());
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
+        Assertions.assertFalse(config.isIncludeBinaries());
+        Assertions.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
+        Assertions.assertEquals(".jsonld", config.getRdfExtension());
+        Assertions.assertEquals("application/ld+json", config.getRdfLanguage());
+        Assertions.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+        Assertions.assertFalse(config.retrieveExternal());
+        Assertions.assertFalse(config.retrieveInbound());
+        Assertions.assertNull(config.getWriteConfig());
     }
 
     @Test
@@ -83,8 +83,8 @@ public class ArgParserTest {
                                            "-x",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
-        Assert.assertEquals(true, config.retrieveExternal());
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertEquals(true, config.retrieveExternal());
     }
 
     @Test
@@ -94,7 +94,7 @@ public class ArgParserTest {
                                            "-w", "target/sample.yml",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals(new File("target/sample.yml"), config.getWriteConfig());
+        Assertions.assertEquals(new File("target/sample.yml"), config.getWriteConfig());
     }
 
     @Test
@@ -104,24 +104,24 @@ public class ArgParserTest {
                                            "-i",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
-        Assert.assertTrue(config.retrieveInbound());
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertTrue(config.retrieveInbound());
     }
 
     @Test
     public void parseLegacyModeShort() throws Exception {
         final Config config = parser.parseConfiguration(
                 ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "-L"));
-        Assert.assertTrue(config.isImport());
-        Assert.assertTrue(config.isLegacy());
+        Assertions.assertTrue(config.isImport());
+        Assertions.assertTrue(config.isLegacy());
     }
 
     @Test
     public void parseLegacyMode() throws Exception {
         final Config config = parser.parseConfiguration(
                 ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "--legacyMode"));
-        Assert.assertTrue(config.isImport());
-        Assert.assertTrue(config.isLegacy());
+        Assertions.assertTrue(config.isImport());
+        Assertions.assertTrue(config.isLegacy());
     }
 
     @Test
@@ -131,8 +131,8 @@ public class ArgParserTest {
                                            "-t",
                                            "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isImport());
-        Assert.assertTrue(config.overwriteTombstones());
+        Assertions.assertTrue(config.isImport());
+        Assertions.assertTrue(config.overwriteTombstones());
     }
 
     @Test
@@ -142,51 +142,54 @@ public class ArgParserTest {
             "-V",
             "-r", "http://localhost:8080/rest/1"};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
-        Assert.assertTrue(config.includeVersions());
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertTrue(config.includeVersions());
     }
 
     @Test
     public void parseMinimalValidExport() throws Exception {
         final Config config = parser.parseConfiguration(MINIMAL_VALID_EXPORT_ARGS);
-        Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
-        Assert.assertFalse(config.isIncludeBinaries());
-        Assert.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
-        Assert.assertEquals(".ttl", config.getRdfExtension());
-        Assert.assertEquals("text/turtle", config.getRdfLanguage());
-        Assert.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
-        Assert.assertNull(config.getBagProfile());
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertEquals(new File("/tmp/rdf"), config.getBaseDirectory());
+        Assertions.assertFalse(config.isIncludeBinaries());
+        Assertions.assertArrayEquals(new String[]{ CONTAINS.toString() }, config.getPredicates());
+        Assertions.assertEquals(".ttl", config.getRdfExtension());
+        Assertions.assertEquals("text/turtle", config.getRdfLanguage());
+        Assertions.assertEquals(new URI("http://localhost:8080/rest/1"), config.getResource());
+        Assertions.assertNull(config.getBagProfile());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseInvalidRdfLanguage() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "invalid/language" ));
+        assertThrows(RuntimeException.class, () ->
+            parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "invalid/language")));
     }
 
     @Test
     public void parseBagProfile() throws Exception {
         final Config config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS,
                 "-g", "default", "-G", "path/config.yaml", "-s", "zip", "--bag-algorithms", "md5,sha1" ));
-        Assert.assertEquals("zip", config.getBagSerialization());
-        Assert.assertEquals("default", config.getBagProfile());
-        Assert.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
-        Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
-        Assert.assertArrayEquals(new String[]{"md5", "sha1"}, config.getBagAlgorithms());
+        Assertions.assertEquals("zip", config.getBagSerialization());
+        Assertions.assertEquals("default", config.getBagProfile());
+        Assertions.assertEquals(new File("/tmp/rdf/data"), config.getBaseDirectory());
+        Assertions.assertEquals("path/config.yaml", config.getBagConfigPath());
+        Assertions.assertArrayEquals(new String[]{"md5", "sha1"}, config.getBagAlgorithms());
 
         final BagProfile bagProfile = config.initBagProfile();
         final BagProfile fedoraProfile = new BagProfile(FEDORA_IMPORT_EXPORT);
-        Assert.assertEquals(fedoraProfile.getIdentifier(), bagProfile.getIdentifier());
+        Assertions.assertEquals(fedoraProfile.getIdentifier(), bagProfile.getIdentifier());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseBagProfileWithNoConfigSpecified() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-g", "default"));
+        assertThrows(RuntimeException.class, () ->
+            parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-g", "default")));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseBagConfigWithNoProfileSpecified() throws Exception {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-G", "/path/to/bag-config.yaml"));
+        assertThrows(RuntimeException.class, () ->
+            parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-G", "/path/to/bag-config.yaml")));
     }
 
     @Test
@@ -203,96 +206,111 @@ public class ArgParserTest {
 
         final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertTrue(config.isExport());
-        Assert.assertEquals(new File("/tmp/import-export-dir"), config.getBaseDirectory());
-        Assert.assertTrue(config.isIncludeBinaries());
-        Assert.assertArrayEquals(new String[]{"http://www.w3.org/ns/ldp#contains", "http://example.org/custom"},
+        Assertions.assertTrue(config.isExport());
+        Assertions.assertEquals(new File("/tmp/import-export-dir"), config.getBaseDirectory());
+        Assertions.assertTrue(config.isIncludeBinaries());
+        Assertions.assertArrayEquals(new String[]{"http://www.w3.org/ns/ldp#contains", "http://example.org/custom"},
                 config.getPredicates());
-        Assert.assertEquals(".ttl", config.getRdfExtension());
-        Assert.assertEquals("text/turtle", config.getRdfLanguage());
-        Assert.assertEquals(URI.create("http://localhost:8080/rest/test"), config.getResource());
+        Assertions.assertEquals(".ttl", config.getRdfExtension());
+        Assertions.assertEquals("text/turtle", config.getRdfLanguage());
+        Assertions.assertEquals(URI.create("http://localhost:8080/rest/test"), config.getResource());
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test
     public void parseConfigBadKey() throws IOException {
-        // Create test config file
-        final File configFile = File.createTempFile("config-test", ".txt");
-        final FileWriter writer = new FileWriter(configFile);
-        writer.append("binaries: true\n");
-        writer.append("mode: export\n");
-        writer.append("resource: http://localhost:8080/rest/test\n");
-        writer.append("baditem: oops\n");
-        writer.append("dir: /tmp/import-export-dir\n");
-        writer.flush();
+        assertThrows(RuntimeException.class, () -> {
+            // Create test config file
+            final File configFile = File.createTempFile("config-test", ".txt");
+            final FileWriter writer = new FileWriter(configFile);
+            writer.append("binaries: true\n");
+            writer.append("mode: export\n");
+            writer.append("resource: http://localhost:8080/rest/test\n");
+            writer.append("baditem: oops\n");
+            writer.append("dir: /tmp/import-export-dir\n");
+            writer.flush();
 
-        final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
-        final Config config = parser.parseConfiguration(args);
+            final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
+            final Config config = parser.parseConfiguration(args);
+        });
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test
     public void parseConfigBadValue() throws IOException {
-        // Create test config file
-        final File configFile = File.createTempFile("config-test", ".txt");
-        final FileWriter writer = new FileWriter(configFile);
-        writer.append("binaries: yep\n");
-        writer.append("mode: export\n");
-        writer.append("resource: http://localhost:8080/rest/test\n");
-        writer.append("dir: /tmp/import-export-dir\n");
-        writer.flush();
+        assertThrows(RuntimeException.class, () -> {
+            // Create test config file
+            final File configFile = File.createTempFile("config-test", ".txt");
+            final FileWriter writer = new FileWriter(configFile);
+            writer.append("binaries: yep\n");
+            writer.append("mode: export\n");
+            writer.append("resource: http://localhost:8080/rest/test\n");
+            writer.append("dir: /tmp/import-export-dir\n");
+            writer.flush();
 
-        final String[] args = new String[] { "-c", configFile.getAbsolutePath() };
-        final Config config = parser.parseConfiguration(args);
+            final String[] args = new String[]{"-c", configFile.getAbsolutePath()};
+            final Config config = parser.parseConfiguration(args);
+
+        });
 
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseDescriptionDirectoryRequired() throws Exception {
-        final String[] args = new String[]{"-m", "export", "-r", "http://localhost:8080/rest/1"};
-        parser.parse(args);
+        assertThrows(RuntimeException.class, () -> {
+            final String[] args = new String[]{"-m", "export", "-r", "http://localhost:8080/rest/1"};
+            parser.parse(args);
+        });
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test
     public void parseResourceRequired() throws Exception {
-        final String[] args = new String[]{"-m", "export", "-d", "/tmp/rdf"};
-        parser.parse(args);
+        assertThrows(RuntimeException.class, () -> {
+            final String[] args = new String[]{"-m", "export", "-d", "/tmp/rdf"};
+            parser.parse(args);
+        });
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test
     public void parseInvalid() throws Exception {
-        final String[] args = new String[]{"junk"};
-        parser.parse(args);
+        assertThrows(RuntimeException.class, () -> {
+            final String[] args = new String[]{"junk"};
+            parser.parse(args);
+        });
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseHelpWithNoOtherArgs() {
-        parser.parseConfiguration(new String[] {"-h"});
+        assertThrows(RuntimeException.class, () ->
+            parser.parseConfiguration(new String[]{"-h"}));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void parseHelpWithMinimumValidArgs() {
-        final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-h");
-        parser.parseConfiguration(args);
+        assertThrows(RuntimeException.class, () -> {
+            final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-h");
+            parser.parseConfiguration(args);
+        });
     }
 
     @Test
     public void parseValidUsername() {
         final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-u",  "user:pass");
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals("user", config.getUsername());
-        Assert.assertEquals("pass", config.getPassword());
+        Assertions.assertEquals("user", config.getUsername());
+        Assertions.assertEquals("pass", config.getPassword());
     }
 
     @Test
     public void parseValidUsernameLong() {
         final String[] args = ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--user", "user:pass");
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals("user", config.getUsername());
-        Assert.assertEquals("pass", config.getPassword());
+        Assertions.assertEquals("user", config.getUsername());
+        Assertions.assertEquals("pass", config.getPassword());
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test
     public void parseInvalidUser() {
-        parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--u", "wrong"));
+        assertThrows(RuntimeException.class, () ->
+            parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--u", "wrong")));
     }
 
     @Test
@@ -303,10 +321,10 @@ public class ArgParserTest {
                                            "-r", "http://localhost:8888/fcrepo/rest/1",
                                            "-M", map};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertEquals("http://localhost:7777/rest", config.getSource().toString());
-        Assert.assertEquals("/rest", config.getSourcePath());
-        Assert.assertEquals("http://localhost:8888/fcrepo/rest", config.getDestination().toString());
-        Assert.assertEquals("/fcrepo/rest", config.getDestinationPath());
+        Assertions.assertEquals("http://localhost:7777/rest", config.getSource().toString());
+        Assertions.assertEquals("/rest", config.getSourcePath());
+        Assertions.assertEquals("http://localhost:8888/fcrepo/rest", config.getDestination().toString());
+        Assertions.assertEquals("/fcrepo/rest", config.getDestinationPath());
     }
 
     @Test
@@ -316,8 +334,8 @@ public class ArgParserTest {
                                            "-d", "/tmp/rdf",
                                            "-r", resource};
         final Config config = parser.parseConfiguration(args);
-        Assert.assertNull(config.getSource());
-        Assert.assertNull(config.getDestination());
+        Assertions.assertNull(config.getSource());
+        Assertions.assertNull(config.getDestination());
     }
 
     @Test
@@ -327,19 +345,19 @@ public class ArgParserTest {
         final File baseDir = new File(dir, "data");
         final Config config = parser.retrieveConfig(configFile);
 
-        Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.getPredicates()[0]);
-        Assert.assertEquals(URI.create("http://localhost:8080/rest/1"), config.getResource());
-        Assert.assertEquals(URI.create("http://localhost:8080/rest/2"), config.getSource());
-        Assert.assertEquals("default", config.getBagProfile());
-        Assert.assertEquals("path/config.yaml", config.getBagConfigPath());
-        Assert.assertEquals(baseDir, config.getBaseDirectory());
-        Assert.assertEquals(dir.getAbsolutePath(), config.getMap().get("dir"));
-        Assert.assertEquals("text/turtle", config.getRdfLanguage());
-        Assert.assertEquals(".ttl", config.getRdfExtension());
+        Assertions.assertEquals("http://www.w3.org/ns/ldp#contains", config.getPredicates()[0]);
+        Assertions.assertEquals(URI.create("http://localhost:8080/rest/1"), config.getResource());
+        Assertions.assertEquals(URI.create("http://localhost:8080/rest/2"), config.getSource());
+        Assertions.assertEquals("default", config.getBagProfile());
+        Assertions.assertEquals("path/config.yaml", config.getBagConfigPath());
+        Assertions.assertEquals(baseDir, config.getBaseDirectory());
+        Assertions.assertEquals(dir.getAbsolutePath(), config.getMap().get("dir"));
+        Assertions.assertEquals("text/turtle", config.getRdfLanguage());
+        Assertions.assertEquals(".ttl", config.getRdfExtension());
 
-        Assert.assertFalse(config.retrieveExternal());
-        Assert.assertTrue(config.isIncludeBinaries());
-        Assert.assertTrue(config.overwriteTombstones());
+        Assertions.assertFalse(config.retrieveExternal());
+        Assertions.assertTrue(config.isIncludeBinaries());
+        Assertions.assertTrue(config.overwriteTombstones());
     }
 
     @Test
@@ -356,22 +374,22 @@ public class ArgParserTest {
                                             "-w", "target/serialized-custom.yml",
                                             "-b", "-x", "-i", "-t", "-a", "-V"};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
-        Assert.assertEquals("import", config.get("mode"));
-        Assert.assertEquals("http://localhost:8686/rest", config.get("resource"));
-        Assert.assertEquals("http://localhost:8686/rest,http://localhost:8080/f4/rest", config.get("map"));
-        Assert.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
-        Assert.assertEquals("application/ld+json", config.get("rdfLang"));
-        Assert.assertEquals("custom-profile.yml", config.get("bag-profile"));
-        Assert.assertEquals("custom-metadata.yml", config.get("bag-config"));
-        Assert.assertEquals("http://example.org/sample", config.get("predicates"));
-        Assert.assertEquals("true", config.get("binaries"));
-        Assert.assertEquals("true", config.get("external"));
-        Assert.assertEquals("true", config.get("inbound"));
-        Assert.assertEquals("true", config.get("overwriteTombstones"));
-        Assert.assertEquals("true", config.get("auditLog"));
-        Assert.assertEquals("true", config.get("versions"));
-        Assert.assertNull(config.get("writeConfig"));
-        Assert.assertTrue(new File("target/serialized-custom.yml").exists());
+        Assertions.assertEquals("import", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8686/rest", config.get("resource"));
+        Assertions.assertEquals("http://localhost:8686/rest,http://localhost:8080/f4/rest", config.get("map"));
+        Assertions.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
+        Assertions.assertEquals("application/ld+json", config.get("rdfLang"));
+        Assertions.assertEquals("custom-profile.yml", config.get("bag-profile"));
+        Assertions.assertEquals("custom-metadata.yml", config.get("bag-config"));
+        Assertions.assertEquals("http://example.org/sample", config.get("predicates"));
+        Assertions.assertEquals("true", config.get("binaries"));
+        Assertions.assertEquals("true", config.get("external"));
+        Assertions.assertEquals("true", config.get("inbound"));
+        Assertions.assertEquals("true", config.get("overwriteTombstones"));
+        Assertions.assertEquals("true", config.get("auditLog"));
+        Assertions.assertEquals("true", config.get("versions"));
+        Assertions.assertNull(config.get("writeConfig"));
+        Assertions.assertTrue(new File("target/serialized-custom.yml").exists());
     }
 
     @Test
@@ -381,31 +399,33 @@ public class ArgParserTest {
                                             "-r", "http://localhost:8080/rest",
                                             "-d", baseDir.getAbsolutePath()};
         final Map<String, String> config = parser.parseConfiguration(args).getMap();
-        Assert.assertEquals("import", config.get("mode"));
-        Assert.assertEquals("http://localhost:8080/rest", config.get("resource"));
-        Assert.assertNull(config.get("map"));
-        Assert.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
-        Assert.assertEquals("text/turtle", config.get("rdfLang"));
-        Assert.assertNull(config.get("bag-profile"));
-        Assert.assertNull(config.get("bag-config"));
-        Assert.assertEquals("http://www.w3.org/ns/ldp#contains", config.get("predicates"));
-        Assert.assertEquals("false", config.get("binaries"));
-        Assert.assertEquals("false", config.get("external"));
-        Assert.assertEquals("false", config.get("inbound"));
-        Assert.assertEquals("false", config.get("overwriteTombstones"));
-        Assert.assertEquals("false", config.get("auditLog"));
-        Assert.assertEquals("false", config.get("versions"));
-        Assert.assertNull(config.get("writeConfig"));
+        Assertions.assertEquals("import", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8080/rest", config.get("resource"));
+        Assertions.assertNull(config.get("map"));
+        Assertions.assertEquals(baseDir.getAbsolutePath(), config.get("dir"));
+        Assertions.assertEquals("text/turtle", config.get("rdfLang"));
+        Assertions.assertNull(config.get("bag-profile"));
+        Assertions.assertNull(config.get("bag-config"));
+        Assertions.assertEquals("http://www.w3.org/ns/ldp#contains", config.get("predicates"));
+        Assertions.assertEquals("false", config.get("binaries"));
+        Assertions.assertEquals("false", config.get("external"));
+        Assertions.assertEquals("false", config.get("inbound"));
+        Assertions.assertEquals("false", config.get("overwriteTombstones"));
+        Assertions.assertEquals("false", config.get("auditLog"));
+        Assertions.assertEquals("false", config.get("versions"));
+        Assertions.assertNull(config.get("writeConfig"));
     }
 
     @Test
     public void testStreamingImport() {
-        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "--streaming")));
+        assertThrows(RuntimeException.class,
+                () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_IMPORT_ARGS, "--streaming")));
     }
 
     @Test
     public void testStreamingExportRdfLang() {
-        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/ld+json")));
+        assertThrows(RuntimeException.class, () -> parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/ld+json")));
     }
 
     /**
@@ -413,12 +433,13 @@ public class ArgParserTest {
      */
     @Test
     public void testStreamingExport() {
-        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming")).getMap();
-        Assert.assertEquals("export", config.get("mode"));
-        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
-        Assert.assertEquals("/tmp/rdf", config.get("dir"));
-        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
-        Assert.assertEquals("false", config.get("isRdfSet"));
+        final Map<String, String> config =
+                parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming")).getMap();
+        Assertions.assertEquals("export", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assertions.assertEquals("/tmp/rdf", config.get("dir"));
+        Assertions.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assertions.assertEquals("false", config.get("isRdfSet"));
     }
 
     /**
@@ -426,13 +447,14 @@ public class ArgParserTest {
      */
     @Test
     public void testStreamingExportSetRdfLang() {
-        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/n-triples")).getMap();
-        Assert.assertEquals("export", config.get("mode"));
-        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
-        Assert.assertEquals("/tmp/rdf", config.get("dir"));
-        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
-        Assert.assertEquals("true", config.get("streaming"));
-        Assert.assertEquals("true", config.get("isRdfSet"));
+        final Map<String, String> config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "--streaming", "-l", "application/n-triples")).getMap();
+        Assertions.assertEquals("export", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assertions.assertEquals("/tmp/rdf", config.get("dir"));
+        Assertions.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assertions.assertEquals("true", config.get("streaming"));
+        Assertions.assertEquals("true", config.get("isRdfSet"));
     }
 
     /**
@@ -440,13 +462,14 @@ public class ArgParserTest {
      */
     @Test
     public void testNonStreamingExportRdfSet() {
-        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "application/n-triples")).getMap();
-        Assert.assertEquals("export", config.get("mode"));
-        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
-        Assert.assertEquals("/tmp/rdf", config.get("dir"));
-        Assert.assertEquals("application/n-triples", config.get("rdfLang"));
-        Assert.assertEquals("false", config.get("streaming"));
-        Assert.assertEquals("true", config.get("isRdfSet"));
+        final Map<String, String> config = parser.parseConfiguration(
+                ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS, "-l", "application/n-triples")).getMap();
+        Assertions.assertEquals("export", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assertions.assertEquals("/tmp/rdf", config.get("dir"));
+        Assertions.assertEquals("application/n-triples", config.get("rdfLang"));
+        Assertions.assertEquals("false", config.get("streaming"));
+        Assertions.assertEquals("true", config.get("isRdfSet"));
     }
 
     /**
@@ -454,12 +477,13 @@ public class ArgParserTest {
      */
     @Test
     public void testNonStreamingExportRdf() {
-        final Map<String, String> config = parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS)).getMap();
-        Assert.assertEquals("export", config.get("mode"));
-        Assert.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
-        Assert.assertEquals("/tmp/rdf", config.get("dir"));
-        Assert.assertEquals("text/turtle", config.get("rdfLang"));
-        Assert.assertEquals("false", config.get("streaming"));
-        Assert.assertEquals("false", config.get("isRdfSet"));
+        final Map<String, String> config =
+                parser.parseConfiguration(ArrayUtils.addAll(MINIMAL_VALID_EXPORT_ARGS)).getMap();
+        Assertions.assertEquals("export", config.get("mode"));
+        Assertions.assertEquals("http://localhost:8080/rest/1", config.get("resource"));
+        Assertions.assertEquals("/tmp/rdf", config.get("dir"));
+        Assertions.assertEquals("text/turtle", config.get("rdfLang"));
+        Assertions.assertEquals("false", config.get("streaming"));
+        Assertions.assertEquals("false", config.get("isRdfSet"));
     }
 }
