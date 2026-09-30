@@ -724,21 +724,6 @@ public class Exporter implements TransferProcess {
         }
     }
 
-    private URI addRelativePath(final URI uri, final String path) {
-        final String base = uri.toString();
-
-        if (base.charAt(base.length() - 1) == '/') {
-            if (path.charAt(0) == '/') {
-                return URI.create(base + path.substring(1, path.length()));
-            }
-            return URI.create(base + path);
-        } else if (path.charAt(0) == '/') {
-            return URI.create(base + path);
-        }
-
-        return URI.create(base + "/" + path);
-    }
-
     void writeResponse(final URI uri, final InputStream in, final List<URI> describedby, final File file)
             throws IOException, FcrepoOperationFailedException {
         if (!file.getParentFile().exists()) {
