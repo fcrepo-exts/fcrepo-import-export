@@ -17,23 +17,42 @@
  */
 package org.fcrepo.importexport;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.File;
 
+import org.apache.commons.io.FileUtils;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit test for simple App.
+ * Tests for the command line entry point.
  *
  * @author barmintor
  * @since 2016-08-31
  */
 public class ImportExportDriverTest {
 
-    /**
-     * Rigourous Test :-)
-     */
+    private final File exportDir = new File("target/driver-test-export");
+
+    @AfterEach
+    public void tearDown() {
+        FileUtils.deleteQuietly(exportDir);
+    }
+
     @Test
-    public void testexport() {
-        assertTrue( true );
+    public void testMainWithInvalidArgsDoesNotThrow() {
+        ImportExportDriver.main(new String[]{"-m", "invalid"});
+    }
+
+    @Test
+    public void testMainRunsExport() {
+        // Nothing listens on port 1, so the export task fails and is logged, but the run itself completes
+        ImportExportDriver.main(new String[]{"-m", "export",
+                "-d", exportDir.getPath(),
+                "-r", "http://localhost:1/rest/foo",
+                "-R", "http://localhost:1/rest",
+                "-T", "1"});
+        assertFalse(new File(exportDir, "rest/foo.ttl").exists());
     }
 }

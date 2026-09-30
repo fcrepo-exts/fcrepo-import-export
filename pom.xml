@@ -62,7 +62,7 @@
     <source.plugin.version>3.4.0</source.plugin.version>
     <surefire.plugin.version>3.6.0</surefire.plugin.version>
     <versions.plugin.version>2.22.0</versions.plugin.version>
-    <!-- Set by jacoco:prepare-agent when coverage is collected -->
+    <!-- Empty default so @{argLine} resolves when the JaCoCo agent is not attached -->
     <argLine></argLine>
   </properties>
 
@@ -250,7 +250,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <!-- Load the Mockito agent at startup; JDK 21+ warns on dynamic agent loading -->
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <argLine>@{argLine} -Xms512m -Xmx1024m -javaagent:${org.mockito:mockito-core:jar}</argLine>
         </configuration>
       </plugin>
 
@@ -283,7 +283,7 @@
           <!--Set reuseForks=false due to the need for different instances of the -->
           <!--Singleton ServletContainerAuthenticationProvider -->
           <reuseForks>false</reuseForks>
-          <argLine>${jacoco.agent.it.arg}</argLine>
+          <argLine>@{argLine}</argLine>
           <systemPropertyVariables>
             <fcrepo.executable.jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</fcrepo.executable.jar>
             <fcrepo.dynamic.test.port>${fcrepo.dynamic.test.port}</fcrepo.dynamic.test.port>
