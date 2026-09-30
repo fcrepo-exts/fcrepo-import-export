@@ -102,6 +102,7 @@ public class StreamTripleHandlerTest {
         handler.start();
         handler.base("http://localhost:8080/rest/");
         handler.prefix("dc", "http://purl.org/dc/elements/1.1/");
+        handler.version("1.2");
         handler.triple(Triple.create(RESOURCE_NODE, TITLE, createLiteralString("title")));
         handler.quad(Quad.create(Quad.defaultGraphIRI, RESOURCE_NODE, CONTAINS.asNode(),
                 createURI(CHILD.toString() + "/")));
