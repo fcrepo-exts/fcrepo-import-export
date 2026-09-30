@@ -27,6 +27,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFParser;
 import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagWriter;
@@ -520,7 +521,7 @@ public class Exporter implements TransferProcess {
 
             if (config.isStreaming()) {
                 final StreamTripleHandler handler = newStreamTripleHandler().setResource(uri).setFile(file);
-                RDFDataMgr.parse(handler, response.getBody(), contentTypeToLang(config.getRdfLanguage()));
+                RDFParser.source(response.getBody()).lang(contentTypeToLang(config.getRdfLanguage())).parse(handler);
             } else {
                 final String responseBody = IOUtils.toString(response.getBody(), UTF_8);
                 model = createDefaultModel().read(new ByteArrayInputStream(responseBody.getBytes()),

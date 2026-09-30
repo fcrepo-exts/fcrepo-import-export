@@ -19,9 +19,10 @@ package org.fcrepo.importexport.importer;
 
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.importexport.common.FcrepoConstants.LAST_MODIFIED_DATE;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -54,8 +55,8 @@ import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 /**
@@ -90,7 +91,7 @@ public class ImporterTest {
     private HeadBuilder headBuilder;
     private PutBuilder putBuilder;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
@@ -284,11 +285,13 @@ public class ImporterTest {
         assertTrue(graph.contains(Node.ANY, LAST_MODIFIED_DATE.asNode(), Node.ANY));
     }
 
-    @Test (expected = AuthenticationRequiredRuntimeException.class)
+    @Test
     public void testUnauthenticatedImportWhenAuthorizationIsRequired() throws FcrepoOperationFailedException {
-        when(conResponse.getStatusCode()).thenReturn(401);
-        final Importer importer = new Importer(containerArgs, clientBuilder);
-        importer.run();
+        assertThrows(AuthenticationRequiredRuntimeException.class, () -> {
+            when(conResponse.getStatusCode()).thenReturn(401);
+            final Importer importer = new Importer(containerArgs, clientBuilder);
+            importer.run();
+        });
     }
 
     @Test
@@ -299,29 +302,33 @@ public class ImporterTest {
         verify(client, never()).put(pairtreeURI);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testImportBagVerifyBinaryDigest() {
-        // this fails Bag validation
-        final Importer importer = new Importer(bagItArgs, clientBuilder);
-        importer.run();
+        assertThrows(RuntimeException.class, () -> {
+            // this fails Bag validation
+            final Importer importer = new Importer(bagItArgs, clientBuilder);
+            importer.run();
+        });
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testImportBagFailsProfileValidation() throws URISyntaxException {
-        bagItArgs = new Config();
-        bagItArgs.setMode("import");
-        bagItArgs.setBaseDirectory("src/test/resources/sample/baginvalid");
-        bagItArgs.setIncludeBinaries(true);
-        bagItArgs.setRdfLanguage("application/turtle");
-        bagItArgs.setResource(new URI("http://example.org:9999/rest"));
-        bagItArgs.setMap(new String[] { "http://localhost:8080/rest", "http://example.org:9999/rest" });
-        bagItArgs.setBagProfile("default");
-        bagItArgs.setUsername("tester");
+        assertThrows(RuntimeException.class, () -> {
+            bagItArgs = new Config();
+            bagItArgs.setMode("import");
+            bagItArgs.setBaseDirectory("src/test/resources/sample/baginvalid");
+            bagItArgs.setIncludeBinaries(true);
+            bagItArgs.setRdfLanguage("application/turtle");
+            bagItArgs.setResource(new URI("http://example.org:9999/rest"));
+            bagItArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
+            bagItArgs.setBagProfile("default");
+            bagItArgs.setUsername("tester");
 
 
-        // this fails Bag Profile validation
-        final Importer importer = new Importer(bagItArgs, clientBuilder);
-        importer.run();
+            // this fails Bag Profile validation
+            final Importer importer = new Importer(bagItArgs, clientBuilder);
+            importer.run();
+        });
     }
 
     @Test

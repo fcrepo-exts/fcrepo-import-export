@@ -23,10 +23,10 @@ import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.ByteArrayInputStream;
@@ -47,8 +47,8 @@ import org.fcrepo.importexport.common.TransferProcess;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 /**
@@ -73,12 +73,12 @@ public class ExecutableJarIT extends AbstractResourceIT {
     }
 
     @Override
-    @Before
+    @BeforeEach
     public void before() {
         super.before();
         url = URI.create(serverAddress + UUID.randomUUID());
         assertNotNull(EXECUTABLE);
-        assertTrue(EXECUTABLE + " doesn't exist!", new File(EXECUTABLE).exists());
+        assertTrue(new File(EXECUTABLE).exists(), EXECUTABLE + " doesn't exist!");
     }
 
     @Test
@@ -87,8 +87,8 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final Process process = startJarProcess();
 
         // Verify it ran
-        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, process.exitValue());
+        assertTrue(process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, process.exitValue(), "Did not exit with success status!");
     }
 
     @Test
@@ -106,8 +106,8 @@ public class ExecutableJarIT extends AbstractResourceIT {
 
 
         // Verify
-        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, process.exitValue());
+        assertTrue(process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, process.exitValue(), "Did not exit with success status!");
 
         assertTrue(new File(TARGET_DIR, url.getPath() + DEFAULT_RDF_EXT).exists());
     }
@@ -133,8 +133,8 @@ public class ExecutableJarIT extends AbstractResourceIT {
         final Process process = startJarProcess("-c", configFile.getAbsolutePath(), "-u", "fedoraAdmin:password");
 
         // Verify
-        assertTrue("Process did not exit before timeout!", process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, process.exitValue());
+        assertTrue(process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, process.exitValue(), "Did not exit with success status!");
 
         assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(url.getPath() + DEFAULT_RDF_EXT))
                 .exists());
@@ -159,19 +159,19 @@ public class ExecutableJarIT extends AbstractResourceIT {
                 "-u", "fedoraAdmin:password");
 
         // Verify
-        assertTrue("Process did not exit before timeout!", process.waitFor(1000, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, process.exitValue());
+        assertTrue(process.waitFor(1000, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, process.exitValue(), "Did not exit with success status!");
 
         final List<URI> describedByHeaders = response.getLinkHeaders("describedby");
-        assertFalse("Fedora should have given us at least one describedby header!", describedByHeaders.isEmpty());
-        describedByHeaders.forEach(uri -> assertTrue("RDF for exported " + uri + " not found!",
-                        new File(TARGET_DIR, TransferProcess.encodePath(uri.getPath())
-                + DEFAULT_RDF_EXT).exists()));
+        assertFalse(describedByHeaders.isEmpty(), "Fedora should have given us at least one describedby header!");
+        describedByHeaders.forEach(uri -> assertTrue(new File(TARGET_DIR, TransferProcess.encodePath(uri.getPath())
+                + DEFAULT_RDF_EXT).exists(),
+                        "RDF for exported " + uri + " not found!"));
         final File exportedBinary
                 = new File(TARGET_DIR, TransferProcess.encodePath(url.getPath()) + BINARY_EXTENSION);
         assertTrue(exportedBinary.exists());
         final byte[] contentFromFile = FileUtils.readFileToByteArray(exportedBinary);
-        assertEquals("Content was corrupted on export!", new String(content), new String(contentFromFile));
+        assertEquals(new String(content), new String(contentFromFile), "Content was corrupted on export!");
         assertEquals(binaryFile.length(), exportedBinary.length());
     }
 
@@ -200,15 +200,16 @@ public class ExecutableJarIT extends AbstractResourceIT {
                 "-u", "fedoraAdmin:password");
 
         // Verify
-        assertTrue("Process did not exit before timeout!", exportProcess.waitFor(1000, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, exportProcess.exitValue());
+        assertTrue(exportProcess.waitFor(1000, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, exportProcess.exitValue(), "Did not exit with success status!");
 
         // Remove the resources
         client.delete(parent).perform();
         final FcrepoResponse getResponse = client.get(parent).perform();
-        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
-        assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT,
-                client.delete(getResponse.getLinkHeaders("hasTombstone").get(0)).perform().getStatusCode());
+        assertEquals(SC_GONE, getResponse.getStatusCode(), "Resource should have been deleted!");
+        assertEquals(SC_NO_CONTENT,
+                client.delete(getResponse.getLinkHeaders("hasTombstone").get(0)).perform().getStatusCode(),
+                "Failed to delete the tombstone!");
 
         // Run the import process
         final Process importProcess = startJarProcess("-m", "import",
@@ -219,13 +220,13 @@ public class ExecutableJarIT extends AbstractResourceIT {
                 "-u", "fedoraAdmin:password");
 
         // Verify
-        assertTrue("Process did not exit before timeout!", importProcess.waitFor(1000, TimeUnit.SECONDS));
-        assertEquals("Did not exit with success status!", 0, importProcess.exitValue());
+        assertTrue(importProcess.waitFor(1000, TimeUnit.SECONDS), "Process did not exit before timeout!");
+        assertEquals(0, importProcess.exitValue(), "Did not exit with success status!");
 
         assertHasTitle(parent, parentTitle);
         assertHasTitle(child, childTitle);
-        assertEquals("Binary should have been imported!",
-                binaryText, IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"));
+        assertEquals(binaryText,
+                IOUtils.toString(client.get(binary).perform().getBody(), "UTF-8"), "Binary should have been imported!");
 
     }
 

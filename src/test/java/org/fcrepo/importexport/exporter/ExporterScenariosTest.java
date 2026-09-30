@@ -19,10 +19,10 @@ package org.fcrepo.importexport.exporter;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_SELF;
@@ -45,10 +45,9 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Exporter tests for configuration errors and failures while exporting.
@@ -61,8 +60,8 @@ public class ExporterScenariosTest {
     private static final URI ROOT = URI.create(BASE);
     private static final URI RESOURCE = URI.create(BASE + "/1");
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    public File tmp;
 
     private Config config;
     private FcrepoClient client;
@@ -71,11 +70,11 @@ public class ExporterScenariosTest {
     private FcrepoResponse headResponse;
     private GetBuilder getBuilder;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         config = new Config();
         config.setMode("export");
-        config.setBaseDirectory(new File(tmp.getRoot(), "export").getAbsolutePath());
+        config.setBaseDirectory(new File(tmp, "export").getAbsolutePath());
         config.setResource(RESOURCE);
         config.setRepositoryRoot(ROOT);
         config.setThreadCount(1);
@@ -108,7 +107,7 @@ public class ExporterScenariosTest {
 
     @Test
     public void testMissingBagConfigFile() {
-        useBagProfile("default", new File(tmp.getRoot(), "missing.yml").getPath());
+        useBagProfile("default", new File(tmp, "missing.yml").getPath());
         final RuntimeException e = assertThrows(RuntimeException.class, () -> new Exporter(config, clientBuilder));
         assertTrue(e.getMessage().startsWith("Error reading bag profile"));
     }
@@ -126,11 +125,11 @@ public class ExporterScenariosTest {
         config.setBagAlgorithms(new String[]{"md5", "sha1", "sha256", "sha512"});
         final Exporter exporter = new Exporter(config, clientBuilder);
 
-        final File file = tmp.newFile("content.txt");
+        final File file = newFile(tmp, "content.txt");
         Files.write(file.toPath(), "content".getBytes(UTF_8));
         exporter.generateChecksums(file);
         // a missing file is logged rather than thrown
-        exporter.generateChecksums(new File(tmp.getRoot(), "missing.txt"));
+        exporter.generateChecksums(new File(tmp, "missing.txt"));
     }
 
     @Test
@@ -217,5 +216,11 @@ public class ExporterScenariosTest {
         exporter.export(URI.create(BASE + "/late"));
 
         verify(client, never()).head(URI.create(BASE + "/late"));
+    }
+
+    private static File newFile(final File parent, final String child) throws IOException {
+        final File result = new File(parent, child);
+        result.createNewFile();
+        return result;
     }
 }

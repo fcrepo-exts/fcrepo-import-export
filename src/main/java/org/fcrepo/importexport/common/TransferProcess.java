@@ -17,6 +17,7 @@
  */
 package org.fcrepo.importexport.common;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.fcrepo.importexport.common.FcrepoConstants.BINARY_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
@@ -26,7 +27,6 @@ import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -35,7 +35,6 @@ import org.apache.jena.rdf.model.Model;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
-import org.fcrepo.importexport.patch.RdfWriterHelper;
 
 /**
  * @author lsitu
@@ -47,9 +46,6 @@ public interface TransferProcess {
     final static String IMPORT_EXPORT_LOG_PREFIX = "org.fcrepo.importexport.audit";
     final static String REMAINING_LOG_PREFIX = "org.fcrepo.importexport.remaining";
     final static String BAGIT_CHECKSUM_DELIMITER = "  ";
-
-    // Used only to load patched RDF writers
-    RdfWriterHelper notUsed = new RdfWriterHelper();
 
     /**
      * This method does the import or export
@@ -66,11 +62,7 @@ public interface TransferProcess {
      * such as ":".
      */
     public static String encodePath(final String path) {
-        try {
-            return URLEncoder.encode(path, "UTF-8").replace("%2F", "/");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return URLEncoder.encode(path, UTF_8).replace("%2F", "/");
     }
 
     /**
@@ -80,11 +72,7 @@ public interface TransferProcess {
      * @return the original path
      */
     public static String decodePath(final String encoded) {
-        try {
-            return URLDecoder.decode(encoded, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return URLDecoder.decode(encoded, UTF_8);
     }
 
     /**

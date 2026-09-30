@@ -17,14 +17,14 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createLiteralString;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -47,10 +47,9 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * @author dfield
@@ -62,8 +61,8 @@ public class StreamTripleHandlerTest {
     private static final URI CHILD = URI.create("http://localhost:8080/rest/parent/child");
     private static final Node TITLE = createURI("http://purl.org/dc/elements/1.1/title");
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    public File tmp;
 
     private Config config;
     private Exporter exporter;
@@ -72,7 +71,7 @@ public class StreamTripleHandlerTest {
     private FcrepoResponse headResponse;
     private File file;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         config = new Config();
         config.setRdfLanguage("application/n-triples");
@@ -85,7 +84,7 @@ public class StreamTripleHandlerTest {
         when(headBuilder.disableRedirects()).thenReturn(headBuilder);
         when(headBuilder.perform()).thenReturn(headResponse);
         when(headResponse.getStatusCode()).thenReturn(200);
-        file = new File(tmp.getRoot(), "nested/dir/parent.nt");
+        file = new File(tmp, "nested/dir/parent.nt");
     }
 
     private StreamTripleHandler handler() {
@@ -103,7 +102,8 @@ public class StreamTripleHandlerTest {
         handler.start();
         handler.base("http://localhost:8080/rest/");
         handler.prefix("dc", "http://purl.org/dc/elements/1.1/");
-        handler.triple(Triple.create(RESOURCE_NODE, TITLE, createLiteral("title")));
+        handler.version("1.2");
+        handler.triple(Triple.create(RESOURCE_NODE, TITLE, createLiteralString("title")));
         handler.quad(Quad.create(Quad.defaultGraphIRI, RESOURCE_NODE, CONTAINS.asNode(),
                 createURI(CHILD.toString() + "/")));
         handler.finish();
@@ -201,7 +201,7 @@ public class StreamTripleHandlerTest {
 
     @Test
     public void testStartWithUnwritableFile() throws Exception {
-        final File directory = tmp.newFolder("existing");
+        final File directory = newFolder(tmp, "existing");
         final StreamTripleHandler handler = new StreamTripleHandler(config, exporter, client).setResource(RESOURCE)
                 .setFile(directory);
         handler.start();
@@ -216,5 +216,14 @@ public class StreamTripleHandlerTest {
         Files.delete(file.toPath());
         handler.finish();
         verify(exporter, never()).generateChecksums(any());
+    }
+
+    private static File newFolder(final File root, final String... subDirs) throws IOException {
+        final String subFolder = String.join("/", subDirs);
+        final File result = new File(root, subFolder);
+        if (!result.mkdirs()) {
+            throw new IOException("Couldn't create folders " + root);
+        }
+        return result;
     }
 }

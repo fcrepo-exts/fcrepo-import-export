@@ -18,10 +18,11 @@
 
 package org.fcrepo.importexport.common;
 
-import static org.junit.Assert.assertEquals;
 import java.net.URI;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * @author escowles

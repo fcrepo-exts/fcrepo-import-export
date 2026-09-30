@@ -29,8 +29,8 @@ import static org.fcrepo.importexport.common.FcrepoConstants.NON_RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
 import static org.fcrepo.importexport.common.FcrepoConstants.TIMEMAP;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -52,9 +52,9 @@ import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.slf4j.Logger;
 
@@ -106,7 +106,7 @@ public class ExportVersionsTest {
     private List<URI> binaryMementoLinks =
             Arrays.asList(URI.create(NON_RDF_SOURCE.getURI()), URI.create(MEMENTO.getURI()));
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         openMocks(this);
 
@@ -134,7 +134,7 @@ public class ExportVersionsTest {
                 createJson(rootResource, REPOSITORY_ROOT));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         try {
             FileUtils.deleteDirectory(new File(exportDirectory));
@@ -185,8 +185,8 @@ public class ExportVersionsTest {
         exporter.run();
 
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/1.jsonld")));
-        assertFalse("Versions directory should not be present for unversioned resource",
-                exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions")));
+        assertFalse(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aversions")),
+                "Versions directory should not be present for unversioned resource");
     }
 
     @Test

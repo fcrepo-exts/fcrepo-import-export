@@ -107,7 +107,7 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.RDFParser;
 import org.apache.jena.riot.RiotException;
 import org.slf4j.Logger;
 
@@ -600,7 +600,7 @@ public class Importer implements TransferProcess {
         final SubjectMappingStreamRDF mapper = new SubjectMappingStreamRDF(config.getSource(),
                                                                            config.getDestination());
         try (final InputStream in2 = in) {
-            RDFDataMgr.parse(mapper, in2, contentTypeToLang(config.getRdfLanguage()));
+            RDFParser.source(in2).lang(contentTypeToLang(config.getRdfLanguage())).parse(mapper);
         }
         return mapper.getModel();
     }

@@ -25,7 +25,7 @@ import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.exporter.Exporter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
@@ -53,10 +53,10 @@ import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
 import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.HAS_MIME_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -299,7 +299,7 @@ public class ExporterIT extends AbstractResourceIT {
         // Verify
         final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
         assertTrue(externalFile.exists());
-        assertEquals("File length should be 0", 0, externalFile.length());
+        assertEquals(0, externalFile.length(), "File length should be 0");
     }
 
     @Test
@@ -329,15 +329,15 @@ public class ExporterIT extends AbstractResourceIT {
         final Exporter exporter = new Exporter(config, clientBuilder);
         try {
             exporter.run();
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             logger().error(ex.getMessage(), ex);
             fail("Exporter failed unexpectedly: " + ex.getMessage());
         }
 
         // Verify
         final File externalFile = new File(TARGET_DIR, url.getPath() + EXTERNAL_RESOURCE_EXTENSION);
-        assertTrue("External file should exist: " + externalFile.getAbsoluteFile(), externalFile.exists());
-        assertEquals("File length should be 0", 0, externalFile.length());
+        assertTrue(externalFile.exists(), "External file should exist: " + externalFile.getAbsoluteFile());
+        assertEquals(0, externalFile.length(), "File length should be 0");
     }
 
     @Test

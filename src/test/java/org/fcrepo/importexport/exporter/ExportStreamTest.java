@@ -21,7 +21,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.vocabulary.DC;
-import org.awaitility.Duration;
+import java.time.Duration;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
@@ -31,8 +31,8 @@ import org.fcrepo.client.HeadBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,17 +63,20 @@ import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.fcrepo.importexport.common.FcrepoConstants.RDF_TYPE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests for the StreamExporter class.
+ * @author whikloj
  */
 public class ExportStreamTest extends ExportTestBase {
+
+    private static final Duration TEN_SECONDS = Duration.ofSeconds(10);
 
     private Config config;
 
@@ -98,7 +101,7 @@ public class ExportStreamTest extends ExportTestBase {
         exportDirectory = new File("target/stream-export").getAbsolutePath();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         id = UUID.randomUUID().toString();
@@ -247,7 +250,7 @@ public class ExportStreamTest extends ExportTestBase {
         try (InputStream is = Files.newInputStream(Paths.get(exportDirectory + ".tar"));
              TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
             TarArchiveEntry entry;
-            while ((entry = tais.getNextTarEntry()) != null) {
+            while ((entry = tais.getNextEntry()) != null) {
                 if (entry.getName().equalsIgnoreCase("stream-export/aptrust-info.txt")) {
                     aptrustInfoLines = IOUtils.readLines(tais, Charset.defaultCharset());
                     break;
@@ -406,11 +409,13 @@ public class ExportStreamTest extends ExportTestBase {
         exporter.run();
 
         final String first_resource_path = exportDirectory + "/rest/" + id;
-        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + ".nt"));
-        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
-        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
-        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
-        await().atMost(Duration.TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
+        await().atMost(TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + ".nt"));
+        await().atMost(TEN_SECONDS)
+                .until(() -> exporter.wroteFile(exportDirectory + "/rest/" + id + "/fcr%3Aacl.nt"));
+        await().atMost(TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION));
+        await().atMost(TEN_SECONDS)
+                .until(() -> exporter.wroteFile(first_resource_path + "/2" + BINARY_EXTENSION + ".headers"));
+        await().atMost(TEN_SECONDS).until(() -> exporter.wroteFile(first_resource_path + "/2/fcr%3Ametadata.nt"));
     }
 
     @Test
@@ -444,9 +449,11 @@ public class ExportStreamTest extends ExportTestBase {
     @Test
     public void testRecursive() throws Exception {
         final URI resource6 = URI.create("http://localhost:8080/rest/" + id + "/2");
-        mockResponse(resource, containerLinks, emptyList(), "<" + resource + "> <" + RDF_TYPE + "> <" + RDF_SOURCE + "> .\n" +
+        mockResponse(resource, containerLinks, emptyList(),
+                "<" + resource + "> <" + RDF_TYPE + "> <" + RDF_SOURCE + "> .\n" +
                 "<" + resource + "> <" + CONTAINS + "> <" + resource6 + "> .");
-        mockResponse(resource6, containerLinks, emptyList(), "<" + resource6 + "> <" + RDF_TYPE + "> <" + RDF_SOURCE + "> .");
+        mockResponse(resource6, containerLinks, emptyList(),
+                "<" + resource6 + "> <" + RDF_TYPE + "> <" + RDF_SOURCE + "> .");
         config.setResource(resource);
 
         exporter.run();

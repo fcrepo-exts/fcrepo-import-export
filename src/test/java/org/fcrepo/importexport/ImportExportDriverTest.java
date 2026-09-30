@@ -17,13 +17,13 @@
  */
 package org.fcrepo.importexport;
 
-import static org.junit.Assert.assertFalse;
-
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for the command line entry point.
@@ -35,7 +35,7 @@ public class ImportExportDriverTest {
 
     private final File exportDir = new File("target/driver-test-export");
 
-    @After
+    @AfterEach
     public void tearDown() {
         FileUtils.deleteQuietly(exportDir);
     }

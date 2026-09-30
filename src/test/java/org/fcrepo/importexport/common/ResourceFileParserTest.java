@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importexport.common;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,21 +28,20 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * @author dfield
  */
 public class ResourceFileParserTest {
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    public File tmp;
 
     @Test
     public void testParse() throws IOException {
-        final File file = tmp.newFile("resources.txt");
+        final File file = newFile(tmp, "resources.txt");
         Files.write(file.toPath(), Arrays.asList("http://localhost:8080/rest/a", "http://localhost:8080/rest/b"));
 
         final List<URI> uris = ResourceFileParser.parse(file.toPath());
@@ -53,7 +52,13 @@ public class ResourceFileParserTest {
 
     @Test
     public void testParseMissingFile() {
-        final File missing = new File(tmp.getRoot(), "missing.txt");
+        final File missing = new File(tmp, "missing.txt");
         assertThrows(UncheckedIOException.class, () -> ResourceFileParser.parse(missing.toPath()));
+    }
+
+    private static File newFile(final File parent, final String child) throws IOException {
+        final File result = new File(parent, child);
+        result.createNewFile();
+        return result;
     }
 }

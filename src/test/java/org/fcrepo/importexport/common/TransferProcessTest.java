@@ -21,11 +21,11 @@ import static java.net.URI.create;
 import static org.fcrepo.importexport.common.TransferProcess.fileForURI;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINER;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
-import static org.junit.Assert.assertEquals;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
@@ -41,7 +41,7 @@ import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.GetBuilder;
 import org.fcrepo.client.HeadBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author escowles

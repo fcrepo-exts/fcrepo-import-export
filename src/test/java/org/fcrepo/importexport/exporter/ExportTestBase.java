@@ -21,8 +21,8 @@ import org.apache.commons.io.FileUtils;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +39,10 @@ import static org.fcrepo.importexport.common.FcrepoConstants.RDF_SOURCE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Base class for exporter tests.
+ * @author whikloj
+ */
 public class ExportTestBase {
 
     // Fcrepo client and builder
@@ -66,8 +70,8 @@ public class ExportTestBase {
         // Needed to allow for the URISyntaxException thrown by new URI() above
     }
 
-    @Before
-    public void setUp() throws Exception{
+    @BeforeEach
+    public void setUp() throws Exception {
         client = mock(FcrepoClient.class);
         clientBuilder = mock(FcrepoClient.FcrepoClientBuilder.class);
         when(clientBuilder.build()).thenReturn(client);
@@ -75,7 +79,7 @@ public class ExportTestBase {
         descriptionLinks.add(new URI(RDF_SOURCE.getURI()));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         try {
             if (!tearDownFiles.isEmpty()) {
@@ -116,7 +120,8 @@ public class ExportTestBase {
      * @throws FcrepoOperationFailedException client failures
      */
     protected void mockResponse(final URI uri, final List<URI> typeLinks, final List<URI> describedbyLinks,
-                              final URI aclLink, final String body, final String contentType) throws FcrepoOperationFailedException {
+                              final URI aclLink, final String body, final String contentType)
+            throws FcrepoOperationFailedException {
         ResponseMocker.mockHeadResponse(client, uri, typeLinks, describedbyLinks, null, aclLink, contentType);
         ResponseMocker.mockGetResponse(client, uri, typeLinks, describedbyLinks,  null, aclLink, body, contentType);
     }

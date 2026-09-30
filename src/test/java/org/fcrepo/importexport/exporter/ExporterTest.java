@@ -30,8 +30,8 @@ import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
 import org.fcrepo.importexport.common.TombstoneFoundException;
 import org.fcrepo.importexport.test.util.ResponseMocker;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,8 +54,9 @@ import static org.fcrepo.importexport.common.FcrepoConstants.EXTERNAL_RESOURCE_E
 import static org.fcrepo.importexport.common.FcrepoConstants.HEADERS_EXTENSION;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_NAMESPACE;
 import static org.fcrepo.importexport.common.FcrepoConstants.REPOSITORY_ROOT;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
@@ -79,7 +80,7 @@ public class ExporterTest extends ExportTestBase {
         exportDirectory = "target/export";
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
 
@@ -206,7 +207,7 @@ public class ExporterTest extends ExportTestBase {
         try (InputStream is = Files.newInputStream(Paths.get(exportDirectory + ".tar"));
             TarArchiveInputStream tais = new TarArchiveInputStream(is)) {
             TarArchiveEntry entry;
-            while ((entry = tais.getNextTarEntry()) != null) {
+            while ((entry = tais.getNextEntry()) != null) {
                 if (entry.getName().equalsIgnoreCase("export/aptrust-info.txt")) {
                     aptrustInfoLines = IOUtils.readLines(tais, Charset.defaultCharset());
                     break;
@@ -221,22 +222,26 @@ public class ExporterTest extends ExportTestBase {
         assertTrue(aptrustInfoLines.contains("Storage-Option: Standard"));
     }
 
-    @Test(expected = Exception.class)
+    @Test
     public void testExportApTrustBagValidationError() {
-        final Config bagArgs = createAptrustBagConfig();
-        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-missing-access.yml");
-        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
-        exporter.run();
+        assertThrows(Exception.class, () -> {
+            final Config bagArgs = createAptrustBagConfig();
+            bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config-missing-access.yml");
+            final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+            exporter.run();
+        });
     }
 
-    @Test(expected = Exception.class)
+    @Test
     public void testExportApTrustBagInvalidUserAlgorithm() {
-        final Config bagArgs = createAptrustBagConfig();
-        bagArgs.setBagAlgorithms(new String[]{BagItDigest.SHA1.bagitName()});
-        bagArgs.setBagSerialization("tar");
-        bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
-        final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
-        exporter.run();
+        assertThrows(Exception.class, () -> {
+            final Config bagArgs = createAptrustBagConfig();
+            bagArgs.setBagAlgorithms(new String[]{BagItDigest.SHA1.bagitName()});
+            bagArgs.setBagSerialization("tar");
+            bagArgs.setBagConfigPath("src/test/resources/configs/bagit-config.yml");
+            final ExporterWrapper exporter = new ExporterWrapper(bagArgs, clientBuilder);
+            exporter.run();
+        });
     }
 
     /**
@@ -289,23 +294,25 @@ public class ExporterTest extends ExportTestBase {
         assertTrue(bagInfoLines.contains(bagProfileId));
     }
 
-    @Test(expected = Exception.class)
+    @Test
     public void testExportBeyondTheRepositoryBagValidationError() {
-        final Config config = new Config();
-        config.setMode("export");
-        config.setBaseDirectory(exportDirectory);
-        config.setIncludeBinaries(true);
-        config.setPredicates(predicates);
-        config.setRdfLanguage("application/ld+json");
-        config.setResource(resource3);
-        config.setBagProfile("beyondtherepository");
-        config.setBagConfigPath("src/test/resources/configs/bagit-config-missing-source-org.yml");
+        assertThrows(Exception.class, () -> {
+            final Config config = new Config();
+            config.setMode("export");
+            config.setBaseDirectory(exportDirectory);
+            config.setIncludeBinaries(true);
+            config.setPredicates(predicates);
+            config.setRdfLanguage("application/ld+json");
+            config.setResource(resource3);
+            config.setBagProfile("beyondtherepository");
+            config.setBagConfigPath("src/test/resources/configs/bagit-config-missing-source-org.yml");
 
-        final ExporterWrapper exporter = new ExporterWrapper(config, clientBuilder);
-        when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
-        when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
-        when(headResponse.getContentType()).thenReturn("image/tiff");
-        exporter.run();
+            final ExporterWrapper exporter = new ExporterWrapper(config, clientBuilder);
+            when(headResponse.getLinkHeaders(eq("type"))).thenReturn(binaryLinks);
+            when(headResponse.getLinkHeaders(eq("describedby"))).thenReturn(describedbyLinks);
+            when(headResponse.getContentType()).thenReturn("image/tiff");
+            exporter.run();
+        });
     }
 
     @Test
@@ -393,19 +400,21 @@ public class ExporterTest extends ExportTestBase {
         assertTrue(exporter.wroteFile(new File(basedir + "/rest/1/fcr%3Aacl.jsonld")));
     }
 
-    @Test (expected = AuthenticationRequiredRuntimeException.class)
+    @Test
     public void testUnauthenticatedExportWhenAuthorizationIsRequired() throws Exception {
-        final Config args = new Config();
-        args.setMode("export");
-        args.setBaseDirectory(exportDirectory + "/6");
-        args.setIncludeBinaries(true);
-        args.setPredicates(predicates);
-        args.setRdfLanguage("application/ld+json");
-        args.setResource(resource);
+        assertThrows(AuthenticationRequiredRuntimeException.class, () -> {
+            final Config args = new Config();
+            args.setMode("export");
+            args.setBaseDirectory(exportDirectory + "/6");
+            args.setIncludeBinaries(true);
+            args.setPredicates(predicates);
+            args.setRdfLanguage("application/ld+json");
+            args.setResource(resource);
 
-        ResponseMocker.mockHeadResponseError(client, resource, 401);
-        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
-        exporter.run();
+            ResponseMocker.mockHeadResponseError(client, resource, 401);
+            final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+            exporter.run();
+        });
     }
 
     @Test
@@ -481,20 +490,22 @@ public class ExporterTest extends ExportTestBase {
         assertTrue(customLines.contains("Baz: Quux"));
     }
 
-    @Test(expected = TombstoneFoundException.class)
+    @Test
     public void testExportTombsone() throws Exception {
-        final String basedir = exportDirectory + "/11";
-        final Config args = new Config();
-        args.setMode("export");
-        args.setBaseDirectory(basedir);
-        args.setIncludeBinaries(false);
-        args.setPredicates(predicates);
-        args.setRdfLanguage("application/ld+json");
-        args.setResource(resource);
+        assertThrows(TombstoneFoundException.class, () -> {
+            final String basedir = exportDirectory + "/11";
+            final Config args = new Config();
+            args.setMode("export");
+            args.setBaseDirectory(basedir);
+            args.setIncludeBinaries(false);
+            args.setPredicates(predicates);
+            args.setRdfLanguage("application/ld+json");
+            args.setResource(resource);
 
-        ResponseMocker.mockHeadResponseError(client, resource, 410);
-        final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
-        exporter.run();
+            ResponseMocker.mockHeadResponseError(client, resource, 410);
+            final ExporterWrapper exporter = new ExporterWrapper(args, clientBuilder);
+            exporter.run();
+        });
     }
 
     @Test

@@ -19,9 +19,9 @@ package org.fcrepo.importexport.importer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fcrepo.importexport.common.FcrepoConstants.CONTAINS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -52,10 +52,9 @@ import org.fcrepo.client.PostBuilder;
 import org.fcrepo.client.PutBuilder;
 import org.fcrepo.importexport.common.AuthenticationRequiredRuntimeException;
 import org.fcrepo.importexport.common.Config;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Importer tests that build the export directory on the fly to exercise skip and error handling paths.
@@ -71,8 +70,8 @@ public class ImporterScenariosTest {
     private static final String ROOT_TTL = "<" + BASE + "> a "
             + "<http://fedora.info/definitions/v4/repository#RepositoryRoot> .";
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    public File tmp;
 
     private Config config;
     private FcrepoClient client;
@@ -84,11 +83,11 @@ public class ImporterScenariosTest {
     private PostBuilder postBuilder;
     private DeleteBuilder deleteBuilder;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         config = new Config();
         config.setMode("import");
-        config.setBaseDirectory(tmp.getRoot().getAbsolutePath());
+        config.setBaseDirectory(tmp.getAbsolutePath());
         config.setResource(ROOT);
         config.setIncludeBinaries(true);
 
@@ -134,7 +133,7 @@ public class ImporterScenariosTest {
     }
 
     private File write(final String path, final String content) throws IOException {
-        final File file = new File(tmp.getRoot(), path);
+        final File file = new File(tmp, path);
         file.getParentFile().mkdirs();
         Files.write(file.toPath(), content.getBytes(UTF_8));
         return file;
@@ -405,14 +404,14 @@ public class ImporterScenariosTest {
 
     @Test
     public void testSerializedBag() throws Exception {
-        final File serialized = new File(tmp.getRoot(), "bag-tar.tar");
+        final File serialized = new File(tmp, "bag-tar.tar");
         Files.copy(new File("src/test/resources/sample/compress/bag-tar.tar").toPath(), serialized.toPath());
         config.setBaseDirectory(serialized.getAbsolutePath());
         config.setBagProfile("default");
 
         importer();
 
-        assertEquals(new File(tmp.getRoot(), "bag-tar/data").getAbsoluteFile(),
+        assertEquals(new File(tmp, "bag-tar/data").getAbsoluteFile(),
                 config.getBaseDirectory().getAbsoluteFile());
     }
 }

@@ -22,31 +22,29 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.RDFParser;
 import org.fcrepo.client.FcrepoClient;
-import org.fcrepo.client.FcrepoHttpClientBuilder;
 import org.fcrepo.client.FcrepoOperationFailedException;
 import org.fcrepo.client.FcrepoResponse;
 import org.fcrepo.client.PutBuilder;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.http.HttpStatus.SC_GONE;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.apache.jena.rdf.model.ResourceFactory.createPlainLiteral;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.riot.RDFDataMgr.loadModel;
-import static org.apache.jena.riot.web.HttpOp.setDefaultHttpClient;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.jena.riot.Lang.TURTLE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author awoods
@@ -99,15 +97,9 @@ public abstract class AbstractResourceIT {
 
     AbstractResourceIT() {
         clientBuilder = FcrepoClient.client().credentials(USERNAME, PASSWORD).authScope("localhost");
-        setDefaultHttpClient(new FcrepoHttpClientBuilder(USERNAME, PASSWORD, "localhost").build());
-
-        final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setMaxTotal(Integer.MAX_VALUE);
-        connectionManager.setDefaultMaxPerRoute(20);
-        connectionManager.closeIdleConnections(3, TimeUnit.SECONDS);
     }
 
-    @Before
+    @BeforeEach
     public void before() {
         assertNotNull(TARGET_DIR);
         assertTrue(new File(TARGET_DIR).exists());
@@ -211,7 +203,13 @@ public abstract class AbstractResourceIT {
     }
 
     protected Model getAsModel(final URI uri) throws FcrepoOperationFailedException {
-        return loadModel(uri.toString());
+        try (final FcrepoResponse response = clientBuilder.build().get(uri).accept("text/turtle").perform()) {
+            final Model model = createDefaultModel();
+            RDFParser.source(response.getBody()).base(uri.toString()).lang(TURTLE).parse(model);
+            return model;
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     protected String getAsString(final URI uri) throws FcrepoOperationFailedException, IOException {
@@ -221,21 +219,21 @@ public abstract class AbstractResourceIT {
 
     protected void assertHasTitle(final URI uri, final String title) throws FcrepoOperationFailedException {
         final Model model = getAsModel(uri);
-        assertTrue(uri + " should have had the dc:title, \"" + title + "\"!",
-                model.contains(createResource(uri.toString()), createProperty(DC_TITLE), createPlainLiteral(title)));
+        assertTrue(model.contains(createResource(uri.toString()), createProperty(DC_TITLE), createPlainLiteral(title)),
+                uri + " should have had the dc:title, \"" + title + "\"!");
     }
 
     protected void removeAndReset(final URI uri) throws FcrepoOperationFailedException {
         final FcrepoResponse getResponse = remove(uri);
         final URI tombstone = getResponse.getLinkHeaders("hasTombstone").get(0);
         final FcrepoResponse delResponse = clientBuilder.build().delete(tombstone).perform();
-        assertEquals("Failed to delete the tombstone!", SC_NO_CONTENT, delResponse.getStatusCode());
+        assertEquals(SC_NO_CONTENT, delResponse.getStatusCode(), "Failed to delete the tombstone!");
     }
 
     protected FcrepoResponse remove(final URI uri) throws FcrepoOperationFailedException {
         clientBuilder.build().delete(uri).perform();
         final FcrepoResponse getResponse = clientBuilder.build().get(uri).perform();
-        assertEquals("Resource should have been deleted!", SC_GONE, getResponse.getStatusCode());
+        assertEquals(SC_GONE, getResponse.getStatusCode(), "Resource should have been deleted!");
         return getResponse;
     }
 

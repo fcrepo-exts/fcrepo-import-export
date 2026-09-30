@@ -17,8 +17,8 @@
  */
 package org.fcrepo.importexport.exporter;
 
-import org.apache.jena.graph.Factory;
 import org.apache.jena.graph.Graph;
+import org.apache.jena.graph.GraphMemFactory;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Property;
@@ -165,7 +165,7 @@ public class StreamTripleHandler implements StreamRDF {
         }
 
         LOGGER.debug("Found triple with subject: {}", uri);
-        if (predicates.stream().anyMatch(triple::predicateMatches)) {
+        if (predicates.stream().anyMatch(triple.getPredicate()::equals)) {
             LOGGER.trace("Capturing object resource {} with predicate {}", uri, triple.getPredicate());
             if (!config.isIncludeBinaries()) {
                 try {
@@ -189,7 +189,7 @@ public class StreamTripleHandler implements StreamRDF {
                 return;
             }
         }
-        final Graph graph = Factory.createDefaultGraph();
+        final Graph graph = GraphMemFactory.createDefaultGraph();
         graph.add(triple);
         RDFDataMgr.write(outputStream, graph, rdfLanguage);
     }
@@ -203,6 +203,12 @@ public class StreamTripleHandler implements StreamRDF {
     @Override
     public void base(final String s) {
         LOGGER.trace("Base: {}", s);
+        // no-op
+    }
+
+    @Override
+    public void version(final String version) {
+        LOGGER.trace("Version: {}", version);
         // no-op
     }
 

@@ -18,19 +18,19 @@
 package org.fcrepo.importexport.common;
 
 import static org.fcrepo.importexport.common.TransferProcess.IMPORT_EXPORT_LOG_PREFIX;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.slf4j.helpers.NOPLogger.NOP_LOGGER;
 
 import java.io.File;
+
+import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.util.Map;
-
-import org.junit.Test;
 
 /**
  * @author dfield
