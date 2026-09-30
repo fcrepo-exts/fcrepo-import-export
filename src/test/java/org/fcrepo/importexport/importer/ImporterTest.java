@@ -67,6 +67,8 @@ public class ImporterTest {
     private FcrepoClient client;
     private FcrepoClient.FcrepoClientBuilder clientBuilder;
     private Config binaryArgs;
+    private Config binarySha256Args;
+    private Config binarySha512Args;
     private Config noBinaryArgs;
     private Config externalResourceArgs;
     private Config containerArgs;
@@ -74,6 +76,10 @@ public class ImporterTest {
     private Config bagItArgs;
     private URI binaryURI;
     private URI binaryDescriptionURI;
+    private URI binarySha256URI;
+    private URI binarySha256DescriptionURI;
+    private URI binarySha512URI;
+    private URI binarySha512DescriptionURI;
     private URI externalResourceURI;
     private URI externalResourceDescriptionURI;
     private URI containerURI;
@@ -85,6 +91,8 @@ public class ImporterTest {
 
     private FcrepoResponse conResponse;
     private PutBuilder binBuilder;
+    private PutBuilder binSha256Builder;
+    private PutBuilder binSha512Builder;
     private PutBuilder externalResourceBuilder;
     private GetBuilder getBuilder;
     private HeadBuilder headBuilder;
@@ -94,6 +102,11 @@ public class ImporterTest {
     public void setUp() throws Exception {
         binaryURI  = new URI("http://example.org:9999/rest/bin1");
         binaryDescriptionURI = new URI("http://example.org:9999/rest/bin1/fcr:metadata");
+        binarySha256URI  = new URI("http://example.org:9999/rest/bin1-sha256");
+        binarySha256DescriptionURI = new URI("http://example.org:9999/rest/bin1-sha256/fcr:metadata");
+        binarySha512URI  = new URI("http://example.org:9999/rest/bin1-sha512");
+        binarySha512DescriptionURI = new URI("http://example.org:9999/rest/bin1-sha512/fcr:metadata");
+
         externalResourceURI  = new URI("http://example.org:9999/rest/ext1");
         externalResourceDescriptionURI = new URI("http://example.org:9999/rest/ext1/fcr:metadata");
         containerURI = new URI("http://example.org:9999/rest/con1");
@@ -107,6 +120,22 @@ public class ImporterTest {
         binaryArgs.setRdfLanguage("application/ld+json");
         binaryArgs.setResource(new URI("http://example.org:9999/rest"));
         binaryArgs.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
+
+        binarySha256Args = new Config();
+        binarySha256Args.setMode("import");
+        binarySha256Args.setBaseDirectory("src/test/resources/sample/binary-sha256");
+        binarySha256Args.setIncludeBinaries(true);
+        binarySha256Args.setRdfLanguage("application/ld+json");
+        binarySha256Args.setResource(new URI("http://example.org:9999/rest"));
+        binarySha256Args.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
+
+        binarySha512Args = new Config();
+        binarySha512Args.setMode("import");
+        binarySha512Args.setBaseDirectory("src/test/resources/sample/binary-sha512");
+        binarySha512Args.setIncludeBinaries(true);
+        binarySha512Args.setRdfLanguage("application/ld+json");
+        binarySha512Args.setResource(new URI("http://example.org:9999/rest"));
+        binarySha512Args.setMap(new String[]{"http://localhost:8080/rest", "http://example.org:9999/rest"});
 
         noBinaryArgs = new Config();
         noBinaryArgs.setMode("import");
@@ -154,6 +183,8 @@ public class ImporterTest {
         finalContainerURI = new URI("http://example.org:9999/rest/ab/abc123");
 
         final List<URI> binLinks = Arrays.asList(binaryDescriptionURI);
+        final List<URI> binSha256Links = Arrays.asList(binarySha256DescriptionURI);
+        final List<URI> binSha512Links = Arrays.asList(binarySha512DescriptionURI);
         final List<URI> externalResourceLinks = Arrays.asList(externalResourceDescriptionURI);
 
         // mocks
@@ -186,12 +217,34 @@ public class ImporterTest {
         final FcrepoResponse binResponse = mock(FcrepoResponse.class);
         when(client.put(eq(binaryURI))).thenReturn(binBuilder);
         when(binBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(binBuilder);
-        when(binBuilder.digestSha1(isA(String.class))).thenReturn(binBuilder);
+        when(binBuilder.digest(isA(String.class), eq("sha"))).thenReturn(binBuilder);
         when(binBuilder.filename(any())).thenReturn(binBuilder);
         when(binBuilder.ifUnmodifiedSince(any())).thenReturn(binBuilder);
         when(binBuilder.perform()).thenReturn(binResponse);
         when(binResponse.getStatusCode()).thenReturn(201);
         when(binResponse.getLinkHeaders(eq("describedby"))).thenReturn(binLinks);
+
+        binSha256Builder = mock(PutBuilder.class);
+        final FcrepoResponse binSha256Response = mock(FcrepoResponse.class);
+        when(client.put(eq(binarySha256URI))).thenReturn(binSha256Builder);
+        when(binSha256Builder.body(isA(InputStream.class), isA(String.class))).thenReturn(binSha256Builder);
+        when(binSha256Builder.digest(isA(String.class), eq("sha256"))).thenReturn(binSha256Builder);
+        when(binSha256Builder.filename(any())).thenReturn(binSha256Builder);
+        when(binSha256Builder.ifUnmodifiedSince(any())).thenReturn(binSha256Builder);
+        when(binSha256Builder.perform()).thenReturn(binSha256Response);
+        when(binSha256Response.getStatusCode()).thenReturn(201);
+        when(binSha256Response.getLinkHeaders(eq("describedby"))).thenReturn(binSha256Links);
+
+        binSha512Builder = mock(PutBuilder.class);
+        final FcrepoResponse binSha512Response = mock(FcrepoResponse.class);
+        when(client.put(eq(binarySha512URI))).thenReturn(binSha512Builder);
+        when(binSha512Builder.body(isA(InputStream.class), isA(String.class))).thenReturn(binSha512Builder);
+        when(binSha512Builder.digest(isA(String.class), eq("sha512"))).thenReturn(binSha512Builder);
+        when(binSha512Builder.filename(any())).thenReturn(binSha512Builder);
+        when(binSha512Builder.ifUnmodifiedSince(any())).thenReturn(binSha512Builder);
+        when(binSha512Builder.perform()).thenReturn(binSha512Response);
+        when(binSha512Response.getStatusCode()).thenReturn(201);
+        when(binSha512Response.getLinkHeaders(eq("describedby"))).thenReturn(binSha512Links);
 
         // mock external resource interactions
         externalResourceBuilder = mock(PutBuilder.class);
@@ -214,6 +267,8 @@ public class ImporterTest {
         when(client.put(eq(pairtreeURI))).thenReturn(putBuilder);
         when(client.put(eq(finalContainerURI))).thenReturn(putBuilder);
         when(client.put(eq(binaryDescriptionURI))).thenReturn(putBuilder);
+        when(client.put(eq(binarySha256DescriptionURI))).thenReturn(putBuilder);
+        when(client.put(eq(binarySha512DescriptionURI))).thenReturn(putBuilder);
         when(client.put(eq(externalResourceDescriptionURI))).thenReturn(putBuilder);
         when(putBuilder.body(isA(InputStream.class), isA(String.class))).thenReturn(putBuilder);
         when(putBuilder.preferLenient()).thenReturn(putBuilder);
@@ -228,9 +283,29 @@ public class ImporterTest {
         final Importer importer = new Importer(binaryArgs, clientBuilder);
         importer.run();
         verify(client).put(binaryURI);
-        verify(binBuilder).digestSha1(eq("2a6d6229e30f667c60d406f7bf44d834e52d11b7"));
+        verify(binBuilder).digest(eq("2a6d6229e30f667c60d406f7bf44d834e52d11b7"), eq("sha"));
         verify(binBuilder).body(isA(InputStream.class), eq("application/x-www-form-urlencoded"));
         verify(client).put(binaryDescriptionURI);
+    }
+
+    @Test
+    public void testImportBinarySha256() throws Exception {
+        final Importer importer = new Importer(binarySha256Args, clientBuilder);
+        importer.run();
+        verify(client).put(binarySha256URI);
+        verify(binSha256Builder).digest(eq("ff69f598bfef13ae4bf21ed6fd59fc3da5a9b4000f179d6e6d4049290db18a34"), eq("sha256"));
+        verify(binSha256Builder).body(isA(InputStream.class), eq("application/x-www-form-urlencoded"));
+        verify(client).put(binarySha256DescriptionURI);
+    }
+
+    @Test
+    public void testImportBinarySha512() throws Exception {
+        final Importer importer = new Importer(binarySha512Args, clientBuilder);
+        importer.run();
+        verify(client).put(binarySha512URI);
+        verify(binSha512Builder).digest(eq("6943a10a0d92c126af2bdcc4b4e11b81e9e2cf61de4f8d1663bf419a31293f25372b7edb19bdf5fd967152ce035694effe1b1e370c5e651a7213f81f4ec55c37"), eq("sha512"));
+        verify(binSha512Builder).body(isA(InputStream.class), eq("application/x-www-form-urlencoded"));
+        verify(client).put(binarySha512DescriptionURI);
     }
 
     @Test
