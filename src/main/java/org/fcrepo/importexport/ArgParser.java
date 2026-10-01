@@ -27,6 +27,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,10 +37,11 @@ import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.help.HelpFormatter;
+import org.apache.commons.cli.help.TextHelpAppendable;
 import org.duraspace.bagit.profile.BagProfile;
 import org.fcrepo.client.FcrepoClient;
 import org.fcrepo.importexport.common.Config;
@@ -590,19 +592,29 @@ public class ArgParser {
      * @param message the message or null for none
      */
     private void printHelp(final String message) {
-        final HelpFormatter formatter = new HelpFormatter();
         final PrintWriter writer = new PrintWriter(System.out);
+        final TextHelpAppendable appendable = new TextHelpAppendable(writer);
+        appendable.setMaxWidth(80);
+        final HelpFormatter formatter = HelpFormatter.builder()
+                .setHelpAppendable(appendable)
+                .setShowSince(false)
+                .setComparator(HelpFormatter.DEFAULT_COMPARATOR)
+                .get();
         if (message != null) {
             writer.println("\n-----------------------\n" + message + "\n-----------------------\n");
         }
 
-        writer.println("Running Import/Export Utility from command line arguments");
-        formatter.printHelp(writer, 80, "java -jar import-export-driver.jar", "", configOptions, 4, 4, "", true);
+        try {
+            writer.println("Running Import/Export Utility from command line arguments");
+            formatter.printHelp("java -jar import-export-driver.jar", "", formatter.sort(configOptions), "", true);
 
-        writer.println("\n--- or ---\n");
+            writer.println("\n--- or ---\n");
 
-        writer.println("Running Import/Export Utility from configuration file");
-        formatter.printHelp(writer, 80, "java -jar import-export-driver.jar", "", configFileOptions, 4, 4, "", true);
+            writer.println("Running Import/Export Utility from configuration file");
+            formatter.printHelp("java -jar import-export-driver.jar", "", formatter.sort(configFileOptions), "", true);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
 
         writer.println("\n");
         writer.flush();
