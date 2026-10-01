@@ -78,7 +78,7 @@ public class ArgParser {
                 .hasArg(false)
                 .desc("Print these options")
                 .required(false)
-                .build());
+                .get());
 
         // Mode option
         configOptions.addOption(Option.builder("m")
@@ -86,21 +86,21 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("mode")
                 .desc("Mode: [import|export]")
                 .required(true)
-                .build());
+                .get());
 
         // Resource option
         configOptions.addOption(Option.builder("r")
                 .longOpt("resource")
                 .hasArg(true).numberOfArgs(1).argName("resource")
                 .desc("Resource (URI) to import/export")
-                .required(false).build());
+                .required(false).get());
 
         // Resources file
         configOptions.addOption(Option.builder("f")
                 .longOpt("resourcesFile")
                 .hasArg(true).numberOfArgs(1).argName("path")
                 .desc("Path to a file that contains a list of resources to export")
-                .required(false).build());
+                .required(false).get());
 
         // Source Resource option
         configOptions.addOption(Option.builder("M")
@@ -109,49 +109,49 @@ public class ArgParser {
                 .valueSeparator(',')
                 .required(false)
                 .desc("Old and new base URIs, separated by comma, to map URIs when importing")
-                .build());
+                .get());
 
         // Base Directory option
         configOptions.addOption(Option.builder("d")
                 .longOpt("dir")
                 .hasArg(true).numberOfArgs(1).argName("dir")
                 .desc("The directory to export repo to or import the repo from.")
-                .required(true).build());
+                .required(true).get());
 
         // Import/export binaries option
         configOptions.addOption(Option.builder("b")
                 .longOpt("binaries")
                 .hasArg(false)
                 .desc("When present this flag indicates that binaries should be imported/exported.")
-                .required(false).build());
+                .required(false).get());
 
         // Import/export acl option
         configOptions.addOption(Option.builder()
                 .longOpt("acls")
                 .hasArg(false)
                 .desc("When present this flag indicates that acls should be imported/exported.")
-                .required(false).build());
+                .required(false).get());
 
         // Retrieve external content
         configOptions.addOption(Option.builder("x")
                 .longOpt("external")
                 .hasArg(false)
                 .desc("When present this flag indicates that external content should be exported.")
-                .required(false).build());
+                .required(false).get());
 
         // Retrieve inbound references
         configOptions.addOption(Option.builder("i")
                 .longOpt("inbound")
                 .hasArg(false)
                 .desc("When present this flag indicates that inbound references should be exported.")
-                .required(false).build());
+                .required(false).get());
 
         // Include membership
         configOptions.addOption(Option.builder()
                 .longOpt("membership")
                 .hasArg(false)
                 .desc("When present this flag indicates that membership references should be exported.")
-                .required(false).build());
+                .required(false).get());
 
         // Write config file
         configOptions.addOption(Option.builder("w")
@@ -159,14 +159,14 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1).argName("writeConfig")
                 .desc("When present this flag indicates that a sample config should be written at the" +
                        " specified filename.")
-                .required(false).build());
+                .required(false).get());
 
         // Overwrite Tombstones
         configOptions.addOption(Option.builder("t")
                  .longOpt("overwriteTombstones")
                  .hasArg(false)
                  .desc("When importing, overwrite \"tombstones\" left behind after resources were deleted.")
-                 .required(false).build());
+                 .required(false).get());
 
         // Thread count
         configOptions.addOption(Option.builder("T")
@@ -174,7 +174,7 @@ public class ArgParser {
                  .hasArg(true).numberOfArgs(1).argName("num")
                  .desc("Specifies the number of threads to use when exporting resources." +
                          " By default, one less than the number of available processors will be used.")
-                 .required(false).build());
+                 .required(false).get());
 
         // Legacy Mode option
         configOptions.addOption(Option.builder("L")
@@ -182,21 +182,21 @@ public class ArgParser {
                 .hasArg(false)
                 .desc("When importing, omit certain server-managed-triples that aren't modifiable in old" +
                         " versions of fedora.")
-                .required(false).build());
+                .required(false).get());
 
         // Include versions
         configOptions.addOption(Option.builder("V")
                  .longOpt("versions")
                  .hasArg(false)
                  .desc("When exporting, include versions of resources and binaries.")
-                 .required(false).build());
+                 .required(false).get());
 
         // RDF language option
         configOptions.addOption(Option.builder("l")
                 .longOpt("rdfLang")
                 .hasArg(true).numberOfArgs(1).argName("rdfLang")
                 .desc("RDF language (default: " + Config.DEFAULT_RDF_LANG + ")")
-                .required(false).build());
+                .required(false).get());
 
         // containment predicates
         configOptions.addOption(Option.builder("p")
@@ -205,7 +205,7 @@ public class ArgParser {
                 .valueSeparator(',')
                 .required(false)
                 .desc("Comma-separated list of predicates to define resource containment")
-                .build());
+                .get());
 
         // bagit creation
         configOptions.addOption(Option.builder("g")
@@ -214,28 +214,28 @@ public class ArgParser {
                 .required(false)
                 .desc("Export and import BagIt bags using profile [default|aptrust|metaarchive|perseids|\n" +
                       "beyondtherepository]")
-                .build());
+                .get());
 
         configOptions.addOption(Option.builder("G")
                 .longOpt(BAG_CONFIG_OPTION_KEY).argName("path")
                 .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc("Path to the bag config file")
-                .build());
+                .get());
 
         configOptions.addOption(Option.builder()
                 .longOpt("bag-algorithms").argName("algorithms")
                 .hasArgs().valueSeparator(',')
                 .required(false)
                 .desc("Comma separated list of algorithms to use when creating a BagIt export")
-                .build());
+                .get());
 
         configOptions.addOption(Option.builder()
                 .longOpt("streaming").argName("streaming")
                 .hasArg(false)
                 .required(false)
                 .desc("Use streaming mode for export, implies rdfLang set to application/n-triples" )
-                .build());
+                .get());
 
         // create the description for the serialization option
         // this shows which options are available for each of the built in BagProfiles
@@ -270,7 +270,7 @@ public class ArgParser {
                 .hasArg(true).numberOfArgs(1)
                 .required(false)
                 .desc(serializationDesc.toString())
-                .build());
+                .get());
 
         configOptions.addOption(Option.builder("R")
                 .longOpt("repositoryRoot").argName("uri")
@@ -278,13 +278,13 @@ public class ArgParser {
                 .required(false)
                 .desc("When exporting, use this URI as the repository root; " +
                         "if not given, export will attempt to automatically determine the repository root")
-                .build());
+                .get());
 
         // username option
         final Option userOption = Option.builder("u")
                 .longOpt("user")
                 .hasArg(true).numberOfArgs(1).argName("user")
-                .desc("username:password for fedora basic authentication").build();
+                .desc("username:password for fedora basic authentication").get();
         configOptions.addOption(userOption);
         configFileOptions.addOption(userOption);
 
@@ -293,18 +293,18 @@ public class ArgParser {
                 .longOpt("config")
                 .hasArg(true).numberOfArgs(1).argName("config")
                 .desc("Path to config file")
-                .required(true).build());
+                .required(true).get());
 
         configOptions.addOption(Option.builder("a")
                 .longOpt("auditLog")
                 .desc("Enable audit log creation, disabled by default")
-                .required(false).build());
+                .required(false).get());
 
         configOptions.addOption(Option.builder()
                 .longOpt("skip-tombstones")
                 .required(false)
                 .desc("Skip tombstones errors during export, disabled by default")
-                .build());
+                .get());
 
     }
 
